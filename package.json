@@ -1,13 +1,12 @@
 {
   "name": "file-upload-server",
   "version": "1.0.0",
-  "description": "A server to upload JSON and image files to Google Cloud Storage",
+  "description": "A server to upload JSON and image files to local file system",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js"
   },
   "dependencies": {
-    "@google-cloud/storage": "^6.9.0",
     "express": "^4.17.1",
     "multer": "^1.4.2"
   }
