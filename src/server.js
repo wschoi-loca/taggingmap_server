@@ -38,6 +38,9 @@ app.post('/upload-image', upload.single('imageFile'), (req, res) => {
   res.send({ message: 'Image file uploaded successfully', file: req.file });
 });
 
+// 정적 파일 제공
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // 서버 시작
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
