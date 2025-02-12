@@ -2,14 +2,13 @@ const express = require('express');
 const multer = require('multer');
 const { Storage } = require('@google-cloud/storage');
 const path = require('path');
-const fs = require('fs');
 
 const app = express();
 const PORT = 3000;
 
 // Google Cloud Storage 설정
 const storage = new Storage({
-  keyFilename: path.join(__dirname, 'serviceAccountKey.json'),
+  keyFilename: path.join(__dirname, '../serviceAccountKey.json'),
   projectId: 'your-project-id',
 });
 
