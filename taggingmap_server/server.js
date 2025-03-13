@@ -2,9 +2,12 @@ const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const multer = require('multer');
+const path = require('path');
+const { v4: uuidv4 } = require('uuid');
+const Page = require('./models/Page');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(bodyParser.json({ limit: '50mb' }));
@@ -13,55 +16,58 @@ app.use(cors());
 
 // MongoDB connection
 mongoose.connect('mongodb://localhost:27017/pageCaptureSystem', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
 });
 
 const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
 db.once('open', () => {
-  console.log('Connected to MongoDB');
+    console.log('Connected to MongoDB');
 });
 
-// Schema and Model
-const pageSchema = new mongoose.Schema({
-  SHOT_NUMBER: Number,
-  EVENTNAME: String,
-  PAGEPATH: String,
-  PAGETITLE: String,
-  TIME: String,
-  LABEL_TEXT: String,
-  CONTENT_NM: String,
-  PAGE_MKT_CONTS_ID: String,
-  SUB_CONTENT_ID: String,
-  CATEGORY_DEPTH1: String,
-  CATEGORY_DEPTH2: String,
-  CARD_NAME: String,
-  HORIZONTAL_INDEX: String
+// Multer setup for file uploads
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'uploads/');
+    },
+    filename: (req, file, cb) => {
+        cb(null, uuidv4() + path.extname(file.originalname));
+    },
 });
-
-const Page = mongoose.model('Page', pageSchema);
+const upload = multer({ storage: storage });
 
 // Routes
-app.post('/api/pages', async (req, res) => {
-  try {
-    const pageData = req.body;
-    await Page.create(pageData);
-    res.status(201).send({ message: 'Page data saved successfully' });
-  } catch (error) {
-    res.status(500).send({ message: 'Error saving page data', error });
-  }
+app.post('/api/pages', upload.single('image'), async (req, res) => {
+    try {
+        const { jsonData } = req.body;
+        const image = req.file.path;
+
+        const newPage = new Page({
+            jsonData: JSON.parse(jsonData),
+            image: image,
+            timestamp: new Date().toISOString(),
+        });
+
+        await newPage.save();
+        res.status(200).send('Page data saved successfully');
+    } catch (error) {
+        console.error('Error saving page data:', error);
+        res.status(500).send('Error saving page data');
+    }
 });
 
 app.get('/api/pages', async (req, res) => {
-  try {
-    const pages = await Page.find();
-    res.status(200).json(pages);
-  } catch (error) {
-    res.status(500).send({ message: 'Error fetching pages', error });
-  }
+    try {
+        const pages = await Page.find();
+        res.json(pages);
+    } catch (error) {
+        console.error('Error fetching pages:', error);
+        res.status(500).send('Error fetching pages');
+    }
 });
 
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+    console.log(`Server is running on port ${PORT}`);
 });

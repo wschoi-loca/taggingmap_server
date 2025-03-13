@@ -1,30 +1,21 @@
 <template>
   <div id="app">
     <h1>Page Capture System</h1>
-    <input type="file" @change="handleFileUpload" />
-    <table v-if="pages.length">
+    <table>
       <thead>
         <tr>
-          <th>SHOT_NUMBER</th>
-          <th>EVENTNAME</th>
-          <th>PAGEPATH</th>
-          <th>PAGETITLE</th>
-          <th>TIME</th>
-          <th>LABEL_TEXT</th>
-          <th>CATEGORY_DEPTH1</th>
-          <th>CATEGORY_DEPTH2</th>
+          <th>Image</th>
+          <th>Title</th>
+          <th>URL</th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="page in pages" :key="page._id">
-          <td>{{ page.SHOT_NUMBER }}</td>
-          <td>{{ page.EVENTNAME }}</td>
-          <td>{{ page.PAGEPATH }}</td>
-          <td>{{ page.PAGETITLE }}</td>
-          <td>{{ page.TIME }}</td>
-          <td>{{ page.LABEL_TEXT }}</td>
-          <td>{{ page.CATEGORY_DEPTH1 }}</td>
-          <td>{{ page.CATEGORY_DEPTH2 }}</td>
+          <td>
+            <img :src="`http://localhost:5000/${page.image}`" alt="Captured Image" width="100" />
+          </td>
+          <td>{{ page.jsonData.title }}</td>
+          <td><a :href="page.jsonData.url" target="_blank">{{ page.jsonData.url }}</a></td>
         </tr>
       </tbody>
     </table>
@@ -52,22 +43,6 @@ export default {
       } catch (error) {
         console.error('Error fetching pages:', error);
       }
-    },
-    async handleFileUpload(event) {
-      const file = event.target.files[0];
-      if (file) {
-        try {
-          const reader = new FileReader();
-          reader.onload = async (e) => {
-            const jsonData = JSON.parse(e.target.result);
-            await axios.post('http://localhost:5000/api/pages', jsonData);
-            this.fetchPages(); // Refresh the pages after upload
-          };
-          reader.readAsText(file);
-        } catch (error) {
-          console.error('Error uploading file:', error);
-        }
-      }
     }
   }
 };
@@ -91,5 +66,9 @@ table {
 th, td {
   border: 1px solid #ccc;
   padding: 10px;
+}
+
+img {
+  max-width: 100px;
 }
 </style>
