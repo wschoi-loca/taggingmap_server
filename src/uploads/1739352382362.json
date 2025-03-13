@@ -1,0 +1,478 @@
+[
+  {
+    "SHOT_NUMBER": 1,
+    "EVENTNAME": "cts_click",
+    "PAGEPATH": "https://tlocashop.lottecard.co.kr/main/",
+    "PAGETITLE": "main",
+    "SHOT_KEY": "tlocashop.lottecard.co.kr_main_1",
+    "eventParameter": {
+      "label_text": "띵샵 - 홈"
+    }
+  },
+  {
+    "SHOT_NUMBER": 2,
+    "EVENTNAME": "cts_click",
+    "PAGEPATH": "https://tlocashop.lottecard.co.kr/main/",
+    "PAGETITLE": "main",
+    "SHOT_KEY": "tlocashop.lottecard.co.kr_main_2",
+    "eventParameter": {
+      "label_text": "전체메뉴"
+    }
+  },
+  {
+    "SHOT_NUMBER": 3,
+    "EVENTNAME": "cts_click",
+    "PAGEPATH": "https://tlocashop.lottecard.co.kr/main/",
+    "PAGETITLE": "main",
+    "SHOT_KEY": "tlocashop.lottecard.co.kr_main_3",
+    "eventParameter": {
+      "label_text": "장바구니"
+    }
+  },
+  {
+    "SHOT_NUMBER": 4,
+    "EVENTNAME": "cts_click",
+    "PAGEPATH": "https://tlocashop.lottecard.co.kr/main/",
+    "PAGETITLE": "main",
+    "SHOT_KEY": "tlocashop.lottecard.co.kr_main_4",
+    "eventParameter": {
+      "label_text": "마이페이지"
+    }
+  },
+  {
+    "SHOT_NUMBER": 5,
+    "EVENTNAME": "cts_click",
+    "PAGEPATH": "https://tlocashop.lottecard.co.kr/main/",
+    "PAGETITLE": "main",
+    "SHOT_KEY": "tlocashop.lottecard.co.kr_main_5",
+    "eventParameter": {
+      "label_text": "홈"
+    }
+  },
+  {
+    "SHOT_NUMBER": 6,
+    "EVENTNAME": "cts_click",
+    "PAGEPATH": "https://tlocashop.lottecard.co.kr/main/",
+    "PAGETITLE": "main",
+    "SHOT_KEY": "tlocashop.lottecard.co.kr_main_6",
+    "eventParameter": {
+      "label_text": "취향"
+    }
+  },
+  {
+    "SHOT_NUMBER": 7,
+    "EVENTNAME": "cts_click",
+    "PAGEPATH": "https://tlocashop.lottecard.co.kr/main/",
+    "PAGETITLE": "main",
+    "SHOT_KEY": "tlocashop.lottecard.co.kr_main_7",
+    "eventParameter": {
+      "label_text": "크리스마스"
+    }
+  },
+  {
+    "SHOT_NUMBER": 8,
+    "EVENTNAME": "cts_click",
+    "PAGEPATH": "https://tlocashop.lottecard.co.kr/main/",
+    "PAGETITLE": "main",
+    "SHOT_KEY": "tlocashop.lottecard.co.kr_main_8",
+    "eventParameter": {
+      "label_text": "환승"
+    }
+  },
+  {
+    "SHOT_NUMBER": 9,
+    "EVENTNAME": "cts_click",
+    "PAGEPATH": "https://tlocashop.lottecard.co.kr/main/",
+    "PAGETITLE": "main",
+    "SHOT_KEY": "tlocashop.lottecard.co.kr_main_9",
+    "eventParameter": {
+      "label_text": "무이자"
+    }
+  },
+  {
+    "SHOT_NUMBER": 10,
+    "EVENTNAME": "cts_click",
+    "PAGEPATH": "https://tlocashop.lottecard.co.kr/main/",
+    "PAGETITLE": "main",
+    "SHOT_KEY": "tlocashop.lottecard.co.kr_main_10",
+    "eventParameter": {
+      "label_text": "발견 에디션"
+    }
+  },
+  {
+    "SHOT_NUMBER": 11,
+    "EVENTNAME": "cts_click",
+    "PAGEPATH": "https://tlocashop.lottecard.co.kr/main/",
+    "PAGETITLE": "main",
+    "SHOT_KEY": "tlocashop.lottecard.co.kr_main_11",
+    "eventParameter": {
+      "label_text": "베스트"
+    }
+  },
+  {
+    "SHOT_NUMBER": 12,
+    "EVENTNAME": "cts_click",
+    "PAGEPATH": "https://tlocashop.lottecard.co.kr/main/",
+    "PAGETITLE": "main",
+    "SHOT_KEY": "tlocashop.lottecard.co.kr_main_12",
+    "eventParameter": {
+      "label_text": "생활+"
+    }
+  },
+  {
+    "SHOT_NUMBER": 13,
+    "EVENTNAME": "cts_click",
+    "PAGEPATH": "https://tlocashop.lottecard.co.kr/main/",
+    "PAGETITLE": "main",
+    "SHOT_KEY": "tlocashop.lottecard.co.kr_main_13",
+    "eventParameter": {
+      "label_text": "모바일교환권"
+    }
+  },
+  {
+    "SHOT_NUMBER": 14,
+    "EVENTNAME": "cts_click",
+    "PAGEPATH": "https://tlocashop.lottecard.co.kr/main/",
+    "PAGETITLE": "main",
+    "SHOT_KEY": "tlocashop.lottecard.co.kr_main_14",
+    "eventParameter": {
+      "label_text": "타임딜test"
+    }
+  },
+  {
+    "SHOT_NUMBER": 15,
+    "EVENTNAME": "cts_click",
+    "PAGEPATH": "https://tlocashop.lottecard.co.kr/main/",
+    "PAGETITLE": "main",
+    "SHOT_KEY": "tlocashop.lottecard.co.kr_main_15",
+    "eventParameter": {
+      "label_text": "",
+      "page_mkt_conts_id": "2081",
+      "content_nm": "",
+      "horizontal_index": "000",
+      "category_depth1": "2081",
+      "category_depth2": ""
+    }
+  },
+  {
+    "SHOT_NUMBER": 16,
+    "EVENTNAME": "cts_click",
+    "PAGEPATH": "https://tlocashop.lottecard.co.kr/main/",
+    "PAGETITLE": "main",
+    "SHOT_KEY": "tlocashop.lottecard.co.kr_main_16",
+    "eventParameter": {
+      "label_text": "",
+      "page_mkt_conts_id": "2081",
+      "content_nm": "",
+      "horizontal_index": "000",
+      "category_depth1": "2081",
+      "category_depth2": ""
+    }
+  },
+  {
+    "SHOT_NUMBER": 17,
+    "EVENTNAME": "cts_click",
+    "PAGEPATH": "https://tlocashop.lottecard.co.kr/main/",
+    "PAGETITLE": "main",
+    "SHOT_KEY": "tlocashop.lottecard.co.kr_main_17",
+    "eventParameter": {
+      "label_text": "오메가, 구찌\\n환승을 해볼까요...",
+      "page_mkt_conts_id": "2081",
+      "content_nm": "오메가, 구찌\\n환승을 해볼까요...",
+      "horizontal_index": "000",
+      "category_depth1": "2081",
+      "category_depth2": ""
+    }
+  },
+  {
+    "SHOT_NUMBER": 18,
+    "EVENTNAME": "cts_click",
+    "PAGEPATH": "https://tlocashop.lottecard.co.kr/main/",
+    "PAGETITLE": "main",
+    "SHOT_KEY": "tlocashop.lottecard.co.kr_main_18",
+    "eventParameter": {
+      "label_text": "집안을 향기롭게 양키캔들!",
+      "page_mkt_conts_id": "2081",
+      "content_nm": "집안을 향기롭게 양키캔들!",
+      "horizontal_index": "000",
+      "category_depth1": "2081",
+      "category_depth2": ""
+    }
+  },
+  {
+    "SHOT_NUMBER": 19,
+    "EVENTNAME": "cts_click",
+    "PAGEPATH": "https://tlocashop.lottecard.co.kr/main/",
+    "PAGETITLE": "main",
+    "SHOT_KEY": "tlocashop.lottecard.co.kr_main_19",
+    "eventParameter": {
+      "label_text": "재생/정지",
+      "content_nm": "빅이미지배너_코너 재생/정지",
+      "category_depth1": "2081",
+      "category_depth2": "",
+      "horizontal_index": "000"
+    }
+  },
+  {
+    "SHOT_NUMBER": 20,
+    "EVENTNAME": "cts_click",
+    "PAGEPATH": "https://tlocashop.lottecard.co.kr/main/",
+    "PAGETITLE": "main",
+    "SHOT_KEY": "tlocashop.lottecard.co.kr_main_20",
+    "eventParameter": {
+      "label_text": "첫구매 쿠폰",
+      "page_mkt_conts_id": 0,
+      "content_nm": "첫구매 쿠폰",
+      "horizontal_index": "002",
+      "category_depth1": "2781",
+      "category_depth2": ""
+    }
+  },
+  {
+    "SHOT_NUMBER": 21,
+    "EVENTNAME": "cts_click",
+    "PAGEPATH": "https://tlocashop.lottecard.co.kr/main/",
+    "PAGETITLE": "main",
+    "SHOT_KEY": "tlocashop.lottecard.co.kr_main_21",
+    "eventParameter": {
+      "label_text": "1일 1띵",
+      "page_mkt_conts_id": 1,
+      "content_nm": "1일 1띵",
+      "horizontal_index": "002",
+      "category_depth1": "2781",
+      "category_depth2": ""
+    }
+  },
+  {
+    "SHOT_NUMBER": 22,
+    "EVENTNAME": "cts_click",
+    "PAGEPATH": "https://tlocashop.lottecard.co.kr/main/",
+    "PAGETITLE": "main",
+    "SHOT_KEY": "tlocashop.lottecard.co.kr_main_22",
+    "eventParameter": {
+      "label_text": "환승핫딜",
+      "page_mkt_conts_id": 2,
+      "content_nm": "환승핫딜",
+      "horizontal_index": "002",
+      "category_depth1": "2781",
+      "category_depth2": ""
+    }
+  },
+  {
+    "SHOT_NUMBER": 23,
+    "EVENTNAME": "cts_click",
+    "PAGEPATH": "https://tlocashop.lottecard.co.kr/main/",
+    "PAGETITLE": "main",
+    "SHOT_KEY": "tlocashop.lottecard.co.kr_main_23",
+    "eventParameter": {
+      "label_text": "타임딜",
+      "page_mkt_conts_id": 3,
+      "content_nm": "타임딜",
+      "horizontal_index": "002",
+      "category_depth1": "2781",
+      "category_depth2": ""
+    }
+  },
+  {
+    "SHOT_NUMBER": 24,
+    "EVENTNAME": "cts_click",
+    "PAGEPATH": "https://tlocashop.lottecard.co.kr/main/",
+    "PAGETITLE": "main",
+    "SHOT_KEY": "tlocashop.lottecard.co.kr_main_24",
+    "eventParameter": {
+      "label_text": "모바일교환권",
+      "page_mkt_conts_id": 4,
+      "content_nm": "모바일교환권",
+      "horizontal_index": "002",
+      "category_depth1": "2781",
+      "category_depth2": ""
+    }
+  },
+  {
+    "SHOT_NUMBER": 25,
+    "EVENTNAME": "cts_click",
+    "PAGEPATH": "https://tlocashop.lottecard.co.kr/main/",
+    "PAGETITLE": "main",
+    "SHOT_KEY": "tlocashop.lottecard.co.kr_main_25",
+    "eventParameter": {
+      "label_text": "렌탈",
+      "page_mkt_conts_id": 5,
+      "content_nm": "렌탈",
+      "horizontal_index": "002",
+      "category_depth1": "2781",
+      "category_depth2": ""
+    }
+  },
+  {
+    "SHOT_NUMBER": 26,
+    "EVENTNAME": "cts_click",
+    "PAGEPATH": "https://tlocashop.lottecard.co.kr/main/",
+    "PAGETITLE": "main",
+    "SHOT_KEY": "tlocashop.lottecard.co.kr_main_26",
+    "eventParameter": {
+      "label_text": "오픈런",
+      "page_mkt_conts_id": 6,
+      "content_nm": "오픈런",
+      "horizontal_index": "002",
+      "category_depth1": "2781",
+      "category_depth2": ""
+    }
+  },
+  {
+    "SHOT_NUMBER": 27,
+    "EVENTNAME": "cts_click",
+    "PAGEPATH": "https://tlocashop.lottecard.co.kr/main/",
+    "PAGETITLE": "main",
+    "SHOT_KEY": "tlocashop.lottecard.co.kr_main_27",
+    "eventParameter": {
+      "label_text": "모바일교환권",
+      "page_mkt_conts_id": 7,
+      "content_nm": "모바일교환권",
+      "horizontal_index": "002",
+      "category_depth1": "2781",
+      "category_depth2": ""
+    }
+  },
+  {
+    "SHOT_NUMBER": 28,
+    "EVENTNAME": "cts_click",
+    "PAGEPATH": "https://tlocashop.lottecard.co.kr/main/",
+    "PAGETITLE": "main",
+    "SHOT_KEY": "tlocashop.lottecard.co.kr_main_28",
+    "eventParameter": {
+      "label_text": "국가바우처",
+      "page_mkt_conts_id": 8,
+      "content_nm": "국가바우처",
+      "horizontal_index": "002",
+      "category_depth1": "2781",
+      "category_depth2": ""
+    }
+  },
+  {
+    "SHOT_NUMBER": 29,
+    "EVENTNAME": "cts_click",
+    "PAGEPATH": "https://tlocashop.lottecard.co.kr/main/",
+    "PAGETITLE": "main",
+    "SHOT_KEY": "tlocashop.lottecard.co.kr_main_29",
+    "eventParameter": {
+      "label_text": "최저가 도전",
+      "page_mkt_conts_id": 9,
+      "content_nm": "최저가 도전",
+      "horizontal_index": "002",
+      "category_depth1": "2781",
+      "category_depth2": ""
+    }
+  },
+  {
+    "SHOT_NUMBER": 30,
+    "EVENTNAME": "cts_click",
+    "PAGEPATH": "https://tlocashop.lottecard.co.kr/main/",
+    "PAGETITLE": "main",
+    "SHOT_KEY": "tlocashop.lottecard.co.kr_main_30",
+    "eventParameter": {
+      "label_text": "제휴몰",
+      "page_mkt_conts_id": 10,
+      "content_nm": "제휴몰",
+      "horizontal_index": "002",
+      "category_depth1": "2781",
+      "category_depth2": ""
+    }
+  },
+  {
+    "SHOT_NUMBER": 31,
+    "EVENTNAME": "cts_click",
+    "PAGEPATH": "https://tlocashop.lottecard.co.kr/main/",
+    "PAGETITLE": "main",
+    "SHOT_KEY": "tlocashop.lottecard.co.kr_main_31",
+    "eventParameter": {
+      "label_text": "1일 1띵",
+      "page_mkt_conts_id": "2111",
+      "content_nm": "1일 1띵",
+      "horizontal_index": "004",
+      "category_depth1": "2111",
+      "category_depth2": ""
+    }
+  },
+  {
+    "SHOT_NUMBER": 32,
+    "EVENTNAME": "cts_click",
+    "PAGEPATH": "https://tlocashop.lottecard.co.kr/main/",
+    "PAGETITLE": "main",
+    "SHOT_KEY": "tlocashop.lottecard.co.kr_main_32",
+    "eventParameter": {
+      "label_text": "MD's Pick\\n까다롭게 엄선했어요",
+      "page_mkt_conts_id": "2121",
+      "content_nm": "MD's Pick\\n까다롭게 엄선했어요",
+      "horizontal_index": "010",
+      "category_depth1": "2121",
+      "category_depth2": "MD pick 타이틀"
+    }
+  },
+  {
+    "SHOT_NUMBER": 33,
+    "EVENTNAME": "cts_click",
+    "PAGEPATH": "https://tlocashop.lottecard.co.kr/main/",
+    "PAGETITLE": "main",
+    "SHOT_KEY": "tlocashop.lottecard.co.kr_main_33",
+    "eventParameter": {
+      "label_text": "가전",
+      "horizontal_index": "011",
+      "category_depth1": "2122",
+      "category_depth2": "MD pick 상품"
+    }
+  },
+  {
+    "SHOT_NUMBER": 34,
+    "EVENTNAME": "cts_click",
+    "PAGEPATH": "https://tlocashop.lottecard.co.kr/main/",
+    "PAGETITLE": "main",
+    "SHOT_KEY": "tlocashop.lottecard.co.kr_main_34",
+    "eventParameter": {
+      "label_text": "가구",
+      "horizontal_index": "011",
+      "category_depth1": "2122",
+      "category_depth2": "MD pick 상품"
+    }
+  },
+  {
+    "SHOT_NUMBER": 35,
+    "EVENTNAME": "cts_click",
+    "PAGEPATH": "https://tlocashop.lottecard.co.kr/main/",
+    "PAGETITLE": "main",
+    "SHOT_KEY": "tlocashop.lottecard.co.kr_main_35",
+    "eventParameter": {
+      "label_text": "럭셔리",
+      "horizontal_index": "011",
+      "category_depth1": "2122",
+      "category_depth2": "MD pick 상품"
+    }
+  },
+  {
+    "SHOT_NUMBER": 36,
+    "EVENTNAME": "cts_click",
+    "PAGEPATH": "https://tlocashop.lottecard.co.kr/main/",
+    "PAGETITLE": "main",
+    "SHOT_KEY": "tlocashop.lottecard.co.kr_main_36",
+    "eventParameter": {
+      "label_text": "주방",
+      "horizontal_index": "011",
+      "category_depth1": "2122",
+      "category_depth2": "MD pick 상품"
+    }
+  },
+  {
+    "SHOT_NUMBER": 37,
+    "EVENTNAME": "cts_click",
+    "PAGEPATH": "https://tlocashop.lottecard.co.kr/main/",
+    "PAGETITLE": "main",
+    "SHOT_KEY": "tlocashop.lottecard.co.kr_main_37",
+    "eventParameter": {
+      "label_text": "MD요청 구좌 추가 ",
+      "page_mkt_conts_id": "2982",
+      "content_nm": "MD요청 구좌 추가 ",
+      "horizontal_index": "020",
+      "category_depth1": "2982",
+      "category_depth2": "추가 전시 기획 MD piick2 "
+    }
+  }
+]
