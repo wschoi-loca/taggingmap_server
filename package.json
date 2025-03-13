@@ -1,7 +1,7 @@
 {
-  "name": "page-capture-system",
+  "name": "taggingmap_server",
   "version": "1.0.0",
-  "description": "A system to store and retrieve page titles, URLs, and capture images using MongoDB and JavaScript.",
+  "description": "",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
