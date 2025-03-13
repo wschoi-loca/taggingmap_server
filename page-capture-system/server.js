@@ -7,14 +7,12 @@ const pages = require('./routes/pages');
 const app = express();
 
 // Middleware
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: '50mb' })); // 본문 크기 제한을 50MB로 설정
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true })); // URL 인코딩된 데이터의 본문 크기 제한을 50MB로 설정
 app.use(cors());
 
 // MongoDB connection
-mongoose.connect('mongodb://localhost:27017/pageCaptureSystem', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
+mongoose.connect('mongodb://localhost:27017/pageCaptureSystem');
 
 const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
