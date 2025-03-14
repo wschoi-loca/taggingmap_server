@@ -74,6 +74,10 @@ function uploadData(jsonData, imageBlob, eventType, timestamp) {
     var transformedHref = transformHref(document.location.href);
     console.log(jsonData)
     var formData = new FormData();
+    formData.append('TIME', JSON.stringify(jsonData.TIME)); 
+    formData.append('EVENT', JSON.stringify(jsonData.EVENTNAME)); 
+    formData.append('PAGETITLE', JSON.stringify(jsonData.PAGETITLE)); 
+    formData.append('URL', JSON.stringify(jsonData.PAGEPATH)); 
     formData.append('jsonData', JSON.stringify(jsonData)); // Ensure jsonData is stringified
     formData.append('image', new File([imageBlob], getCurrentTimestamp() + '_' + eventType + '_' + transformedHref + '.png', { type: 'image/png' }));
     console.log(formData)

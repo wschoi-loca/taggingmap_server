@@ -1,38 +1,53 @@
+```vue
 <template>
   <div id="app">
-    <h1>Page Capture System</h1>
-    <table>
-      <thead>
-        <tr>
-          <th>Image</th>
-          <th>SHOT_NUMBER</th>
-          <th>EVENTNAME</th>
-          <th>PAGEPATH</th>
-          <th>PAGETITLE</th>
-          <th>TIME</th>
-          <th>LABEL_TEXT</th>
-          <th>CONTENT_NM</th>
-          <th>PAGE_MKT_CONTS_ID</th>
-          <th>CATEGORY_DEPTH1</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="page in pages" :key="page._id">
-          <td>
-            <img :src="getImageUrl(page.image)" alt="Captured Image" width="100" />
-          </td>
-          <td>{{ getValue(page.jsonData, 'SHOT_NUMBER') }}</td>
-          <td>{{ getValue(page.jsonData, 'EVENTNAME') }}</td>
-          <td>{{ getValue(page.jsonData, 'PAGEPATH') }}</td>
-          <td>{{ getValue(page.jsonData, 'PAGETITLE') }}</td>
-          <td>{{ getValue(page.jsonData, 'TIME') }}</td>
-          <td>{{ getValue(page.jsonData, 'ep_label_text') }}</td>
-          <td>{{ getValue(page.jsonData, '콘텐츠명_ep_cd14_cts_nm') }}</td>
-          <td>{{ getValue(page.jsonData, '콘텐츠ID_ep_cd42_cts_id') }}</td>
-          <td>{{ getValue(page.jsonData, 'ep_category_depth1') }}</td>
-        </tr>
-      </tbody>
-    </table>
+    <h1>태깅맵</h1>
+    <div v-for="page in pages" :key="page._id" class="page-data">
+      <div class="image-section">
+        <h2>{{ getValue(page.jsonData, 'PAGETITLE') }}</h2>
+        <img :src="getImageUrl(page.image)" alt="Captured Image" />
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>SHOT_NUMBER</th>
+            <th>EVENTNAME</th>
+            <th>PAGEPATH</th>
+            <th>PAGETITLE</th>
+            <th>TIME</th>
+            <th>LABEL_TEXT</th>
+            <th>CONTENT_NM</th>
+            <th>PAGE_MKT_CONTS_ID</th>
+            <th>SUB_CONTENT_ID</th>
+            <th>HORIZONTAL_INDEX</th>
+            <th>VERTICAL_INDEX</th>
+            <th>CATEGORY_DEPTH1</th>
+            <th>CATEGORY_DEPTH2</th>
+            <th>CATEGORY_DEPTH3</th>
+            <th>CATEGORY_DEPTH4</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="data in page.jsonData" :key="data.SHOT_NUMBER">
+            <td>{{ data.SHOT_NUMBER }}</td>
+            <td>{{ data.EVENTNAME }}</td>
+            <td>{{ data.PAGEPATH }}</td>
+            <td>{{ data.PAGETITLE }}</td>
+            <td>{{ data.TIME }}</td>
+            <td>{{ data.LABEL_TEXT }}</td>
+            <td>{{ data.CONTENT_NM }}</td>
+            <td>{{ data.PAGE_MKT_CONTS_ID }}</td>
+            <td>{{ data.SUB_CONTENT_ID }}</td>
+            <td>{{ data.HORIZONTAL_INDEX }}</td>
+            <td>{{ data.VERTICAL_INDEX }}</td>
+            <td>{{ data.CATEGORY_DEPTH1 }}</td>
+            <td>{{ data.CATEGORY_DEPTH2 }}</td>
+            <td>{{ data.CATEGORY_DEPTH3 }}</td>
+            <td>{{ data.CATEGORY_DEPTH4 }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </template>
 
@@ -84,10 +99,19 @@ export default {
   margin-top: 60px;
 }
 
+.page-data {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.image-section {
+  margin-right: 20px;
+}
+
 table {
-  margin: 0 auto;
   border-collapse: collapse;
-  width: 90%;
+  width: 100%;
 }
 
 th, td {
@@ -97,7 +121,8 @@ th, td {
 }
 
 img {
-  max-width: 100px;
+  max-width: 300px;
   height: auto;
 }
 </style>
+```
