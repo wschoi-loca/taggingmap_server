@@ -15,16 +15,20 @@ app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors());
 
 // MongoDB connection
-mongoose.connect('mongodb://localhost:27017/pageCaptureSystem', {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-});
+mongoose.connect('mongodb://localhost:27017/pageCaptureSystem');
 
 const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
 db.once('open', () => {
     console.log('Connected to MongoDB');
 });
+
+// Ensure the 'uploads' directory exists
+const fs = require('fs');
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir);
+}
 
 // Multer setup for file uploads
 const storage = multer.diskStorage({
@@ -37,15 +41,18 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
+// Serve static files from the 'uploads' directory
+app.use('/uploads', express.static(uploadsDir));
+
 // Routes
 app.post('/api/pages', upload.single('image'), async (req, res) => {
     try {
-        const { jsonData } = req.body;
-        const image = req.file.path;
+        const jsonData = JSON.parse(req.body.jsonData); // Ensure jsonData is parsed
+        const image = req.file ? req.file.filename : null;
 
         const newPage = new Page({
-            jsonData: JSON.parse(jsonData),
-            image: image,
+            jsonData: jsonData,
+            image: image ? `uploads/${image}` : null,
             timestamp: new Date().toISOString(),
         });
 

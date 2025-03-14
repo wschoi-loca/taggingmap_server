@@ -72,9 +72,11 @@ function captureAndDownload(eventType, timestamp) {
 
 function uploadData(jsonData, imageBlob, eventType, timestamp) {
     var transformedHref = transformHref(document.location.href);
+    console.log(jsonData)
     var formData = new FormData();
-    formData.append('jsonData', JSON.stringify(jsonData));
+    formData.append('jsonData', JSON.stringify(jsonData)); // Ensure jsonData is stringified
     formData.append('image', new File([imageBlob], getCurrentTimestamp() + '_' + eventType + '_' + transformedHref + '.png', { type: 'image/png' }));
+    console.log(formData)
 
     fetch('http://localhost:5000/api/pages', {
         method: 'POST',
@@ -452,6 +454,7 @@ function extractGtmData(eventType, mapping) {
         results.push(result);
     });
     console.table(results);
+    return results;
 
     var jsonBlob = new Blob([JSON.stringify(results, null, 2)], { type: "application/json" });
     var jsonUrl = URL.createObjectURL(jsonBlob);
@@ -502,6 +505,8 @@ function 태깅맵_RDP클릭() {
 
     // Assuming jsonData and imageBlob are available from the previous functions
     var jsonData = extractGtmData("click", 'rdp');
+    console.log('jsonData')
+    console.log(jsonData)
     html2canvas(document.querySelector(captureAreaId)).then(function(canvas) {
         canvas.toBlob(function(blob) {
             uploadData(jsonData, blob, 'click', timestamp);
