@@ -15,10 +15,7 @@ app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors());
 
 // MongoDB connection
-mongoose.connect('mongodb://localhost:27017/pageCaptureSystem', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
+mongoose.connect('mongodb://localhost:27017/pageCaptureSystem');
 
 const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
@@ -50,6 +47,9 @@ app.use('/uploads', express.static(uploadsDir));
 // Routes
 app.post('/api/taggingMaps', upload.single('image'), async (req, res) => {
   try {
+    console.log('Request body:', req.body);
+    console.log('File:', req.file);
+
     const eventParams = JSON.parse(req.body.eventParams); // Ensure eventParams is parsed
     const image = req.file ? req.file.filename : null;
 

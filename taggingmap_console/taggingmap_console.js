@@ -93,7 +93,7 @@ function uploadData(jsonData, imageBlob, eventType, timestamp) {
     formData.append('eventParams', JSON.stringify(jsonData)); // Ensure eventParams is stringified
     formData.append('image', new File([imageBlob], getCurrentTimestamp() + '_' + eventType + '_' + transformedHref + '.png', { type: 'image/png' }));
 
-    fetch('http://localhost:5000/api/pages', {
+    fetch('http://localhost:5000/api/taggingMaps', {
         method: 'POST',
         body: formData,
     })
