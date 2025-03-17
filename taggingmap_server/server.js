@@ -5,7 +5,7 @@ const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
-const Page = require('./models/taggingMap');
+const taggingMap = require('./models/taggingMap'); // 모델 정의를 상단으로 이동
 
 const app = express();
 
@@ -15,7 +15,7 @@ app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors());
 
 // MongoDB connection
-mongoose.connect('mongodb://localhost:27017/pageCaptureSystem');
+mongoose.connect('mongodb://localhost:27017/taggingMapSystem');
 
 const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
@@ -53,13 +53,17 @@ app.post('/api/taggingMaps', upload.single('image'), async (req, res) => {
     const eventParams = JSON.parse(req.body.eventParams); // Ensure eventParams is parsed
     const image = req.file ? req.file.filename : null;
 
-    const newPage = new Page({
-      eventParams: eventParams,
-      image: image ? `uploads/${image}` : null,
-      timestamp: new Date().toISOString(),
+    const newTaggingMap = new taggingMap({
+        TIME: req.body.TIME,
+        EVENTNAME: req.body.EVENTNAME,
+        PAGETITLE: req.body.PAGETITLE,
+        URL: req.body.URL,
+        eventParams: eventParams,
+        image: image ? `uploads/${image}` : null,
+        timestamp: new Date().toISOString(),
     });
 
-    await newPage.save();
+    await newTaggingMap.save();
     res.status(200).send('Page data saved successfully');
   } catch (error) {
     console.error('Error saving page data:', error);
@@ -69,7 +73,7 @@ app.post('/api/taggingMaps', upload.single('image'), async (req, res) => {
 
 app.get('/api/taggingMaps', async (req, res) => {
   try {
-    const taggingMaps = await Page.find();
+    const taggingMaps = await taggingMap.find();
     res.json(taggingMaps);
   } catch (error) {
     console.error('Error fetching taggingMaps:', error);
