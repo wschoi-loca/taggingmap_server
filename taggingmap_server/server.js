@@ -15,29 +15,32 @@ app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors());
 
 // MongoDB connection
-mongoose.connect('mongodb://localhost:27017/pageCaptureSystem');
+mongoose.connect('mongodb://localhost:27017/pageCaptureSystem', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
 
 const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
 db.once('open', () => {
-    console.log('Connected to MongoDB');
+  console.log('Connected to MongoDB');
 });
 
 // Ensure the 'uploads' directory exists
 const fs = require('fs');
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir);
+  fs.mkdirSync(uploadsDir);
 }
 
 // Multer setup for file uploads
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'uploads/');
-    },
-    filename: (req, file, cb) => {
-        cb(null, uuidv4() + path.extname(file.originalname));
-    },
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/');
+  },
+  filename: (req, file, cb) => {
+    cb(null, uuidv4() + path.extname(file.originalname));
+  },
 });
 const upload = multer({ storage: storage });
 
@@ -46,35 +49,35 @@ app.use('/uploads', express.static(uploadsDir));
 
 // Routes
 app.post('/api/taggingMaps', upload.single('image'), async (req, res) => {
-    try {
-        const eventParams = JSON.parse(req.body.eventParams); // Ensure eventParams is parsed
-        const image = req.file ? req.file.filename : null;
+  try {
+    const eventParams = JSON.parse(req.body.eventParams); // Ensure eventParams is parsed
+    const image = req.file ? req.file.filename : null;
 
-        const newPage = new Page({
-            eventParams: eventParams,
-            image: image ? `uploads/${image}` : null,
-            timestamp: new Date().toISOString(),
-        });
+    const newPage = new Page({
+      eventParams: eventParams,
+      image: image ? `uploads/${image}` : null,
+      timestamp: new Date().toISOString(),
+    });
 
-        await newPage.save();
-        res.status(200).send('Page data saved successfully');
-    } catch (error) {
-        console.error('Error saving page data:', error);
-        res.status(500).send('Error saving page data');
-    }
+    await newPage.save();
+    res.status(200).send('Page data saved successfully');
+  } catch (error) {
+    console.error('Error saving page data:', error);
+    res.status(500).send('Error saving page data');
+  }
 });
 
 app.get('/api/taggingMaps', async (req, res) => {
-    try {
-        const taggingMaps = await Page.find();
-        res.json(taggingMaps);
-    } catch (error) {
-        console.error('Error fetching taggingMaps:', error);
-        res.status(500).send('Error fetching taggingMaps');
-    }
+  try {
+    const taggingMaps = await Page.find();
+    res.json(taggingMaps);
+  } catch (error) {
+    console.error('Error fetching taggingMaps:', error);
+    res.status(500).send('Error fetching taggingMaps');
+  }
 });
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });

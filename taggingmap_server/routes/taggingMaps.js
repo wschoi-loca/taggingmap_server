@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const Page = require('../models/Page');
+const Page = require('../models/taggingMap');
 
 // GET all pages
 router.get('/', async (req, res) => {
