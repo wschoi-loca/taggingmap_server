@@ -47,11 +47,11 @@ app.use('/uploads', express.static(uploadsDir));
 // Routes
 app.post('/api/taggingMaps', upload.single('image'), async (req, res) => {
     try {
-        const jsonData = JSON.parse(req.body.jsonData); // Ensure jsonData is parsed
+        const eventParams = JSON.parse(req.body.eventParams); // Ensure eventParams is parsed
         const image = req.file ? req.file.filename : null;
 
         const newPage = new Page({
-            jsonData: jsonData,
+            eventParams: eventParams,
             image: image ? `uploads/${image}` : null,
             timestamp: new Date().toISOString(),
         });

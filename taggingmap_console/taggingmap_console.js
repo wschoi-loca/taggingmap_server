@@ -75,22 +75,22 @@ function uploadData(jsonData, imageBlob, eventType, timestamp) {
     var formData = new FormData();
 
     // Debugging logs
-    console.log('jsonData:', jsonData);
+    console.log('eventParams:', jsonData);
     if (jsonData.length > 0) {
-        console.log('jsonData[0]:', jsonData[0]);
+        console.log('eventParams[0]:', jsonData[0]);
         console.log('TIME:', jsonData[0].TIME);
         console.log('EVENTNAME:', jsonData[0].EVENTNAME);
         console.log('PAGETITLE:', jsonData[0].PAGETITLE);
         console.log('PAGEPATH:', jsonData[0].PAGEPATH);
     } else {
-        console.warn('jsonData array is empty.');
+        console.warn('eventParams array is empty.');
     }
 
     formData.append('TIME', JSON.stringify(jsonData[0].TIME)); 
     formData.append('EVENT', JSON.stringify(jsonData[0].EVENTNAME)); 
     formData.append('PAGETITLE', JSON.stringify(jsonData[0].PAGETITLE)); 
     formData.append('URL', JSON.stringify(jsonData[0].PAGEPATH)); 
-    formData.append('jsonData', JSON.stringify(jsonData)); // Ensure jsonData is stringified
+    formData.append('eventParams', JSON.stringify(jsonData)); // Ensure eventParams is stringified
     formData.append('image', new File([imageBlob], getCurrentTimestamp() + '_' + eventType + '_' + transformedHref + '.png', { type: 'image/png' }));
 
     fetch('http://localhost:5000/api/pages', {

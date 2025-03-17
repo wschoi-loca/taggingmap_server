@@ -1,51 +1,53 @@
 <template>
   <div id="app">
     <h1>태깅맵</h1>
-    <div v-for="taggingMap in taggingMaps" :key="taggingMap._id" class="taggingMap-data">
-      <div class="image-section">
-        <h2>{{ getValue(taggingMap.eventParams, 'PAGETITLE') }}</h2>
-        <img :src="getImageUrl(params.image)" alt="Captured Image" />
+    <div v-if="taggingMaps.length > 0">
+      <div v-for="taggingMap in taggingMaps" :key="taggingMap._id" class="page-data">
+        <div class="image-section">
+          <h2>{{ getValue(taggingMap.eventParams, 'PAGETITLE') }}</h2>
+          <img :src="getImageUrl(taggingMap.image)" alt="Captured Image" />
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>SHOT_NUMBER</th>
+              <th>EVENTNAME</th>
+              <th>PAGEPATH</th>
+              <th>PAGETITLE</th>
+              <th>TIME</th>
+              <th>LABEL_TEXT</th>
+              <th>CONTENT_NM</th>
+              <th>PAGE_MKT_CONTS_ID</th>
+              <th>SUB_CONTENT_ID</th>
+              <th>HORIZONTAL_INDEX</th>
+              <th>VERTICAL_INDEX</th>
+              <th>CATEGORY_DEPTH1</th>
+              <th>CATEGORY_DEPTH2</th>
+              <th>CATEGORY_DEPTH3</th>
+              <th>CATEGORY_DEPTH4</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="data in taggingMap.eventParams" :key="data.SHOT_NUMBER">
+              <td>{{ data.SHOT_NUMBER }}</td>
+              <td>{{ data.EVENTNAME }}</td>
+              <td>{{ data.PAGEPATH }}</td>
+              <td>{{ data.PAGETITLE }}</td>
+              <td>{{ data.TIME }}</td>
+              <td>{{ data.LABEL_TEXT }}</td>
+              <td>{{ data.CONTENT_NM }}</td>
+              <td>{{ data.PAGE_MKT_CONTS_ID }}</td>
+              <td>{{ data.SUB_CONTENT_ID }}</td>
+              <td>{{ data.HORIZONTAL_INDEX }}</td>
+              <td>{{ data.VERTICAL_INDEX }}</td>
+              <td>{{ data.CATEGORY_DEPTH1 }}</td>
+              <td>{{ data.CATEGORY_DEPTH2 }}</td>
+              <td>{{ data.CATEGORY_DEPTH3 }}</td>
+              <td>{{ data.CATEGORY_DEPTH4 }}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-      <table>
-        <thead>
-          <tr>
-            <th>SHOT_NUMBER</th>
-            <th>EVENTNAME</th>
-            <th>PAGEPATH</th>
-            <th>PAGETITLE</th>
-            <th>TIME</th>
-            <th>LABEL_TEXT</th>
-            <th>CONTENT_NM</th>
-            <th>PAGE_MKT_CONTS_ID</th>
-            <th>SUB_CONTENT_ID</th>
-            <th>HORIZONTAL_INDEX</th>
-            <th>VERTICAL_INDEX</th>
-            <th>CATEGORY_DEPTH1</th>
-            <th>CATEGORY_DEPTH2</th>
-            <th>CATEGORY_DEPTH3</th>
-            <th>CATEGORY_DEPTH4</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="data in taggingMap.eventParams" :key="data.SHOT_NUMBER">
-            <td>{{ data.SHOT_NUMBER }}</td>
-            <td>{{ data.EVENTNAME }}</td>
-            <td>{{ data.PAGEPATH }}</td>
-            <td>{{ data.PAGETITLE }}</td>
-            <td>{{ data.TIME }}</td>
-            <td>{{ data.LABEL_TEXT }}</td>
-            <td>{{ data.CONTENT_NM }}</td>
-            <td>{{ data.PAGE_MKT_CONTS_ID }}</td>
-            <td>{{ data.SUB_CONTENT_ID }}</td>
-            <td>{{ data.HORIZONTAL_INDEX }}</td>
-            <td>{{ data.VERTICAL_INDEX }}</td>
-            <td>{{ data.CATEGORY_DEPTH1 }}</td>
-            <td>{{ data.CATEGORY_DEPTH2 }}</td>
-            <td>{{ data.CATEGORY_DEPTH3 }}</td>
-            <td>{{ data.CATEGORY_DEPTH4 }}</td>
-          </tr>
-        </tbody>
-      </table>
     </div>
     <div v-else>
       <p>Loading...</p>
@@ -58,12 +60,6 @@ import axios from 'axios';
 
 export default {
   name: 'App',
-  props: {
-    id: {
-      type: String,
-      required: true
-    }
-  },
   data() {
     return {
       taggingMaps: []
