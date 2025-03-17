@@ -50,12 +50,19 @@ app.post('/api/taggingMaps', upload.single('image'), async (req, res) => {
     console.log('Request body:', req.body);
     console.log('File:', req.file);
 
-    const eventParams = JSON.parse(req.body.eventParams); // Ensure eventParams is parsed
+    let eventParams;
+    try {
+      eventParams = JSON.parse(req.body.eventParams);
+      console.log('Parsed eventParams:', eventParams);
+    } catch (e) {
+      throw new Error('Invalid JSON in eventParams');
+    }
+    
     const image = req.file ? req.file.filename : null;
 
     const newTaggingMap = new taggingMap({
         TIME: req.body.TIME,
-        EVENTNAME: req.body.EVENTNAME,
+        EVENTNAME: req.body.EVENTNAME, // 수정된 부분 반영
         PAGETITLE: req.body.PAGETITLE,
         URL: req.body.URL,
         eventParams: eventParams,
@@ -66,7 +73,7 @@ app.post('/api/taggingMaps', upload.single('image'), async (req, res) => {
     await newTaggingMap.save();
     res.status(200).send('Page data saved successfully');
   } catch (error) {
-    console.error('Error saving page data:', error);
+    console.error('Error saving page data:', error.message);
     res.status(500).send('Error saving page data');
   }
 });

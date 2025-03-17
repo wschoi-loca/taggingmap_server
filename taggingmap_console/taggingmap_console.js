@@ -69,7 +69,6 @@ function captureAndDownload(eventType, timestamp) {
     });
 }
 
-
 function uploadData(jsonData, imageBlob, eventType, timestamp) {
     var transformedHref = transformHref(document.location.href);
     var formData = new FormData();
@@ -86,10 +85,10 @@ function uploadData(jsonData, imageBlob, eventType, timestamp) {
         console.warn('eventParams array is empty.');
     }
 
-    formData.append('TIME', JSON.stringify(jsonData[0].TIME)); 
-    formData.append('EVENT', JSON.stringify(jsonData[0].EVENTNAME)); 
-    formData.append('PAGETITLE', JSON.stringify(jsonData[0].PAGETITLE)); 
-    formData.append('URL', JSON.stringify(jsonData[0].PAGEPATH)); 
+    formData.append('TIME', jsonData[0].TIME); 
+    formData.append('EVENTNAME', jsonData[0].EVENTNAME); // 수정된 부분
+    formData.append('PAGETITLE', jsonData[0].PAGETITLE); 
+    formData.append('URL', jsonData[0].PAGEPATH); 
     formData.append('eventParams', JSON.stringify(jsonData)); // Ensure eventParams is stringified
     formData.append('image', new File([imageBlob], getCurrentTimestamp() + '_' + eventType + '_' + transformedHref + '.png', { type: 'image/png' }));
 

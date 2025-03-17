@@ -14,7 +14,7 @@ const taggingMapSchema = new mongoose.Schema({
         required: true,
     },
     URL: {
-        type: Object,
+        type: String,
         required: true,
     },
     eventParams: {
