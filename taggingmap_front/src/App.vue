@@ -1,10 +1,10 @@
 <template>
   <div id="app">
     <h1>태깅맵</h1>
-    <div v-if="page" class="page-data">
+    <div v-for="taggingMap in taggingMaps" :key="taggingMap._id" class="taggingMap-data">
       <div class="image-section">
-        <h2>{{ getValue(page.jsonData, 'PAGETITLE') }}</h2>
-        <img :src="getImageUrl(page.image)" alt="Captured Image" />
+        <h2>{{ getValue(taggingMap.eventParams, 'PAGETITLE') }}</h2>
+        <img :src="getImageUrl(params.image)" alt="Captured Image" />
       </div>
       <table>
         <thead>
@@ -27,7 +27,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="data in page.jsonData" :key="data.SHOT_NUMBER">
+          <tr v-for="data in taggingMap.eventParams" :key="data.SHOT_NUMBER">
             <td>{{ data.SHOT_NUMBER }}</td>
             <td>{{ data.EVENTNAME }}</td>
             <td>{{ data.PAGEPATH }}</td>
@@ -66,19 +66,19 @@ export default {
   },
   data() {
     return {
-      page: null
+      taggingMaps: []
     };
   },
   created() {
-    this.fetchPage();
+    this.fetchTaggingMaps();
   },
   methods: {
-    async fetchPage() {
+    async fetchTaggingMaps() {
       try {
-        const response = await axios.get(`http://localhost:5000/api/pages/${this.id}`);
-        this.page = response.data;
+        const response = await axios.get('http://localhost:5000/api/taggingMaps');
+        this.taggingMaps = response.data;
       } catch (error) {
-        console.error('Error fetching page:', error);
+        console.error('Error fetching taggingMaps:', error);
       }
     },
     getImageUrl(imagePath) {
