@@ -1,8 +1,7 @@
-```vue
 <template>
   <div id="app">
     <h1>태깅맵</h1>
-    <div v-for="page in pages" :key="page._id" class="page-data">
+    <div v-if="page" class="page-data">
       <div class="image-section">
         <h2>{{ getValue(page.jsonData, 'PAGETITLE') }}</h2>
         <img :src="getImageUrl(page.image)" alt="Captured Image" />
@@ -48,6 +47,9 @@
         </tbody>
       </table>
     </div>
+    <div v-else>
+      <p>Loading...</p>
+    </div>
   </div>
 </template>
 
@@ -56,21 +58,27 @@ import axios from 'axios';
 
 export default {
   name: 'App',
+  props: {
+    id: {
+      type: String,
+      required: true
+    }
+  },
   data() {
     return {
-      pages: []
+      page: null
     };
   },
   created() {
-    this.fetchPages();
+    this.fetchPage();
   },
   methods: {
-    async fetchPages() {
+    async fetchPage() {
       try {
-        const response = await axios.get('http://localhost:5000/api/pages');
-        this.pages = response.data;
+        const response = await axios.get(`http://localhost:5000/api/pages/${this.id}`);
+        this.page = response.data;
       } catch (error) {
-        console.error('Error fetching pages:', error);
+        console.error('Error fetching page:', error);
       }
     },
     getImageUrl(imagePath) {
@@ -125,4 +133,3 @@ img {
   height: auto;
 }
 </style>
-```
