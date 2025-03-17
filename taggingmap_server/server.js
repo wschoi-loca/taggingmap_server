@@ -45,7 +45,7 @@ const upload = multer({ storage: storage });
 app.use('/uploads', express.static(uploadsDir));
 
 // Routes
-app.post('/api/pages', upload.single('image'), async (req, res) => {
+app.post('/api/taggingMaps', upload.single('image'), async (req, res) => {
     try {
         const jsonData = JSON.parse(req.body.jsonData); // Ensure jsonData is parsed
         const image = req.file ? req.file.filename : null;
@@ -64,13 +64,13 @@ app.post('/api/pages', upload.single('image'), async (req, res) => {
     }
 });
 
-app.get('/api/pages', async (req, res) => {
+app.get('/api/taggingMaps', async (req, res) => {
     try {
-        const pages = await Page.find();
-        res.json(pages);
+        const taggingMaps = await Page.find();
+        res.json(taggingMaps);
     } catch (error) {
-        console.error('Error fetching pages:', error);
-        res.status(500).send('Error fetching pages');
+        console.error('Error fetching taggingMaps:', error);
+        res.status(500).send('Error fetching taggingMaps');
     }
 });
 

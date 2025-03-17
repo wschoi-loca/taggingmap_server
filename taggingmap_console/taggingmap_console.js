@@ -72,8 +72,20 @@ function captureAndDownload(eventType, timestamp) {
 
 function uploadData(jsonData, imageBlob, eventType, timestamp) {
     var transformedHref = transformHref(document.location.href);
-    console.log(jsonData)
     var formData = new FormData();
+
+    // Debugging logs
+    console.log('jsonData:', jsonData);
+    if (jsonData.length > 0) {
+        console.log('jsonData[0]:', jsonData[0]);
+        console.log('TIME:', jsonData[0].TIME);
+        console.log('EVENTNAME:', jsonData[0].EVENTNAME);
+        console.log('PAGETITLE:', jsonData[0].PAGETITLE);
+        console.log('PAGEPATH:', jsonData[0].PAGEPATH);
+    } else {
+        console.warn('jsonData array is empty.');
+    }
+
     formData.append('TIME', JSON.stringify(jsonData[0].TIME)); 
     formData.append('EVENT', JSON.stringify(jsonData[0].EVENTNAME)); 
     formData.append('PAGETITLE', JSON.stringify(jsonData[0].PAGETITLE)); 
@@ -475,6 +487,13 @@ function 태깅맵_RDP노출() {
     highlightGtmElements("visibility");
     extractGtmData("visibility", 'rdp');
     captureAndDownload('visibility', timestamp); // 캡쳐함수호출
+}
+
+function 태깅맵_DB노출() {
+    var timestamp = getCurrentTimestamp();
+    highlightGtmElements("visibility");
+    //extractGtmData("visibility", 'rdp');
+    //captureAndDownload('visibility', timestamp); // 캡쳐함수호출
 
     // Assuming jsonData and imageBlob are available from the previous functions
     var jsonData = extractGtmData("visibility", 'rdp');
@@ -490,14 +509,6 @@ function 태깅맵_GA노출() {
     highlightGtmElements("visibility");
     extractGtmData("visibility", 'ga');
     captureAndDownload('visibility', timestamp); // 캡쳐함수호출
-
-    // Assuming jsonData and imageBlob are available from the previous functions
-    var jsonData = extractGtmData("visibility", 'ga');
-    html2canvas(document.querySelector(captureAreaId)).then(function(canvas) {
-        canvas.toBlob(function(blob) {
-            uploadData(jsonData, blob, 'visibility', timestamp);
-        });
-    });
 }
 
 function 태깅맵_RDP클릭() {
@@ -505,6 +516,13 @@ function 태깅맵_RDP클릭() {
     highlightGtmElements("click");
     extractGtmData("click", 'rdp');
     captureAndDownload('click', timestamp); // 캡쳐함수호출
+}
+
+function 태깅맵_DB클릭() {
+    var timestamp = getCurrentTimestamp();
+    highlightGtmElements("click");
+    //extractGtmData("click", 'rdp');
+    //captureAndDownload('click', timestamp); // 캡쳐함수호출
 
     // Assuming jsonData and imageBlob are available from the previous functions
     var jsonData = extractGtmData("click", 'rdp');
@@ -522,14 +540,6 @@ function 태깅맵_GA클릭() {
     highlightGtmElements("click");
     extractGtmData("click", 'ga');
     captureAndDownload('click', timestamp); // 캡쳐함수호출
-
-    // Assuming jsonData and imageBlob are available from the previous functions
-    var jsonData = extractGtmData("click", 'ga');
-    html2canvas(document.querySelector(captureAreaId)).then(function(canvas) {
-        canvas.toBlob(function(blob) {
-            uploadData(jsonData, blob, 'click', timestamp);
-        });
-    });
 }
 
 function 태깅맵_지우기() {

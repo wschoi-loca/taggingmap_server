@@ -1,7 +1,23 @@
 const mongoose = require('mongoose');
 
-const PageSchema = new mongoose.Schema({
-    jsonData: {
+const taggingMapSchema = new mongoose.Schema({
+    TIME: {
+        type: String,
+        required: true,
+    },
+    EVENTNAME: {
+        type: String,
+        required: true,
+    },
+    PAGETITLE: {
+        type: String,
+        required: true,
+    },
+    URL: {
+        type: Object,
+        required: true,
+    },
+    eventParams: {
         type: Object,
         required: true,
     },
@@ -15,4 +31,4 @@ const PageSchema = new mongoose.Schema({
     },
 });
 
-module.exports = mongoose.model('Page', PageSchema);
+module.exports = mongoose.model('taggingMap', taggingMapSchema);
