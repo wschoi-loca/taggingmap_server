@@ -5,7 +5,7 @@ const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
-const Page = require('./models/Page');
+const Page = require('./models/taggingMap');
 
 const app = express();
 
