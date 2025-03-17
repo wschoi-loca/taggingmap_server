@@ -1,8 +1,7 @@
-```vue
 <template>
   <div id="app">
     <h1>태깅맵</h1>
-    <div v-for="taggingMap in taggingMaps" :key="page._id" class="page-data">
+    <div v-for="taggingMap in taggingMaps" :key="taggingMap._id" class="taggingMap-data">
       <div class="image-section">
         <h2>{{ getValue(taggingMap.eventParams, 'PAGETITLE') }}</h2>
         <img :src="getImageUrl(params.image)" alt="Captured Image" />
@@ -68,7 +67,7 @@ export default {
     async fetchTaggingMaps() {
       try {
         const response = await axios.get('http://localhost:5000/api/taggingMaps');
-        this.fetchTaggingMaps = response.data;
+        this.taggingMaps = response.data;
       } catch (error) {
         console.error('Error fetching taggingMaps:', error);
       }
@@ -125,4 +124,3 @@ img {
   height: auto;
 }
 </style>
-```
