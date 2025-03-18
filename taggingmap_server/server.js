@@ -62,7 +62,7 @@ app.post('/api/taggingMaps', upload.single('image'), async (req, res) => {
 
     const newTaggingMap = new taggingMap({
         TIME: req.body.TIME,
-        EVENTNAME: req.body.EVENTNAME, // 수정된 부분 반영
+        EVENTNAME: req.body.EVENTNAME, 
         PAGETITLE: req.body.PAGETITLE,
         URL: req.body.URL,
         eventParams: eventParams,
