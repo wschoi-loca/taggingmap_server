@@ -1,4 +1,6 @@
+
 // html2canvas-pro 라이브러리 로드
+  /*
 (function() {
     var script = document.createElement('script');
     script.src = 'https://unpkg.com/html2canvas-pro@latest/dist/html2canvas-pro.min.js';
@@ -7,6 +9,7 @@
     };
     document.head.appendChild(script);
 })();
+*/
 
 // 현재 날짜와 시간을 "YYYYMMDD_HHmmss" 형식으로 반환하는 함수
 function getCurrentTimestamp() {
@@ -53,46 +56,45 @@ function captureAndDownload(eventType, timestamp) {
         backgroundColor: null,
         useCORS: true,
         allowTaint: true,
-        ignoreElements: (element) => element.classList && element.classList.contains('gnb-wrapper')
+        ignoreElements: function(element) { 
+            return element.classList && element.classList.contains('gnb-wrapper'); 
+        }
     }).then(function(canvas) {
-        canvas.toBlob(function(blob) {
-            if (blob) {
-                var transformedHref = transformHref(document.location.href);
-                downloadBlob(blob, timestamp + '_' + eventType + '_' + transformedHref + '.png');
-            } else {
-                console.error('Blob 생성 실패');
-            }
-        }, 'image/png'); // 명시적으로 mime type 지정
+        try {
+            canvas.toBlob(function(blob) {
+                if (blob) {
+                    var transformedHref = transformHref(document.location.href);
+                    downloadBlob(blob, timestamp + '_' + eventType + '_' + transformedHref + '.png');
+                } else {
+                    console.error('Blob 생성 실패');
+                }
+            }, 'image/png'); // 명시적으로 mime type 지정
+        } catch (error) {
+            console.error('Error creating Blob:', error);
+        }
     }).catch(function(error) {
         console.error('Error capturing screen:', error);
         console.error('html2canvas error details:', error); // 에러 상세 정보 로그 추가
     });
 }
 
+// Blob 다운로드 함수
+function downloadBlob(blob, filename) {
+    var link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
 function uploadData(jsonData, imageBlob, eventType, timestamp) {
     var transformedHref = transformHref(document.location.href);
     var formData = new FormData();
-
-    // Debugging logs
-    console.log('eventParams:', jsonData);
-    if (jsonData.length > 0) {
-        console.log('eventParams[0]:', jsonData[0]);
-        console.log('TIME:', jsonData[0].TIME);
-        console.log('EVENTNAME:', jsonData[0].EVENTNAME);
-        console.log('PAGETITLE:', jsonData[0].PAGETITLE);
-        console.log('PAGEPATH:', jsonData[0].PAGEPATH);
-    } else {
-        console.warn('eventParams array is empty.');
-    }
-
-    formData.append('TIME', jsonData[0].TIME); 
-    formData.append('EVENTNAME', jsonData[0].EVENTNAME); // 수정된 부분
-    formData.append('PAGETITLE', jsonData[0].PAGETITLE); 
-    formData.append('URL', jsonData[0].PAGEPATH); 
-    formData.append('eventParams', JSON.stringify(jsonData)); // Ensure eventParams is stringified
+    formData.append('jsonData', JSON.stringify(jsonData));
     formData.append('image', new File([imageBlob], getCurrentTimestamp() + '_' + eventType + '_' + transformedHref + '.png', { type: 'image/png' }));
 
-    fetch('http://localhost:5000/api/taggingMaps', {
+    fetch('http://localhost:5000/api/pages', {
         method: 'POST',
         body: formData,
     })
@@ -108,25 +110,35 @@ function uploadData(jsonData, imageBlob, eventType, timestamp) {
 }
 
 function highlightGtmElements(eventType) {
-    var elements = document.querySelectorAll('[data-gtm-' + eventType + ']:not(.gnb-wrapper *)');
+    var selector = '[data-gtm-' + eventType + ']:not(.gnb-wrapper *)';
+
+    if (eventType === "visibility") {
+        selector += ', [data-gtm-view-item-list]:not(.gnb-wrapper *), [data-gtm-popup-visibility]:not(.gnb-wrapper *)';
+    } else if (eventType === "click") {
+        selector += ', [data-gtm-select-item]:not(.gnb-wrapper *), [data-gtm-auto-click]:not(.gnb-wrapper *),[data-gtm-popup-click]:not(.gnb-wrapper *), [data-gtm-etc]:not(.gnb-wrapper *)';
+    }
+
+    var elements = document.querySelectorAll(selector);
+    var highlightElements = [];
 
     Array.prototype.forEach.call(elements, function(el, index) {
-        if (eventType == "visibility") {
+        if (eventType === "visibility") {
             el.style.backgroundColor = 'rgba(191, 255, 0, 0.3)';
-        } else if (eventType == "click") {
+        } else if (eventType === "click") {
             el.style.backgroundColor = 'rgba(64, 0, 255, 0.3)';
         }
 
+        var rect = el.getBoundingClientRect();
         var idSpan = document.createElement('span');
         idSpan.textContent = index;
         idSpan.style.position = 'absolute';
-        idSpan.style.top = '0';
-        idSpan.style.left = '0';
+        idSpan.style.top = rect.top + window.scrollY + 'px';
+        idSpan.style.left = rect.left + window.scrollX + 'px';
         idSpan.style.zIndex = '1001'; // 기존 요소보다 위에 표시되도록 z-index 설정
         idSpan.setAttribute('data-gtm-id', 'highlight-' + index); // 고유 식별자 추가
-        if (eventType == "visibility") {
+        if (eventType === "visibility") {
             idSpan.style.backgroundColor = 'green';
-        } else if (eventType == "click") {
+        } else if (eventType === "click") {
             idSpan.style.backgroundColor = 'purple';
         }
         idSpan.style.color = 'white';
@@ -134,13 +146,43 @@ function highlightGtmElements(eventType) {
         idSpan.style.fontSize = '12px';
         idSpan.style.pointerEvents = 'none'; // 클릭 이벤트가 idSpan에 의해 방해되지 않도록 설정
 
-        el.style.position = 'relative'; // 부모 요소가 position: relative 인지 확인
-        el.appendChild(idSpan);
+        document.body.appendChild(idSpan); // document.body에 추가하여 부모 요소의 위치 변경 방지
+        highlightElements.push({ el: el, idSpan: idSpan });
     });
+
+    function updateHighlightPositions() {
+        highlightElements.forEach(function(item) {
+            var rect = item.el.getBoundingClientRect();
+            item.idSpan.style.top = rect.top + window.scrollY + 'px';
+            item.idSpan.style.left = rect.left + window.scrollX + 'px';
+        });
+    }
+
+    var observer = new MutationObserver(updateHighlightPositions);
+
+    highlightElements.forEach(function(item) {
+        observer.observe(item.el, { attributes: true, childList: true, subtree: true });
+    });
+
+    window.addEventListener('scroll', updateHighlightPositions);
+    window.addEventListener('resize', updateHighlightPositions);
+    window.addEventListener('mousemove', updateHighlightPositions);
+    window.addEventListener('touchmove', updateHighlightPositions);
+
+    // 초기 위치 업데이트
+    updateHighlightPositions();
 }
 
 function highlightGtmElementsOverlay(eventType) {
-    var elements = document.querySelectorAll('[data-gtm-' + eventType + ']:not(.gnb-wrapper *)');
+    var selector = '[data-gtm-' + eventType + ']:not(.gnb-wrapper *)';
+
+    if (eventType === "visibility") {
+        selector += ', [data-gtm-view-item-list]:not(.gnb-wrapper *), [data-gtm-popup-visibility]:not(.gnb-wrapper *)';
+    } else if (eventType === "click") {
+        selector += ', [data-gtm-select-item]:not(.gnb-wrapper *), [data-gtm-popup-click]:not(.gnb-wrapper *), [data-gtm-etc]:not(.gnb-wrapper *)';
+    }
+
+    var elements = document.querySelectorAll(selector);
 
     Array.prototype.forEach.call(elements, function(el, index) {
         var rect = el.getBoundingClientRect();
@@ -182,27 +224,39 @@ function highlightGtmElementsOverlay(eventType) {
 }
 
 function removeHighlightGtmElements() {
-    var elements = document.querySelectorAll('[data-gtm-visibility], [data-gtm-click]');
+    // Remove background colors from GTM elements
+    var elements = document.querySelectorAll('[data-gtm-visibility], [data-gtm-click], [data-gtm-view-item-list], [data-gtm-popup-visibility], [data-gtm-select-item], [data-gtm-popup-click], [data-gtm-auto-click],[data-gtm-etc]');
     Array.prototype.forEach.call(elements, function(el) {
         el.style.backgroundColor = ''; // 원래 배경색으로 되돌리기
-        var idSpans = el.querySelectorAll('[data-gtm-id]');
-        Array.prototype.forEach.call(idSpans, function(idSpan) {
-            if (idSpan && idSpan.parentNode === el) {
-                idSpan.style.zIndex = ''; // z-index 초기화
-                el.removeChild(idSpan);
-            }
-        });
+    });
+    
+    // Remove all number indicators added to document.body
+    var idSpans = document.querySelectorAll('[data-gtm-id]');
+    Array.prototype.forEach.call(idSpans, function(idSpan) {
+        if (idSpan.parentNode) {
+            idSpan.parentNode.removeChild(idSpan);
+        }
     });
 
+    // Remove overlay if it exists
     var overlay = document.getElementById('gtm-overlay');
     if (overlay) {
         document.body.removeChild(overlay);
     }
 }
 
+
 function extractGtmData(eventType, mapping) {
     var results = [];
-    var elements = document.querySelectorAll('[data-gtm-' + eventType + ']:not(.gnb-wrapper *)');
+    var selector = '[data-gtm-' + eventType + ']:not(.gnb-wrapper *)';
+
+    if (eventType === "visibility") {
+        selector += ', [data-gtm-view-item-list]:not(.gnb-wrapper *), [data-gtm-popup-visibility]:not(.gnb-wrapper *)';
+    } else if (eventType === "click") {
+        selector += ', [data-gtm-select-item]:not(.gnb-wrapper *), [data-gtm-popup-click]:not(.gnb-wrapper *), [data-gtm-auto-click]:not(.gnb-wrapper *), [data-gtm-etc]:not(.gnb-wrapper *)';
+    }
+
+    var elements = document.querySelectorAll(selector);
 
     var rdp_event_mapping = {
         ep_category: 'EVENTCATEGORY',
@@ -214,6 +268,11 @@ function extractGtmData(eventType, mapping) {
         label3: 'CATEGORY_DEPTH3',
         label4: 'CATEGORY_DEPTH4',
         label5: 'CATEGORY_DEPTH5',
+        label6: 'CATEGORY_DEPTH6',
+        label7: 'CATEGORY_DEPTH7',
+        label8: 'CATEGORY_DEPTH8',
+        label9: 'CATEGORY_DEPTH9',
+        label10: 'CATEGORY_DEPTH10',
         search_keyword: 'SEAK',
         search_type: 'SRCH_KEYWORD_TYPE',
         search_result: 'SEAK_SUS',
@@ -228,22 +287,44 @@ function extractGtmData(eventType, mapping) {
         revol_term: 'PAGE_RVO_EGM_STT_TE',
         prod_funnel_name: 'PAGE_PD_APL_LVL',
         cts_name: 'CONTENT_NM',
+        cts_name1: 'CONTENT_NM1',
+        cts_name2: 'CONTENT_NM2',
+        cts_name3: 'CONTENT_NM3',
         cts_id: 'PAGE_MKT_CONTS_ID',
         cts_sub_id: 'SUB_CONTENT_ID',
+        cts_sub_id1: 'SUB_CONTENT_ID1',
+        cts_sub_id2: 'SUB_CONTENT_ID2',
+        cts_sub_id3: 'SUB_CONTENT_ID3',
+        cts_sub_id4: 'SUB_CONTENT_ID4',
+        cts_sub_id5: 'SUB_CONTENT_ID5',
         index: 'HORIZONTAL_INDEX',
-        cts_group1: 'EP_CD101_CTS_GROUP1',
-        cts_group2: 'EP_CD102_CTS_GROUP2',
-        cts_group3: 'EP_CD103_CTS_GROUP3',
-        cts_group4: 'EP_CD104_CTS_GROUP4',
-        cts_group5: 'EP_CD105_CTS_GROUP5',
-        cts_group6: 'EP_CD106_CTS_GROUP6',
-        cts_group7: 'EP_CD107_CTS_GROUP7',
-        cts_group8: 'EP_CD108_CTS_GROUP8',
-        cts_group9: 'EP_CD109_CTS_GROUP9',
-        cts_group10: 'EP_CD110_CTS_GROUP10',
-        cts_group11: 'EP_CD111_CTS_GROUP11',
-        cts_group12: 'EP_CD112_CTS_GROUP12',
-        cts_group13: 'EP_CD113_CTS_GROUP13'
+        cts_group1: 'CTS_GROUP1',
+        cts_group2: 'CTS_GROUP2',
+        cts_group3: 'CTS_GROUP3',
+        cts_group4: 'CTS_GROUP4',
+        cts_group5: 'CTS_GROUP5',
+        cts_group6: 'CTS_GROUP6',
+        cts_group7: 'CTS_GROUP7',
+        cts_group8: 'CTS_GROUP8',
+        cts_group9: 'CTS_GROUP9',
+        cts_group10: 'CTS_GROUP10',
+        cts_group11: 'CTS_GROUP11',
+        cts_group12: 'CTS_GROUP12',
+        cts_group13: 'CTS_GROUP13',
+        auto_tag_yn: 'AUTO_TAG_YN',
+        popup_message: 'popup_message',
+        popup_class: 'popup_class',
+        popup_button: 'popup_button',
+        item_id: 'item_id',
+        item_name: 'item_name',
+        price: 'price',
+        coupon_yn: 'coupon_yn',
+        discount: 'discount',
+        item_brand: 'item_brand',
+        item_category: 'item_category',
+        item_category: 'item_category2',
+        item_category: 'item_category3',
+        item_category: 'item_category4',
     };
 
     var rdp_section_mapping = {
@@ -256,6 +337,11 @@ function extractGtmData(eventType, mapping) {
         label3: 'CATEGORY_DEPTH3',
         label4: 'CATEGORY_DEPTH4',
         label5: 'CATEGORY_DEPTH5',
+        label6: 'CATEGORY_DEPTH6',
+        label7: 'CATEGORY_DEPTH7',
+        label8: 'CATEGORY_DEPTH8',
+        label9: 'CATEGORY_DEPTH9',
+        label10: 'CATEGORY_DEPTH10',
         search_keyword: 'SEAK',
         search_type: 'SRCH_KEYWORD_TYPE',
         search_result: 'SEAK_SUS',
@@ -270,22 +356,44 @@ function extractGtmData(eventType, mapping) {
         revol_term: 'PAGE_RVO_EGM_STT_TE',
         prod_funnel_name: 'PAGE_PD_APL_LVL',
         cts_name: 'CONTENT_NM',
+        cts_name1: 'CONTENT_NM1',
+        cts_name2: 'CONTENT_NM2',
+        cts_name3: 'CONTENT_NM3',
         cts_id: 'PAGE_MKT_CONTS_ID',
         cts_sub_id: 'SUB_CONTENT_ID',
+        cts_sub_id1: 'SUB_CONTENT_ID1',
+        cts_sub_id2: 'SUB_CONTENT_ID2',
+        cts_sub_id3: 'SUB_CONTENT_ID3',
+        cts_sub_id4: 'SUB_CONTENT_ID4',
+        cts_sub_id5: 'SUB_CONTENT_ID5',
         index: 'VERTICAL_INDEX',
-        cts_group1: 'EP_CD101_CTS_GROUP1',
-        cts_group2: 'EP_CD102_CTS_GROUP2',
-        cts_group3: 'EP_CD103_CTS_GROUP3',
-        cts_group4: 'EP_CD104_CTS_GROUP4',
-        cts_group5: 'EP_CD105_CTS_GROUP5',
-        cts_group6: 'EP_CD106_CTS_GROUP6',
-        cts_group7: 'EP_CD107_CTS_GROUP7',
-        cts_group8: 'EP_CD108_CTS_GROUP8',
-        cts_group9: 'EP_CD109_CTS_GROUP9',
-        cts_group10: 'EP_CD110_CTS_GROUP10',
-        cts_group11: 'EP_CD111_CTS_GROUP11',
-        cts_group12: 'EP_CD112_CTS_GROUP12',
-        cts_group13: 'EP_CD113_CTS_GROUP13'
+        cts_group1: 'CTS_GROUP1',
+        cts_group2: 'CTS_GROUP2',
+        cts_group3: 'CTS_GROUP3',
+        cts_group4: 'CTS_GROUP4',
+        cts_group5: 'CTS_GROUP5',
+        cts_group6: 'CTS_GROUP6',
+        cts_group7: 'CTS_GROUP7',
+        cts_group8: 'CTS_GROUP8',
+        cts_group9: 'CTS_GROUP9',
+        cts_group10: 'CTS_GROUP10',
+        cts_group11: 'CTS_GROUP11',
+        cts_group12: 'CTS_GROUP12',
+        cts_group13: 'CTS_GROUP13',
+        auto_tag_yn: 'AUTO_TAG_YN',
+        popup_message: 'popup_message',
+        popup_class: 'popup_class',
+        popup_button: 'popup_button',
+        item_id: 'item_id',
+        item_name: 'item_name',
+        price: 'price',
+        coupon_yn: 'coupon_yn',
+        discount: 'discount',
+        item_brand: 'item_brand',
+        item_category: 'item_category',
+        item_category: 'item_category2',
+        item_category: 'item_category3',
+        item_category: 'item_category4',
     };
 
     var ga_event_mapping = {
@@ -298,6 +406,11 @@ function extractGtmData(eventType, mapping) {
         label3: 'ep_category_depth3',
         label4: 'ep_category_depth4',
         label5: 'ep_category_depth5',
+        label6: 'ep_category_depth6',
+        label7: 'ep_category_depth7',
+        label8: 'ep_category_depth8',
+        label9: 'ep_category_depth9',
+        label10: 'ep_category_depth10',
         search_keyword: '검색_검색어_ep_cd_25_srch_keyword',
         search_result: '검색_검색 결과_ep_cd26_srch_result',
         card_name: '카드명_ep_cd12_card_name',
@@ -310,8 +423,16 @@ function extractGtmData(eventType, mapping) {
         revol_term: 'revol_term',
         prod_funnel_name: 'prod_funnel_name',
         cts_name: '콘텐츠명_ep_cd14_cts_nm',
+        cts_name1: 'ep_cts_nm1',
+        cts_name2: 'ep_cts_nm2',
+        cts_name3: 'ep_cts_nm3',
         cts_id: '콘텐츠ID_ep_cd42_cts_id',
-        cts_sub_id: '서브 콘텐츠 ID_ep_cd79_sub_cts_id',
+        cts_sub_id: '서브콘텐츠ID_ep_cd79_sub_cts_id',
+        cts_sub_id1: 'sub_cts_id1',
+        cts_sub_id2: 'sub_cts_id2',
+        cts_sub_id3: 'sub_cts_id3',
+        cts_sub_id4: 'sub_cts_id4',
+        cts_sub_id5: 'sub_cts_id5',
         index: 'ep_horizontal_index',
         cts_group1: 'ep_cd101_cts_group1',
         cts_group2: 'ep_cd102_cts_group2',
@@ -325,7 +446,21 @@ function extractGtmData(eventType, mapping) {
         cts_group10: 'ep_cd110_cts_group10',
         cts_group11: 'ep_cd111_cts_group11',
         cts_group12: 'ep_cd112_cts_group12',
-        cts_group13: 'ep_cd113_cts_group13'
+        cts_group13: 'ep_cd113_cts_group13',
+        auto_tag_yn: 'auto_tag_yn',
+        popup_message: 'popup_message',
+        popup_class: 'popup_class',
+        popup_button: 'popup_button',
+        item_id: 'item_id',
+        item_name: 'item_name',
+        price: 'price',
+        coupon_yn: 'coupon_yn',
+        discount: 'discount',
+        item_brand: 'item_brand',
+        item_category: 'item_category',
+        item_category: 'item_category2',
+        item_category: 'item_category3',
+        item_category: 'item_category4',
     };
 
     var ga_section_mapping = {
@@ -338,6 +473,11 @@ function extractGtmData(eventType, mapping) {
         label3: 'ep_category_depth3',
         label4: 'ep_category_depth4',
         label5: 'ep_category_depth5',
+        label6: 'ep_category_depth6',
+        label7: 'ep_category_depth7',
+        label8: 'ep_category_depth8',
+        label9: 'ep_category_depth9',
+        label10: 'ep_category_depth10',
         search_keyword: '검색_검색어_ep_cd_25_srch_keyword',
         search_result: '검색_검색 결과_ep_cd26_srch_result',
         card_name: '카드명_ep_cd12_card_name',
@@ -350,8 +490,16 @@ function extractGtmData(eventType, mapping) {
         revol_term: 'revol_term',
         prod_funnel_name: 'prod_funnel_name',
         cts_name: '콘텐츠명_ep_cd14_cts_nm',
+        cts_name1: 'ep_cts_nm1',
+        cts_name2: 'ep_cts_nm2',
+        cts_name3: 'ep_cts_nm3',
         cts_id: '콘텐츠ID_ep_cd42_cts_id',
         cts_sub_id: '서브콘텐츠ID_ep_cd79_sub_cts_id',
+        cts_sub_id1: 'sub_cts_id1',
+        cts_sub_id2: 'sub_cts_id2',
+        cts_sub_id3: 'sub_cts_id3',
+        cts_sub_id4: 'sub_cts_id4',
+        cts_sub_id5: 'sub_cts_id5',
         index: 'ep_vertical_index',
         cts_group1: 'ep_cd101_cts_group1',
         cts_group2: 'ep_cd102_cts_group2',
@@ -365,33 +513,59 @@ function extractGtmData(eventType, mapping) {
         cts_group10: 'ep_cd110_cts_group10',
         cts_group11: 'ep_cd111_cts_group11',
         cts_group12: 'ep_cd112_cts_group12',
-        cts_group13: 'ep_cd113_cts_group13'
+        cts_group13: 'ep_cd113_cts_group13',
+        auto_tag_yn: 'auto_tag_yn',
+        popup_message: 'popup_message',
+        popup_class: 'popup_class',
+        popup_button: 'popup_button',
+        item_id: 'item_id',
+        item_name: 'item_name',
+        price: 'price',
+        coupon_yn: 'coupon_yn',
+        discount: 'discount',
+        item_brand: 'item_brand',
+        item_category: 'item_category',
+        item_category: 'item_category2',
+        item_category: 'item_category3',
+        item_category: 'item_category4',
     };
 
     var transformedHref = transformHref(document.location.href);
 
     Array.prototype.forEach.call(elements, function(el, index) {
         var viewEvent = eventType == 'visibility' ? 'view' : eventType;
-        var eventName = 'cts_' + viewEvent;
+        var eventName;
+        if (el.hasAttribute('data-gtm-popup-click')) {
+            eventName = 'popup_click';
+        } else if (el.hasAttribute('data-gtm-popup-visibility')) {
+            eventName = 'popup_view';
+        } else if (el.hasAttribute('data-gtm-auto-click')) {
+            eventName = 'cts_click';
+        } else if (el.hasAttribute('data-gtm-select-item')) {
+            eventName = 'select-item';
+        } else if (el.hasAttribute('data-gtm-view-item-list')) {
+            eventName = 'view-item-list';
+        } else if (el.hasAttribute('data-gtm-etc')) {
+            eventName = 'etc';
+        } else {
+            eventName = 'cts_' + viewEvent;
+        }
+    
         var location = document.location.href;
         var dataGtmBodyEvent = el.getAttribute('data-gtm-body') || null;
-        var dataGtmBodySection = null;
+        var dataGtmBodySection = {};
         var sectionElement = el.closest('[data-gtm-section]');
     
         while (sectionElement) {
             var sectionData = sectionElement.getAttribute('data-gtm-body');
             if (sectionData) {
                 var parsedSectionData = JSON.parse(sectionData);
-                if (dataGtmBodySection) {
-                    Object.keys(parsedSectionData).forEach(function(key) {
-                        if (dataGtmBodySection.hasOwnProperty(key)) {
-                            console.warn('키가 겹칩니다 (섹션 데이터):', '요소 번호:', index, '키:', key, '기존 값:', dataGtmBodySection[key], '새 값:', parsedSectionData[key]);
-                        }
-                    });
-                    dataGtmBodySection = Object.assign({}, parsedSectionData, dataGtmBodySection);
-                } else {
-                    dataGtmBodySection = parsedSectionData;
-                }
+                Object.keys(parsedSectionData).forEach(function(key) {
+                    if (dataGtmBodySection.hasOwnProperty(key)) {
+                        console.warn('키가 겹칩니다 (섹션 데이터):', '요소 번호:', index, '키:', key, '기존 값:', dataGtmBodySection[key], '새 값:', parsedSectionData[key]);
+                    }
+                });
+                dataGtmBodySection = Object.assign({}, parsedSectionData, dataGtmBodySection);
             }
     
             if (sectionElement.hasAttribute('data-gtm-section-find-continue')) {
@@ -412,39 +586,19 @@ function extractGtmData(eventType, mapping) {
         if (dataGtmBodyEvent) {
             var eventData = JSON.parse(dataGtmBodyEvent);
             for (var source in eventData) {
-                if (mapping == 'rdp') {
-                    var mappedKey = rdp_event_mapping[source];
-                    if (mappedKey) {
-                        if (eventParameter.hasOwnProperty(mappedKey)) {
-                            console.warn('키가 겹칩니다 (이벤트 데이터):', '요소 번호:', index, '키:', mappedKey, '기존 값:', eventParameter[mappedKey], '새 값:', eventData[source]);
-                        }
-                        eventParameter[mappedKey] = eventData[source];
+                var mappedKey = (mapping === 'rdp') ? rdp_event_mapping[source] : ga_event_mapping[source];
+                if (mappedKey) {
+                    if (eventParameter.hasOwnProperty(mappedKey)) {
+                        console.warn('키가 겹칩니다 (이벤트 데이터):', '요소 번호:', index, '키:', mappedKey, '기존 값:', eventParameter[mappedKey], '새 값:', eventData[source]);
                     }
-                } else if (mapping == 'ga') {
-                    var mappedKey = ga_event_mapping[source];
-                    if (mappedKey) {
-                        if (eventParameter.hasOwnProperty(mappedKey)) {
-                            console.warn('키가 겹칩니다 (이벤트 데이터):', '요소 번호:', index, '키:', mappedKey, '기존 값:', eventParameter[mappedKey], '새 값:', eventData[source]);
-                        }
-                        eventParameter[mappedKey] = eventData[source];
-                    }
+                    eventParameter[mappedKey] = eventData[source];
                 }
             }
         }
-
-        if (dataGtmBodySection) {
-            if (dataGtmBodySection.is_popup === "1") {
-                eventName = 'popup_' + viewEvent;
-            }
     
+        if (dataGtmBodySection) {
             for (var source in dataGtmBodySection) {
-                var mappedKey;
-                if (mapping == 'rdp') {
-                    mappedKey = rdp_section_mapping[source];
-                } else if (mapping == 'ga') {
-                    mappedKey = ga_section_mapping[source];
-                }
-
+                var mappedKey = (mapping === 'rdp') ? rdp_section_mapping[source] : ga_section_mapping[source];
                 if (mappedKey) {
                     if (eventParameter.hasOwnProperty(mappedKey)) {
                         console.warn('키가 겹칩니다 (섹션 데이터 -> 이벤트 데이터):', '요소 번호:', index, '키:', mappedKey, '기존 값:', eventParameter[mappedKey], '새 값:', dataGtmBodySection[source]);
@@ -453,7 +607,146 @@ function extractGtmData(eventType, mapping) {
                 }
             }
         }
+    
+        if (el.hasAttribute('data-gtm-popup-visibility') || el.hasAttribute('data-gtm-popup-click')) {
+            var popupBodyData = el.getAttribute('data-gtm-popup-body');
+            var dataGtmBodyEvent = el.getAttribute('data-gtm-popup-body') || null;
+            var dataGtmBodySection = {};
+            var sectionElement = el.closest('[data-gtm-section]');
+        
+            while (sectionElement) {
+                var sectionData = sectionElement.getAttribute('data-gtm-popup-body');
+                if (sectionData) {
+                    var parsedSectionData = JSON.parse(sectionData);
+                    Object.keys(parsedSectionData).forEach(function(key) {
+                        if (dataGtmBodySection.hasOwnProperty(key)) {
+                            console.warn('키가 겹칩니다 (섹션 데이터):', '요소 번호:', index, '키:', key, '기존 값:', dataGtmBodySection[key], '새 값:', parsedSectionData[key]);
+                        }
+                    });
+                    dataGtmBodySection = Object.assign({}, parsedSectionData, dataGtmBodySection);
+                }
+        
+                if (sectionElement.hasAttribute('data-gtm-section-find-continue')) {
+                    sectionElement = sectionElement.parentElement.closest('[data-gtm-section]');
+                } else {
+                    break;
+                }
+            }
+            if (dataGtmBodySection) {
+                for (var source in dataGtmBodySection) {
+                    var mappedKey = (mapping === 'rdp') ? rdp_section_mapping[source] : ga_section_mapping[source];
+                    if (mappedKey) {
+                        if (eventParameter.hasOwnProperty(mappedKey)) {
+                            console.warn('키가 겹칩니다 (섹션 데이터 -> 이벤트 데이터):', '요소 번호:', index, '키:', mappedKey, '기존 값:', eventParameter[mappedKey], '새 값:', dataGtmBodySection[source]);
+                        }
+                        eventParameter[mappedKey] = dataGtmBodySection[source];
+                    }
+                }
+            }
+        
+            if (popupBodyData) {
+                var eventData = JSON.parse(popupBodyData);
+                for (var source in eventData) {
+                    var mappedKey = (mapping === 'rdp') ? rdp_event_mapping[source] : ga_event_mapping[source];
+                    if (mappedKey) {
+                        if (eventParameter.hasOwnProperty(mappedKey)) {
+                            console.warn('키가 겹칩니다 (이벤트 데이터):', '요소 번호:', index, '키:', mappedKey, '기존 값:', eventParameter[mappedKey], '새 값:', eventData[source]);
+                        }
+                        eventParameter[mappedKey] = eventData[source];
+                    }
+                }
+            }
+        }
 
+        if (el.hasAttribute('data-gtm-auto-click')) {
+            var autoBodyData = el.getAttribute('data-gtm-auto-body');
+            var dataGtmBodyEvent = el.getAttribute('data-gtm-auto-body') || null;
+            var dataGtmBodySection = {};
+            var sectionElement = el.closest('[data-gtm-section]');
+        
+            while (sectionElement) {
+                var sectionData = sectionElement.getAttribute('data-gtm-auto-body');
+                if (sectionData) {
+                    var parsedSectionData = JSON.parse(sectionData);
+                    Object.keys(parsedSectionData).forEach(function(key) {
+                        if (dataGtmBodySection.hasOwnProperty(key)) {
+                            console.warn('키가 겹칩니다 (섹션 데이터):', '요소 번호:', index, '키:', key, '기존 값:', dataGtmBodySection[key], '새 값:', parsedSectionData[key]);
+                        }
+                    });
+                    dataGtmBodySection = Object.assign({}, parsedSectionData, dataGtmBodySection);
+                }
+        
+                if (sectionElement.hasAttribute('data-gtm-section-find-continue')) {
+                    sectionElement = sectionElement.parentElement.closest('[data-gtm-section]');
+                } else {
+                    break;
+                }
+            }
+            if (dataGtmBodySection) {
+                for (var source in dataGtmBodySection) {
+                    var mappedKey = (mapping === 'rdp') ? rdp_section_mapping[source] : ga_section_mapping[source];
+                    if (mappedKey) {
+                        if (eventParameter.hasOwnProperty(mappedKey)) {
+                            console.warn('키가 겹칩니다 (섹션 데이터 -> 이벤트 데이터):', '요소 번호:', index, '키:', mappedKey, '기존 값:', eventParameter[mappedKey], '새 값:', dataGtmBodySection[source]);
+                        }
+                        eventParameter[mappedKey] = dataGtmBodySection[source];
+                    }
+                }
+            }
+        
+            if (autoBodyData) {
+                var eventData = JSON.parse(autoBodyData);
+                for (var source in eventData) {
+                    var mappedKey = (mapping === 'rdp') ? rdp_event_mapping[source] : ga_event_mapping[source];
+                    if (mappedKey) {
+                        if (eventParameter.hasOwnProperty(mappedKey)) {
+                            console.warn('키가 겹칩니다 (이벤트 데이터):', '요소 번호:', index, '키:', mappedKey, '기존 값:', eventParameter[mappedKey], '새 값:', eventData[source]);
+                        }
+                        eventParameter[mappedKey] = eventData[source];
+                    }
+                }
+            }
+        }
+        
+        if (el.hasAttribute('data-gtm-view-item-list') || el.hasAttribute('data-gtm-select-item')) {     
+            var ecommerceData = el.getAttribute('data-gtm-ecommerce');
+            if (ecommerceData) {
+                var parsedEcommerceData = JSON.parse(ecommerceData);
+                var items = parsedEcommerceData.ecommerce.items;
+                items.forEach(function(item, itemIndex) {
+                    Object.keys(item).forEach(function(key) {
+                        eventParameter['item_' + itemIndex + '_' + key] = item[key];
+                    });
+                });
+            }
+        }
+    
+        if (el.hasAttribute('data-gtm-etc')) {
+            var etcBodyData = el.getAttribute('data-gtm-body');
+            var etcEcommerceData = el.closest('[data-gtm-ecommerce]');
+            if (etcBodyData) {
+                var eventData = JSON.parse(etcBodyData);
+                for (var source in eventData) {
+                    var mappedKey = (mapping === 'rdp') ? rdp_event_mapping[source] : ga_event_mapping[source];
+                    if (mappedKey) {
+                        if (eventParameter.hasOwnProperty(mappedKey)) {
+                            console.warn('키가 겹칩니다 (이벤트 데이터):', '요소 번호:', index, '키:', mappedKey, '기존 값:', eventParameter[mappedKey], '새 값:', eventData[source]);
+                        }
+                        eventParameter[mappedKey] = eventData[source];
+                    }
+                }
+            }
+            if (etcEcommerceData) {
+                var parsedEtcEcommerceData = JSON.parse(etcEcommerceData.getAttribute('data-gtm-ecommerce'));
+                var items = parsedEtcEcommerceData.ecommerce.items;
+                items.forEach(function(item, itemIndex) {
+                    Object.keys(item).forEach(function(key) {
+                        eventParameter['item_' + itemIndex + '_' + key] = item[key];
+                    });
+                });
+            }
+        }
+    
         var result = {
             SHOT_NUMBER: index,
             EVENTNAME: eventName,
@@ -468,7 +761,6 @@ function extractGtmData(eventType, mapping) {
         results.push(result);
     });
     console.table(results);
-    return results;
 
     var jsonBlob = new Blob([JSON.stringify(results, null, 2)], { type: "application/json" });
     var jsonUrl = URL.createObjectURL(jsonBlob);
@@ -488,21 +780,6 @@ function 태깅맵_RDP노출() {
     captureAndDownload('visibility', timestamp); // 캡쳐함수호출
 }
 
-function 태깅맵_DB노출() {
-    var timestamp = getCurrentTimestamp();
-    highlightGtmElements("visibility");
-    //extractGtmData("visibility", 'rdp');
-    //captureAndDownload('visibility', timestamp); // 캡쳐함수호출
-
-    // Assuming jsonData and imageBlob are available from the previous functions
-    var jsonData = extractGtmData("visibility", 'rdp');
-    html2canvas(document.querySelector(captureAreaId)).then(function(canvas) {
-        canvas.toBlob(function(blob) {
-            uploadData(jsonData, blob, 'visibility', timestamp);
-        });
-    });
-}
-
 function 태깅맵_GA노출() {
     var timestamp = getCurrentTimestamp();
     highlightGtmElements("visibility");
@@ -517,28 +794,42 @@ function 태깅맵_RDP클릭() {
     captureAndDownload('click', timestamp); // 캡쳐함수호출
 }
 
-function 태깅맵_DB클릭() {
-    var timestamp = getCurrentTimestamp();
-    highlightGtmElements("click");
-    //extractGtmData("click", 'rdp');
-    //captureAndDownload('click', timestamp); // 캡쳐함수호출
-
-    // Assuming jsonData and imageBlob are available from the previous functions
-    var jsonData = extractGtmData("click", 'rdp');
-    console.log('jsonData')
-    console.log(jsonData)
-    html2canvas(document.querySelector(captureAreaId)).then(function(canvas) {
-        canvas.toBlob(function(blob) {
-            uploadData(jsonData, blob, 'click', timestamp);
-        });
-    });
-}
-
 function 태깅맵_GA클릭() {
     var timestamp = getCurrentTimestamp();
     highlightGtmElements("click");
     extractGtmData("click", 'ga');
     captureAndDownload('click', timestamp); // 캡쳐함수호출
+}
+
+
+function 태깅맵_DB노출() {
+    var timestamp = getCurrentTimestamp();
+    highlightGtmElements("visibility");
+    extractGtmData("visibility", 'rdp');
+    captureAndDownload('visibility', timestamp); // 캡쳐함수호출
+
+    // Assuming jsonData and imageBlob are available from the previous functions
+    var jsonData = extractGtmData("visibility", 'rdp');
+    html2canvas(document.querySelector(captureAreaId)).then(function(canvas) {
+        canvas.toBlob(function(blob) {
+            uploadData(jsonData, blob, 'visibility', timestamp);
+        });
+    });
+}
+
+function 태깅맵_DB클릭() {
+    var timestamp = getCurrentTimestamp();
+    highlightGtmElements("click");
+    extractGtmData("click", 'rdp');
+    captureAndDownload('click', timestamp); // 캡쳐함수호출
+
+    // Assuming jsonData and imageBlob are available from the previous functions
+    var jsonData = extractGtmData("click", 'rdp');
+    html2canvas(document.querySelector(captureAreaId)).then(function(canvas) {
+        canvas.toBlob(function(blob) {
+            uploadData(jsonData, blob, 'click', timestamp);
+        });
+    });
 }
 
 function 태깅맵_지우기() {
