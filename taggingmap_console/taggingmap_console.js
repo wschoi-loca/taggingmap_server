@@ -1,6 +1,6 @@
 
 // html2canvas-pro 라이브러리 로드
-  /*
+  
 (function() {
     var script = document.createElement('script');
     script.src = 'https://unpkg.com/html2canvas-pro@latest/dist/html2canvas-pro.min.js';
@@ -9,7 +9,7 @@
     };
     document.head.appendChild(script);
 })();
-*/
+
 
 // 현재 날짜와 시간을 "YYYYMMDD_HHmmss" 형식으로 반환하는 함수
 function getCurrentTimestamp() {
