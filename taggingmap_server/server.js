@@ -5,7 +5,10 @@ const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
-const taggingMap = require('./models/taggingMap'); // 모델 정의를 상단으로 이동
+const helmet = require('helmet');
+const fs = require('fs');
+require('dotenv').config(); // 환경 변수 로드
+const taggingMap = require('./models/taggingMap'); // 모델
 
 const app = express();
 
@@ -13,10 +16,13 @@ const app = express();
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors());
+app.use(helmet());
 
 // MongoDB connection
-mongoose.connect('mongodb://localhost:27017/taggingMapSystem');
-
+mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/taggingMapSystem', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
 const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
 db.once('open', () => {
@@ -24,7 +30,6 @@ db.once('open', () => {
 });
 
 // Ensure the 'uploads' directory exists
-const fs = require('fs');
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir);
@@ -33,7 +38,7 @@ if (!fs.existsSync(uploadsDir)) {
 // Multer setup for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/');
+    cb(null, uploadsDir);
   },
   filename: (req, file, cb) => {
     cb(null, uuidv4() + path.extname(file.originalname));
@@ -42,32 +47,28 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 // Serve static files from the 'uploads' directory
-app.use('/uploads', express.static(uploadsDir));
+app.use('/static/uploads', express.static(uploadsDir));
 
 // Routes
 app.post('/api/taggingMaps', upload.single('image'), async (req, res) => {
   try {
-    console.log('Request body:', req.body);
-    console.log('File:', req.file);
-
     let eventParams;
     try {
       eventParams = JSON.parse(req.body.eventParams);
-      console.log('Parsed eventParams:', eventParams);
     } catch (e) {
       throw new Error('Invalid JSON in eventParams');
     }
-    
+
     const image = req.file ? req.file.filename : null;
 
     const newTaggingMap = new taggingMap({
-        TIME: req.body.TIME,
-        EVENTNAME: req.body.EVENTNAME, 
-        PAGETITLE: req.body.PAGETITLE,
-        URL: req.body.URL,
-        eventParams: eventParams,
-        image: image ? `uploads/${image}` : null,
-        timestamp: new Date().toISOString(),
+      TIME: req.body.TIME,
+      EVENTNAME: req.body.EVENTNAME,
+      PAGETITLE: req.body.PAGETITLE,
+      URL: req.body.URL,
+      eventParams: eventParams,
+      image: image ? `static/uploads/${image}` : null,
+      timestamp: new Date().toISOString(),
     });
 
     await newTaggingMap.save();

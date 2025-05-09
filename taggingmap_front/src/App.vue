@@ -49,6 +49,9 @@
         </table>
       </div>
     </div>
+    <div v-else-if="error">
+      <p>{{ error }}</p>
+    </div>
     <div v-else>
       <p>Loading...</p>
     </div>
@@ -62,7 +65,8 @@ export default {
   name: 'App',
   data() {
     return {
-      taggingMaps: []
+      taggingMaps: [],
+      error: null,
     };
   },
   created() {
@@ -71,15 +75,16 @@ export default {
   methods: {
     async fetchTaggingMaps() {
       try {
-        const response = await axios.get('http://localhost:5000/api/taggingMaps');
+        const response = await axios.get(`${process.env.VUE_APP_API_BASE_URL}/api/taggingMaps`);
         this.taggingMaps = response.data;
       } catch (error) {
         console.error('Error fetching taggingMaps:', error);
+        this.error = 'Failed to load tagging maps. Please try again later.';
       }
     },
     getImageUrl(imagePath) {
       if (imagePath) {
-        return `http://localhost:5000/${imagePath}`;
+        return `${process.env.VUE_APP_API_BASE_URL}/${imagePath}`;
       }
       return '';
     },
@@ -116,16 +121,21 @@ export default {
 table {
   border-collapse: collapse;
   width: 100%;
+  overflow-x: auto;
+  display: block;
 }
 
 th, td {
   border: 1px solid #ccc;
   padding: 10px;
   text-align: left;
+  word-break: break-word;
 }
 
 img {
-  max-width: 300px;
+  max-width: 100%;
   height: auto;
+  border: 1px solid #ccc;
+  border-radius: 4px;
 }
 </style>
