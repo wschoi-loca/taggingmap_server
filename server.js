@@ -16,18 +16,29 @@ const app = express();
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors());
-app.use(helmet());
 
-// MongoDB connection
-mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/taggingMapSystem', {
+// Helmet 설정 - Heroku 배포와 프론트엔드 호환성을 위해 일부 옵션 조정
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "blob:"],
+      connectSrc: ["'self'", "https://taggingmap-server.herokuapp.com"]
+    }
+  },
+  crossOriginEmbedderPolicy: false
+}));
+
+// MongoDB connection - Heroku 환경변수 사용
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/taggingMapSystem';
+mongoose.connect(MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
-});
-const db = mongoose.connection;
-db.on('error', console.error.bind(console, 'connection error:'));
-db.once('open', () => {
-  console.log('Connected to MongoDB');
-});
+})
+.then(() => console.log('MongoDB Connected'))
+.catch(err => console.error('MongoDB connection error:', err));
 
 // Ensure the 'uploads' directory exists
 const uploadsDir = path.join(__dirname, 'uploads');
@@ -87,6 +98,22 @@ app.get('/api/taggingMaps', async (req, res) => {
     console.error('Error fetching taggingMaps:', error);
     res.status(500).send('Error fetching taggingMaps');
   }
+});
+
+// 프론트엔드 서빙 (Heroku 배포를 위해 추가)
+if (process.env.NODE_ENV === 'production') {
+  // 프론트엔드 빌드 파일들을 정적으로 서빙
+  app.use(express.static(path.join(__dirname, 'taggingmap_front/dist')));
+  
+  // 나머지 모든 GET 요청을 Vue 앱의 index.html로 리다이렉트
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'taggingmap_front/dist/index.html'));
+  });
+}
+
+// 상태 확인용 엔드포인트 (Heroku가 제대로 작동하는지 확인하기 위함)
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'Server is running' });
 });
 
 const PORT = process.env.PORT || 5000;
