@@ -65,11 +65,22 @@ app.post('/api/taggingMaps', upload.single('image'), async (req, res) => {
   try {
     let eventParams;
     try {
-      eventParams = JSON.parse(req.body.eventParams);
+      // 더 유연한 파싱 로직 적용
+      eventParams = req.body.eventParams ? 
+        (typeof req.body.eventParams === 'string' ? 
+          JSON.parse(req.body.eventParams) : req.body.eventParams) 
+        : req.body.jsonData ? 
+          (typeof req.body.jsonData === 'string' ? 
+            JSON.parse(req.body.jsonData) : req.body.jsonData)
+          : {};
+            
+      console.log('Received eventParams:', req.body.eventParams);
+      console.log('Parsed eventParams:', eventParams);
     } catch (e) {
+      console.error('JSON parsing error:', e, 'Original data:', req.body.eventParams);
       throw new Error('Invalid JSON in eventParams');
     }
-
+    
     const image = req.file ? req.file.filename : null;
 
     const newTaggingMap = new taggingMap({
