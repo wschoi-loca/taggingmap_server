@@ -88,17 +88,39 @@ function downloadBlob(blob, filename) {
     document.body.removeChild(link);
 }
 
+// 환경에 따른 기본 URL 설정
+const API_BASE_URL = window.location.hostname === 'localhost' 
+    ? 'http://localhost:5000' 
+    : 'https://taggingmap-server-bd06b783e6ac.herokuapp.com';
+
 function uploadData(jsonData, imageBlob, eventType, timestamp) {
     var transformedHref = transformHref(document.location.href);
     var formData = new FormData();
-    formData.append('jsonData', JSON.stringify(jsonData));
-    formData.append('image', new File([imageBlob], getCurrentTimestamp() + '_' + eventType + '_' + transformedHref + '.png', { type: 'image/png' }));
+    
+    // 필드명을 'eventParams'로 수정 (서버가 기대하는 이름)
+    formData.append('eventParams', JSON.stringify(jsonData));
+    
+    // 서버가 필요로 하는 다른 필드들도 추가
+    formData.append('TIME', new Date().toISOString());
+    formData.append('EVENTNAME', eventType);
+    formData.append('PAGETITLE', document.title);
+    formData.append('URL', document.location.href);
+    formData.append('timestamp', new Date().toISOString());
+    
+    // 이미지 파일 추가
+    const filename = getCurrentTimestamp() + '_' + eventType + '_' + transformedHref + '.png';
+    formData.append('image', new File([imageBlob], filename, { type: 'image/png' }));
 
-    fetch('http://localhost:5000/api/pages', {
+    fetch('https://taggingmap-server-bd06b783e6ac.herokuapp.com/api/taggingMaps', {
         method: 'POST',
         body: formData,
     })
     .then(function(response) {
+        if (!response.ok) {
+            return response.text().then(text => {
+                throw new Error(`Server error: ${text}`);
+            });
+        }
         return response.text();
     })
     .then(function(data) {

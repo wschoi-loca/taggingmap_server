@@ -75,7 +75,9 @@ export default {
   methods: {
     async fetchTaggingMaps() {
       try {
-        const response = await axios.get(`${process.env.VUE_APP_API_BASE_URL}/api/taggingMaps`);
+        // 환경 변수가 없을 경우 빈 문자열 사용
+        const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
+        const response = await axios.get(`${baseUrl}/api/taggingMaps`);
         this.taggingMaps = response.data;
       } catch (error) {
         console.error('Error fetching taggingMaps:', error);
