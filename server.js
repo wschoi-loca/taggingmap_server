@@ -63,38 +63,44 @@ app.use('/static/uploads', express.static(uploadsDir));
 // Routes
 app.post('/api/taggingMaps', upload.single('image'), async (req, res) => {
   try {
-    let eventParams;
+    console.log('Received request body:', req.body);
+    let eventParams = {};
+    
     try {
-      // 더 유연한 파싱 로직 적용
-      eventParams = req.body.eventParams ? 
-        (typeof req.body.eventParams === 'string' ? 
-          JSON.parse(req.body.eventParams) : req.body.eventParams) 
-        : req.body.jsonData ? 
-          (typeof req.body.jsonData === 'string' ? 
-            JSON.parse(req.body.jsonData) : req.body.jsonData)
-          : {};
-            
-      console.log('Received eventParams:', req.body.eventParams);
-      console.log('Parsed eventParams:', eventParams);
+      // 방어적 코딩: eventParams가 있을 때만 파싱 시도
+      if (req.body.eventParams) {
+        eventParams = JSON.parse(req.body.eventParams);
+      } else if (req.body.jsonData) {
+        // 이전 버전 호환성 유지
+        eventParams = JSON.parse(req.body.jsonData);
+      } else {
+        // 없으면 빈 객체 사용
+        console.log('No eventParams or jsonData found in request');
+      }
     } catch (e) {
-      console.error('JSON parsing error:', e, 'Original data:', req.body.eventParams);
-      throw new Error('Invalid JSON in eventParams');
+      console.error('JSON parsing error:', e, 'Original data:', req.body.eventParams || req.body.jsonData);
+      // 오류가 발생해도 계속 진행 (빈 객체 사용)
+      eventParams = {};
     }
     
-    const image = req.file ? req.file.filename : null;
-
-    const newTaggingMap = new taggingMap({
-      TIME: req.body.TIME,
-      EVENTNAME: req.body.EVENTNAME,
-      PAGETITLE: req.body.PAGETITLE,
-      URL: req.body.URL,
+    // 파일 업로드 처리
+    const imageUrl = req.file ? `/uploads/${req.file.filename}` : '';
+    
+    // 새로운 태깅맵 생성
+    const newTaggingMap = new TaggingMap({
+      TIME: req.body.TIME || new Date().toISOString(),
+      EVENTNAME: req.body.EVENTNAME || 'UNKNOWN',
+      PAGETITLE: req.body.PAGETITLE || '',
+      URL: req.body.URL || '',
       eventParams: eventParams,
-      image: image ? `static/uploads/${image}` : null,
-      timestamp: new Date().toISOString(),
+      image: imageUrl,
+      timestamp: req.body.timestamp || new Date().toISOString()
     });
-
+    
+    // DB에 저장
     await newTaggingMap.save();
     res.status(200).send('Page data saved successfully');
+    
   } catch (error) {
     console.error('Error saving page data:', error.message);
     res.status(500).send('Error saving page data');
