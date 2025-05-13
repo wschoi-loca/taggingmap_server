@@ -7,31 +7,55 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const helmet = require('helmet');
 const fs = require('fs');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 require('dotenv').config(); // 환경 변수 로드
-const taggingMap = require('./models/taggingMap'); // 모델
+const TaggingMap = require('./models/taggingMap'); // 모델
 
 const app = express();
+
+// Cloudinary 설정 - 제공된 계정 정보 사용
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// Cloudinary 스토리지 설정
+const cloudinaryStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'taggingmap',
+    allowed_formats: ['jpg', 'png', 'jpeg', 'gif'],
+    format: async (req, file) => {
+      if (file.mimetype.includes('png')) return 'png';
+      if (file.mimetype.includes('jpeg') || file.mimetype.includes('jpg')) return 'jpg';
+      return 'png';
+    },
+    public_id: (req, file) => `${Date.now()}-${uuidv4().substring(0, 8)}`
+  }
+});
 
 // Middleware
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors());
 
-// Helmet 설정 - Heroku 배포와 프론트엔드 호환성을 위해 일부 옵션 조정
+// Helmet 설정
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", "data:", "blob:"],
-      connectSrc: ["'self'", "https://taggingmap-server.herokuapp.com"]
+      imgSrc: ["'self'", "data:", "blob:", "https://res.cloudinary.com"], 
+      connectSrc: ["'self'", "https://taggingmap-server.herokuapp.com", "https://taggingmap-server-bd06b783e6ac.herokuapp.com"]
     }
   },
   crossOriginEmbedderPolicy: false
 }));
 
-// MongoDB connection - Heroku 환경변수 사용
+// MongoDB connection
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/taggingMapSystem';
 mongoose.connect(MONGO_URI, {
   useNewUrlParser: true,
@@ -40,25 +64,28 @@ mongoose.connect(MONGO_URI, {
 .then(() => console.log('MongoDB Connected'))
 .catch(err => console.error('MongoDB connection error:', err));
 
-// Ensure the 'uploads' directory exists
+// 로컬 업로드 디렉토리 생성 (폴백용)
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir);
 }
 
-// Multer setup for file uploads
-const storage = multer.diskStorage({
+// 로컬 폴백용 스토리지 설정
+const localStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadsDir);
   },
   filename: (req, file, cb) => {
-    cb(null, uuidv4() + path.extname(file.originalname));
-  },
+    cb(null, `${Date.now()}-${uuidv4().substring(0, 8)}${path.extname(file.originalname)}`);
+  }
 });
+
+// 업로드 처리를 위한 multer 설정
+const storage = cloudinaryStorage;
 const upload = multer({ storage: storage });
 
-// Serve static files from the 'uploads' directory
-app.use('/static/uploads', express.static(uploadsDir));
+// 로컬 파일 서빙
+app.use('/uploads', express.static(uploadsDir));
 
 // Routes
 app.post('/api/taggingMaps', upload.single('image'), async (req, res) => {
@@ -67,24 +94,25 @@ app.post('/api/taggingMaps', upload.single('image'), async (req, res) => {
     let eventParams = {};
     
     try {
-      // 방어적 코딩: eventParams가 있을 때만 파싱 시도
       if (req.body.eventParams) {
         eventParams = JSON.parse(req.body.eventParams);
       } else if (req.body.jsonData) {
-        // 이전 버전 호환성 유지
         eventParams = JSON.parse(req.body.jsonData);
       } else {
-        // 없으면 빈 객체 사용
         console.log('No eventParams or jsonData found in request');
       }
     } catch (e) {
       console.error('JSON parsing error:', e, 'Original data:', req.body.eventParams || req.body.jsonData);
-      // 오류가 발생해도 계속 진행 (빈 객체 사용)
       eventParams = {};
     }
     
-    // 파일 업로드 처리
-    const imageUrl = req.file ? `/uploads/${req.file.filename}` : '';
+    let imageUrl = '';
+    
+    // Cloudinary 응답에서 이미지 URL 가져오기
+    if (req.file) {
+      console.log('Uploaded file info:', req.file);
+      imageUrl = req.file.path || ''; // Cloudinary URL
+    }
     
     // 새로운 태깅맵 생성
     const newTaggingMap = new TaggingMap({
@@ -109,7 +137,7 @@ app.post('/api/taggingMaps', upload.single('image'), async (req, res) => {
 
 app.get('/api/taggingMaps', async (req, res) => {
   try {
-    const taggingMaps = await taggingMap.find();
+    const taggingMaps = await TaggingMap.find();
     res.json(taggingMaps);
   } catch (error) {
     console.error('Error fetching taggingMaps:', error);
@@ -117,23 +145,26 @@ app.get('/api/taggingMaps', async (req, res) => {
   }
 });
 
-// 프론트엔드 서빙 (Heroku 배포를 위해 추가)
+// 프론트엔드 서빙
 if (process.env.NODE_ENV === 'production') {
-  // 프론트엔드 빌드 파일들을 정적으로 서빙
   app.use(express.static(path.join(__dirname, 'taggingmap_front/dist')));
   
-  // 나머지 모든 GET 요청을 Vue 앱의 index.html로 리다이렉트
   app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'taggingmap_front/dist/index.html'));
   });
 }
 
-// 상태 확인용 엔드포인트 (Heroku가 제대로 작동하는지 확인하기 위함)
+// 상태 확인 엔드포인트
 app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'Server is running' });
+  res.status(200).json({ 
+    status: 'Server is running', 
+    cloudinary: 'Configured',
+    cloudName: cloudinary.config().cloud_name
+  });
 });
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
+  console.log(`Cloudinary configured for cloud: ${cloudinary.config().cloud_name}`);
 });

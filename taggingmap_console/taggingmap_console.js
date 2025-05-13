@@ -10,6 +10,26 @@
     document.head.appendChild(script);
 })();
 
+// Firebase 클라이언트 SDK 로드
+// <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app.js"></script>
+// <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage.js"></script>
+(function() {
+    var script = document.createElement('script');
+    script.src = 'https://www.gstatic.com/firebasejs/9.6.0/firebase-app.js';
+    script.onload = function() {
+        console.log('html2canvas-pro loaded.');
+    };
+    document.head.appendChild(script);
+})();
+
+(function() {
+    var script = document.createElement('script');
+    script.src = 'https://www.gstatic.com/firebasejs/9.6.0/firebase-storage.js';
+    script.onload = function() {
+        console.log('html2canvas-pro loaded.');
+    };
+    document.head.appendChild(script);
+})();
 
 // 현재 날짜와 시간을 "YYYYMMDD_HHmmss" 형식으로 반환하는 함수
 function getCurrentTimestamp() {
@@ -93,43 +113,52 @@ const API_BASE_URL = window.location.hostname === 'localhost'
     ? 'http://localhost:5000' 
     : 'https://taggingmap-server-bd06b783e6ac.herokuapp.com';
 
-function uploadData(jsonData, imageBlob, eventType, timestamp) {
-    var transformedHref = transformHref(document.location.href);
-    var formData = new FormData();
+// Firebase 초기화
+const firebaseConfig = {
+    apiKey: "AIzaSyDJ_ODZY1Iq603TmAguXzQpgq66N_QaLyw",
+    authDomain: "loca-ga-taggingmap.firebaseapp.com",
+    projectId: "loca-ga-taggingmap",
+    storageBucket: "loca-ga-taggingmap.firebasestorage.app",
+    messagingSenderId: "434460786285",
+    appId: "1:434460786285:web:3f6096b85e32751990c964"
+  };
+  
+  firebase.initializeApp(firebaseConfig);
+  
+  function uploadDataDirectly(jsonData, imageBlob, eventType, timestamp) {
+    // Firebase Storage에 직접 업로드
+    const storageRef = firebase.storage().ref();
+    const filename = `${timestamp}_${eventType}_${transformHref(document.location.href)}.png`;
+    const fileRef = storageRef.child(`uploads/${filename}`);
     
-    // 필드명을 'eventParams'로 수정 (서버가 기대하는 이름)
-    formData.append('eventParams', JSON.stringify(jsonData));
-    
-    // 서버가 필요로 하는 다른 필드들도 추가
-    formData.append('TIME', new Date().toISOString());
-    formData.append('EVENTNAME', eventType);
-    formData.append('PAGETITLE', document.title);
-    formData.append('URL', document.location.href);
-    formData.append('timestamp', new Date().toISOString());
-    
-    // 이미지 파일 추가
-    const filename = getCurrentTimestamp() + '_' + eventType + '_' + transformedHref + '.png';
-    formData.append('image', new File([imageBlob], filename, { type: 'image/png' }));
-
-    fetch('https://taggingmap-server-bd06b783e6ac.herokuapp.com/api/taggingMaps', {
+    fileRef.put(imageBlob).then(snapshot => {
+      return snapshot.ref.getDownloadURL();
+    }).then(imageUrl => {
+      // 이미지 URL을 서버에 전송
+      const formData = new FormData();
+      formData.append('eventParams', JSON.stringify(jsonData));
+      formData.append('TIME', new Date().toISOString());
+      formData.append('EVENTNAME', eventType);
+      formData.append('PAGETITLE', document.title);
+      formData.append('URL', document.location.href);
+      formData.append('timestamp', new Date().toISOString());
+      formData.append('imageUrl', imageUrl); // 이미지 URL만 전송
+      
+      return fetch('https://taggingmap-server-bd06b783e6ac.herokuapp.com/api/taggingMaps', {
         method: 'POST',
-        body: formData,
-    })
-    .then(function(response) {
-        if (!response.ok) {
-            return response.text().then(text => {
-                throw new Error(`Server error: ${text}`);
-            });
-        }
-        return response.text();
-    })
-    .then(function(data) {
-        console.log('Upload successful:', data);
-    })
-    .catch(function(error) {
-        console.error('Error uploading data:', error);
+        body: formData
+      });
+    }).then(response => {
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.statusText}`);
+      }
+      return response.text();
+    }).then(data => {
+      console.log('Upload successful:', data);
+    }).catch(error => {
+      console.error('Error uploading data:', error);
     });
-}
+  }
 
 function highlightGtmElements(eventType) {
     var selector = '[data-gtm-' + eventType + ']:not(.gnb-wrapper *)';
