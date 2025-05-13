@@ -164,12 +164,13 @@ function uploadDataDirectly(jsonData, imageBlob, eventType, timestamp) {
     .then(data => {
         console.log('Cloudinary upload successful:', data);
         
+        var eventParams = JSON.stringify(jsonData)
         // 이미지 URL과 JSON 데이터를 서버에 전송
         const serverFormData = new FormData();
-        serverFormData.append('eventParams', JSON.stringify(jsonData));
+        serverFormData.append('eventParams', eventParams);
         serverFormData.append('TIME', new Date().toISOString());
-        serverFormData.append('EVENTNAME', eventType);
-        serverFormData.append('PAGETITLE', document.title);
+        serverFormData.append('EVENTNAME', eventParams[0].EVENTNAME);
+        serverFormData.append('PAGETITLE', eventParams[0].PAGETITLE);
         serverFormData.append('URL', document.location.href);
         serverFormData.append('timestamp', new Date().toISOString());
         serverFormData.append('imageUrl', data.secure_url); // Cloudinary 이미지 URL
@@ -197,60 +198,14 @@ function uploadDataDirectly(jsonData, imageBlob, eventType, timestamp) {
     });
 }
 
-// Firebase로 업로드하는 폴백 함수
-function uploadDataToFirebase(jsonData, imageBlob, eventType, timestamp) {
-    try {
-        if (!firebase || !firebase.storage) {
-            throw new Error('Firebase not available');
-        }
-        
-        const storageRef = firebase.storage().ref();
-        const filename = `${timestamp}_${eventType}_${transformHref(document.location.href)}.png`;
-        const fileRef = storageRef.child(`uploads/${filename}`);
-        
-        fileRef.put(imageBlob).then(snapshot => {
-            return snapshot.ref.getDownloadURL();
-        }).then(imageUrl => {
-            // 이미지 URL을 서버에 전송
-            const formData = new FormData();
-            formData.append('eventParams', JSON.stringify(jsonData));
-            formData.append('TIME', new Date().toISOString());
-            formData.append('EVENTNAME', eventType);
-            formData.append('PAGETITLE', document.title);
-            formData.append('URL', document.location.href);
-            formData.append('timestamp', new Date().toISOString());
-            formData.append('imageUrl', imageUrl); // Firebase 이미지 URL
-            
-            return fetch(`${API_BASE_URL}/api/taggingMaps`, {
-                method: 'POST',
-                body: formData
-            });
-        }).then(response => {
-            if (!response.ok) {
-                throw new Error(`Server error: ${response.statusText}`);
-            }
-            return response.text();
-        }).then(data => {
-            console.log('Firebase fallback upload successful:', data);
-        }).catch(error => {
-            console.error('Firebase fallback also failed:', error);
-            uploadDataDirectToServer(jsonData, imageBlob, eventType, timestamp);
-        });
-    } catch (e) {
-        console.error('Firebase fallback error:', e);
-        // Firebase도 실패하면 서버에 직접 업로드
-        uploadDataDirectToServer(jsonData, imageBlob, eventType, timestamp);
-    }
-}
-
 // 서버에 직접 업로드하는 최종 폴백 함수
 function uploadDataDirectToServer(jsonData, imageBlob, eventType, timestamp) {
     const formData = new FormData();
-    
+    var eventParams = JSON.stringify(jsonData);
     formData.append('eventParams', JSON.stringify(jsonData));
     formData.append('TIME', new Date().toISOString());
-    formData.append('EVENTNAME', eventType);
-    formData.append('PAGETITLE', document.title);
+    formData.append('EVENTNAME', eventParams[0].EVENTNAME);
+    formData.append('PAGETITLE', eventParams[0].PAGETITLE);
     formData.append('URL', document.location.href);
     formData.append('timestamp', new Date().toISOString());
     
