@@ -86,7 +86,7 @@ export default {
     },
     getImageUrl(imagePath) {
       if (imagePath) {
-        return `${process.env.VUE_APP_API_BASE_URL}/${imagePath}`;
+        return `${imagePath}`;
       }
       return '';
     },
