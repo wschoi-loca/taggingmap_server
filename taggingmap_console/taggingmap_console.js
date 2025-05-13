@@ -1,6 +1,4 @@
-
 // html2canvas-pro 라이브러리 로드
-  
 (function() {
     var script = document.createElement('script');
     script.src = 'https://unpkg.com/html2canvas-pro@latest/dist/html2canvas-pro.min.js';
@@ -10,14 +8,22 @@
     document.head.appendChild(script);
 })();
 
-// Firebase 클라이언트 SDK 로드
-// <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app.js"></script>
-// <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage.js"></script>
+// Cloudinary 위젯 로드
+(function() {
+    var script = document.createElement('script');
+    script.src = 'https://widget.cloudinary.com/v2.0/global/all.js';
+    script.onload = function() {
+        console.log('Cloudinary widget loaded.');
+    };
+    document.head.appendChild(script);
+})();
+
+// Firebase 클라이언트 SDK 로드 (폴백용)
 (function() {
     var script = document.createElement('script');
     script.src = 'https://www.gstatic.com/firebasejs/9.6.0/firebase-app.js';
     script.onload = function() {
-        console.log('html2canvas-pro loaded.');
+        console.log('Firebase App SDK loaded.');
     };
     document.head.appendChild(script);
 })();
@@ -26,7 +32,7 @@
     var script = document.createElement('script');
     script.src = 'https://www.gstatic.com/firebasejs/9.6.0/firebase-storage.js';
     script.onload = function() {
-        console.log('html2canvas-pro loaded.');
+        console.log('Firebase Storage SDK loaded.');
     };
     document.head.appendChild(script);
 })();
@@ -53,6 +59,11 @@ function transformHref(href) {
 
 // 캡쳐할 영역의 ID 설정
 var captureAreaId = 'body';
+
+// Cloudinary 설정
+const CLOUDINARY_CLOUD_NAME = 'dfksr3bzo';
+const CLOUDINARY_API_KEY = '213991357667172';
+const CLOUDINARY_UPLOAD_PRESET = 'ml_default'; // 필요시 Cloudinary 대시보드에서 unsigned 프리셋 생성
 
 // 유틸리티 함수: Blob을 다운로드 링크로 변환하고 클릭
 function downloadBlob(blob, filename) {
@@ -98,22 +109,12 @@ function captureAndDownload(eventType, timestamp) {
     });
 }
 
-// Blob 다운로드 함수
-function downloadBlob(blob, filename) {
-    var link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
-
 // 환경에 따른 기본 URL 설정
 const API_BASE_URL = window.location.hostname === 'localhost' 
     ? 'http://localhost:5000' 
     : 'https://taggingmap-server-bd06b783e6ac.herokuapp.com';
 
-// Firebase 초기화
+// Firebase 초기화 (폴백용)
 const firebaseConfig = {
     apiKey: "AIzaSyDJ_ODZY1Iq603TmAguXzQpgq66N_QaLyw",
     authDomain: "loca-ga-taggingmap.firebaseapp.com",
@@ -121,44 +122,162 @@ const firebaseConfig = {
     storageBucket: "loca-ga-taggingmap.firebasestorage.app",
     messagingSenderId: "434460786285",
     appId: "1:434460786285:web:3f6096b85e32751990c964"
-  };
-  
-  firebase.initializeApp(firebaseConfig);
-  
-  function uploadDataDirectly(jsonData, imageBlob, eventType, timestamp) {
-    // Firebase Storage에 직접 업로드
-    const storageRef = firebase.storage().ref();
-    const filename = `${timestamp}_${eventType}_${transformHref(document.location.href)}.png`;
-    const fileRef = storageRef.child(`uploads/${filename}`);
+};
+
+// Firebase는 폴백으로만 사용
+try {
+    if (firebase && firebase.initializeApp) {
+        firebase.initializeApp(firebaseConfig);
+        console.log('Firebase initialized as fallback');
+    }
+} catch (e) {
+    console.log('Firebase not initialized, will use Cloudinary only');
+}
+
+// Cloudinary를 통해 이미지 업로드하는 함수
+function uploadDataDirectly(jsonData, imageBlob, eventType, timestamp) {
+    // FormData 생성
+    const formData = new FormData();
     
-    fileRef.put(imageBlob).then(snapshot => {
-      return snapshot.ref.getDownloadURL();
-    }).then(imageUrl => {
-      // 이미지 URL을 서버에 전송
-      const formData = new FormData();
-      formData.append('eventParams', JSON.stringify(jsonData));
-      formData.append('TIME', new Date().toISOString());
-      formData.append('EVENTNAME', eventType);
-      formData.append('PAGETITLE', document.title);
-      formData.append('URL', document.location.href);
-      formData.append('timestamp', new Date().toISOString());
-      formData.append('imageUrl', imageUrl); // 이미지 URL만 전송
-      
-      return fetch('https://taggingmap-server-bd06b783e6ac.herokuapp.com/api/taggingMaps', {
+    // 이미지 파일 추가
+    const filename = `${timestamp}_${eventType}_${transformHref(document.location.href)}.png`;
+    const file = new File([imageBlob], filename, { type: 'image/png' });
+    
+    // Cloudinary API 업로드 설정
+    formData.append('file', file);
+    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+    formData.append('api_key', CLOUDINARY_API_KEY);
+    formData.append('timestamp', Math.round(new Date().getTime() / 1000));
+    formData.append('folder', 'taggingmap');
+    
+    // Cloudinary로 직접 업로드
+    fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
         method: 'POST',
         body: formData
-      });
-    }).then(response => {
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.statusText}`);
-      }
-      return response.text();
-    }).then(data => {
-      console.log('Upload successful:', data);
-    }).catch(error => {
-      console.error('Error uploading data:', error);
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Cloudinary upload failed: ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Cloudinary upload successful:', data);
+        
+        // 이미지 URL과 JSON 데이터를 서버에 전송
+        const serverFormData = new FormData();
+        serverFormData.append('eventParams', JSON.stringify(jsonData));
+        serverFormData.append('TIME', new Date().toISOString());
+        serverFormData.append('EVENTNAME', eventType);
+        serverFormData.append('PAGETITLE', document.title);
+        serverFormData.append('URL', document.location.href);
+        serverFormData.append('timestamp', new Date().toISOString());
+        serverFormData.append('imageUrl', data.secure_url); // Cloudinary 이미지 URL
+        
+        return fetch(`${API_BASE_URL}/api/taggingMaps`, {
+            method: 'POST',
+            body: serverFormData
+        });
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Server error: ${response.statusText}`);
+        }
+        return response.text();
+    })
+    .then(data => {
+        console.log('Server upload successful:', data);
+    })
+    .catch(error => {
+        console.error('Error uploading to Cloudinary:', error);
+        
+        // Cloudinary 업로드 실패 시 Firebase로 폴백 시도
+        console.log('Attempting fallback upload via Firebase...');
+        uploadDataToFirebase(jsonData, imageBlob, eventType, timestamp);
     });
-  }
+}
+
+// Firebase로 업로드하는 폴백 함수
+function uploadDataToFirebase(jsonData, imageBlob, eventType, timestamp) {
+    try {
+        if (!firebase || !firebase.storage) {
+            throw new Error('Firebase not available');
+        }
+        
+        const storageRef = firebase.storage().ref();
+        const filename = `${timestamp}_${eventType}_${transformHref(document.location.href)}.png`;
+        const fileRef = storageRef.child(`uploads/${filename}`);
+        
+        fileRef.put(imageBlob).then(snapshot => {
+            return snapshot.ref.getDownloadURL();
+        }).then(imageUrl => {
+            // 이미지 URL을 서버에 전송
+            const formData = new FormData();
+            formData.append('eventParams', JSON.stringify(jsonData));
+            formData.append('TIME', new Date().toISOString());
+            formData.append('EVENTNAME', eventType);
+            formData.append('PAGETITLE', document.title);
+            formData.append('URL', document.location.href);
+            formData.append('timestamp', new Date().toISOString());
+            formData.append('imageUrl', imageUrl); // Firebase 이미지 URL
+            
+            return fetch(`${API_BASE_URL}/api/taggingMaps`, {
+                method: 'POST',
+                body: formData
+            });
+        }).then(response => {
+            if (!response.ok) {
+                throw new Error(`Server error: ${response.statusText}`);
+            }
+            return response.text();
+        }).then(data => {
+            console.log('Firebase fallback upload successful:', data);
+        }).catch(error => {
+            console.error('Firebase fallback also failed:', error);
+            uploadDataDirectToServer(jsonData, imageBlob, eventType, timestamp);
+        });
+    } catch (e) {
+        console.error('Firebase fallback error:', e);
+        // Firebase도 실패하면 서버에 직접 업로드
+        uploadDataDirectToServer(jsonData, imageBlob, eventType, timestamp);
+    }
+}
+
+// 서버에 직접 업로드하는 최종 폴백 함수
+function uploadDataDirectToServer(jsonData, imageBlob, eventType, timestamp) {
+    const formData = new FormData();
+    
+    formData.append('eventParams', JSON.stringify(jsonData));
+    formData.append('TIME', new Date().toISOString());
+    formData.append('EVENTNAME', eventType);
+    formData.append('PAGETITLE', document.title);
+    formData.append('URL', document.location.href);
+    formData.append('timestamp', new Date().toISOString());
+    
+    // 이미지 파일 직접 추가
+    const filename = `${timestamp}_${eventType}_${transformHref(document.location.href)}.png`;
+    formData.append('image', new File([imageBlob], filename, { type: 'image/png' }));
+
+    fetch(`${API_BASE_URL}/api/taggingMaps`, {
+        method: 'POST',
+        body: formData,
+    })
+    .then(function(response) {
+        if (!response.ok) {
+            return response.text().then(text => {
+                throw new Error(`Server error: ${text}`);
+            });
+        }
+        return response.text();
+    })
+    .then(function(data) {
+        console.log('Direct server upload successful:', data);
+    })
+    .catch(function(error) {
+        console.error('All upload attempts failed:', error);
+        alert('이미지 업로드에 실패했습니다. 네트워크 연결을 확인해주세요.');
+    });
+}
 
 function highlightGtmElements(eventType) {
     var selector = '[data-gtm-' + eventType + ']:not(.gnb-wrapper *)';
@@ -295,7 +414,6 @@ function removeHighlightGtmElements() {
         document.body.removeChild(overlay);
     }
 }
-
 
 function extractGtmData(eventType, mapping) {
     var results = [];
@@ -822,64 +940,126 @@ function extractGtmData(eventType, mapping) {
     jsonLink.click();
     document.body.removeChild(jsonLink);
     console.log("JSON 파일이 다운로드되었습니다.");
+    
+    // 추가: 결과를 반환하여 다른 함수에서 사용할 수 있게 함
+    return results;
 }
 
 function 태깅맵_RDP노출() {
     var timestamp = getCurrentTimestamp();
     highlightGtmElements("visibility");
-    extractGtmData("visibility", 'rdp');
-    captureAndDownload('visibility', timestamp); // 캡쳐함수호출
+    var jsonData = extractGtmData("visibility", 'rdp');
+    
+    html2canvas(document.querySelector(captureAreaId), {
+        backgroundColor: null,
+        useCORS: true,
+        allowTaint: true,
+        ignoreElements: function(element) { 
+            return element.classList && element.classList.contains('gnb-wrapper'); 
+        }
+    }).then(function(canvas) {
+        canvas.toBlob(function(blob) {
+            downloadBlob(blob, timestamp + '_visibility_' + transformHref(document.location.href) + '.png');
+        }, 'image/png');
+    });
 }
 
 function 태깅맵_GA노출() {
     var timestamp = getCurrentTimestamp();
     highlightGtmElements("visibility");
-    extractGtmData("visibility", 'ga');
-    captureAndDownload('visibility', timestamp); // 캡쳐함수호출
+    var jsonData = extractGtmData("visibility", 'ga');
+    
+    html2canvas(document.querySelector(captureAreaId), {
+        backgroundColor: null,
+        useCORS: true,
+        allowTaint: true,
+        ignoreElements: function(element) { 
+            return element.classList && element.classList.contains('gnb-wrapper'); 
+        }
+    }).then(function(canvas) {
+        canvas.toBlob(function(blob) {
+            downloadBlob(blob, timestamp + '_visibility_' + transformHref(document.location.href) + '.png');
+        }, 'image/png');
+    });
 }
 
 function 태깅맵_RDP클릭() {
     var timestamp = getCurrentTimestamp();
     highlightGtmElements("click");
-    extractGtmData("click", 'rdp');
-    captureAndDownload('click', timestamp); // 캡쳐함수호출
+    var jsonData = extractGtmData("click", 'rdp');
+    
+    html2canvas(document.querySelector(captureAreaId), {
+        backgroundColor: null,
+        useCORS: true,
+        allowTaint: true,
+        ignoreElements: function(element) { 
+            return element.classList && element.classList.contains('gnb-wrapper'); 
+        }
+    }).then(function(canvas) {
+        canvas.toBlob(function(blob) {
+            downloadBlob(blob, timestamp + '_click_' + transformHref(document.location.href) + '.png');
+        }, 'image/png');
+    });
 }
 
 function 태깅맵_GA클릭() {
     var timestamp = getCurrentTimestamp();
     highlightGtmElements("click");
-    extractGtmData("click", 'ga');
-    captureAndDownload('click', timestamp); // 캡쳐함수호출
+    var jsonData = extractGtmData("click", 'ga');
+    
+    html2canvas(document.querySelector(captureAreaId), {
+        backgroundColor: null,
+        useCORS: true,
+        allowTaint: true,
+        ignoreElements: function(element) { 
+            return element.classList && element.classList.contains('gnb-wrapper'); 
+        }
+    }).then(function(canvas) {
+        canvas.toBlob(function(blob) {
+            downloadBlob(blob, timestamp + '_click_' + transformHref(document.location.href) + '.png');
+        }, 'image/png');
+    });
 }
-
 
 function 태깅맵_DB노출() {
     var timestamp = getCurrentTimestamp();
     highlightGtmElements("visibility");
-    extractGtmData("visibility", 'rdp');
-    captureAndDownload('visibility', timestamp); // 캡쳐함수호출
-
-    // Assuming jsonData and imageBlob are available from the previous functions
     var jsonData = extractGtmData("visibility", 'rdp');
-    html2canvas(document.querySelector(captureAreaId)).then(function(canvas) {
+    
+    html2canvas(document.querySelector(captureAreaId), {
+        backgroundColor: null,
+        useCORS: true,
+        allowTaint: true,
+        ignoreElements: function(element) { 
+            return element.classList && element.classList.contains('gnb-wrapper'); 
+        }
+    }).then(function(canvas) {
         canvas.toBlob(function(blob) {
-            uploadData(jsonData, blob, 'visibility', timestamp);
-        });
+            // 로컬 다운로드 및 클라우드 업로드
+            downloadBlob(blob, timestamp + '_visibility_' + transformHref(document.location.href) + '.png');
+            uploadDataDirectly(jsonData, blob, 'visibility', timestamp);
+        }, 'image/png');
     });
 }
 
 function 태깅맵_DB클릭() {
     var timestamp = getCurrentTimestamp();
     highlightGtmElements("click");
-    extractGtmData("click", 'rdp');
-    captureAndDownload('click', timestamp); // 캡쳐함수호출
-
-    // Assuming jsonData and imageBlob are available from the previous functions
     var jsonData = extractGtmData("click", 'rdp');
-    html2canvas(document.querySelector(captureAreaId)).then(function(canvas) {
+    
+    html2canvas(document.querySelector(captureAreaId), {
+        backgroundColor: null,
+        useCORS: true,
+        allowTaint: true,
+        ignoreElements: function(element) { 
+            return element.classList && element.classList.contains('gnb-wrapper'); 
+        }
+    }).then(function(canvas) {
         canvas.toBlob(function(blob) {
-            uploadData(jsonData, blob, 'click', timestamp);
-        });
+            // 로컬 다운로드 및 클라우드 업로드
+            downloadBlob(blob, timestamp + '_click_' + transformHref(document.location.href) + '.png');
+            uploadDataDirectly(jsonData, blob, 'click', timestamp);
+        }, 'image/png');
     });
 }
 
@@ -890,27 +1070,75 @@ function 태깅맵_지우기() {
 function 태깅맵_RDP노출_오버레이() {
     var timestamp = getCurrentTimestamp();
     highlightGtmElementsOverlay("visibility");
-    extractGtmData("visibility", 'rdp');
-    captureAndDownload('visibility', timestamp); // 캡쳐함수호출
+    var jsonData = extractGtmData("visibility", 'rdp');
+    
+    html2canvas(document.querySelector(captureAreaId), {
+        backgroundColor: null,
+        useCORS: true,
+        allowTaint: true,
+        ignoreElements: function(element) { 
+            return element.classList && element.classList.contains('gnb-wrapper'); 
+        }
+    }).then(function(canvas) {
+        canvas.toBlob(function(blob) {
+            downloadBlob(blob, timestamp + '_visibility_' + transformHref(document.location.href) + '.png');
+        }, 'image/png');
+    });
 }
 
 function 태깅맵_GA노출_오버레이() {
     var timestamp = getCurrentTimestamp();
     highlightGtmElementsOverlay("visibility");
-    extractGtmData("visibility", 'ga');
-    captureAndDownload('visibility', timestamp); // 캡쳐함수호출
+    var jsonData = extractGtmData("visibility", 'ga');
+    
+    html2canvas(document.querySelector(captureAreaId), {
+        backgroundColor: null,
+        useCORS: true,
+        allowTaint: true,
+        ignoreElements: function(element) { 
+            return element.classList && element.classList.contains('gnb-wrapper'); 
+        }
+    }).then(function(canvas) {
+        canvas.toBlob(function(blob) {
+            downloadBlob(blob, timestamp + '_visibility_' + transformHref(document.location.href) + '.png');
+        }, 'image/png');
+    });
 }
 
 function 태깅맵_RDP클릭_오버레이() {
     var timestamp = getCurrentTimestamp();
     highlightGtmElementsOverlay("click");
-    extractGtmData("click", 'rdp');
-    captureAndDownload('click', timestamp); // 캡쳐함수호출
+    var jsonData = extractGtmData("click", 'rdp');
+    
+    html2canvas(document.querySelector(captureAreaId), {
+        backgroundColor: null,
+        useCORS: true,
+        allowTaint: true,
+        ignoreElements: function(element) { 
+            return element.classList && element.classList.contains('gnb-wrapper'); 
+        }
+    }).then(function(canvas) {
+        canvas.toBlob(function(blob) {
+            downloadBlob(blob, timestamp + '_click_' + transformHref(document.location.href) + '.png');
+        }, 'image/png');
+    });
 }
 
 function 태깅맵_GA클릭_오버레이() {
     var timestamp = getCurrentTimestamp();
     highlightGtmElementsOverlay("click");
-    extractGtmData("click", 'ga');
-    captureAndDownload('click', timestamp); // 캡쳐함수호출
+    var jsonData = extractGtmData("click", 'ga');
+    
+    html2canvas(document.querySelector(captureAreaId), {
+        backgroundColor: null,
+        useCORS: true,
+        allowTaint: true,
+        ignoreElements: function(element) { 
+            return element.classList && element.classList.contains('gnb-wrapper'); 
+        }
+    }).then(function(canvas) {
+        canvas.toBlob(function(blob) {
+            downloadBlob(blob, timestamp + '_click_' + transformHref(document.location.href) + '.png');
+        }, 'image/png');
+    });
 }
