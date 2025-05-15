@@ -1,144 +1,133 @@
+<!-- taggingmap_front/src/views/HomeView.vue -->
 <template>
-    <div class="home">
-      <h1>태깅맵 페이지 목록</h1>
-      <div v-if="loading" class="loading">
-        <div class="spinner"></div>
-        <p>페이지 목록을 불러오는 중입니다...</p>
-      </div>
-      <div v-else-if="error" class="error">
-        <p>{{ error }}</p>
-        <button @click="fetchPages">다시 시도</button>
-      </div>
-      <div v-else class="page-list">
-        <div v-for="page in pages" :key="page.pagetitle" class="page-item">
-          <router-link :to="formatPageUrl(page.pagetitle)">
-            {{ page.pagetitle }}
-          </router-link>
+  <div class="home">
+    <h2>태깅맵 목록</h2>
+    <div v-if="loading">로딩중...</div>
+    <div v-else-if="error" class="error">{{ error }}</div>
+    <div v-else-if="taggingMaps.length === 0">데이터가 없습니다.</div>
+    <div v-else>
+      <div v-for="taggingMap in taggingMaps" :key="taggingMap._id" class="page-data">
+        <div class="image-section">
+          <h3>{{ getValue(taggingMap.eventParams, 'PAGETITLE') }}</h3>
+          <img v-if="taggingMap.image" :src="taggingMap.image" alt="Captured Image" />
+          <p v-else>이미지 없음</p>
         </div>
+        <table v-if="Array.isArray(taggingMap.eventParams) && taggingMap.eventParams.length > 0">
+          <thead>
+            <tr>
+              <th>SHOT_NUMBER</th>
+              <th>EVENTNAME</th>
+              <th>PAGETITLE</th>
+              <th>TIME</th>
+              <th>LABEL_TEXT</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(data, index) in taggingMap.eventParams" :key="index">
+              <td>{{ data.SHOT_NUMBER || '-' }}</td>
+              <td>{{ data.EVENTNAME || '-' }}</td>
+              <td>{{ data.PAGETITLE || '-' }}</td>
+              <td>{{ data.TIME || '-' }}</td>
+              <td>{{ data.LABEL_TEXT || '-' }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <p v-else>태깅 데이터 없음</p>
       </div>
     </div>
-  </template>
-  
-  <script>
-  import axios from 'axios';
-  
-  export default {
-    name: 'HomeView',
-    data() {
-      return {
-        pages: [],
-        loading: true,
-        error: null
-      }
-    },
-    created() {
-      this.fetchPages();
-    },
-    methods: {
-      async fetchPages() {
-        try {
-          this.loading = true;
-          this.error = null;
-          
-          const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
-          const response = await axios.get(`${baseUrl}/api/pagetitles`);
-          this.pages = response.data;
-          this.loading = false;
-        } catch (error) {
-          console.error('Error fetching pages:', error);
-          this.error = '페이지 목록을 불러오는데 실패했습니다.';
-          this.loading = false;
+    <pre style="text-align: left; margin-top: 20px;">{{ debugInfo }}</pre>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'HomeView',
+  data() {
+    return {
+      taggingMaps: [],
+      error: null,
+      loading: true,
+      debugInfo: ''
+    };
+  },
+  created() {
+    this.fetchTaggingMaps();
+  },
+  methods: {
+    async fetchTaggingMaps() {
+      try {
+        this.loading = true;
+        const response = await fetch('/api/taggingMaps');
+        
+        if (!response.ok) {
+          throw new Error(`API 응답 오류: ${response.status}`);
         }
-      },
-      formatPageUrl(pagetitle) {
-        // PAGETITLE을 URL 형식으로 변환
-        const pageParts = pagetitle.split('>');
         
-        // 서브도메인 추출 로직
-        // URL 데이터가 있는 문서를 찾거나 기본값 사용
-        const subdomain = this.extractSubdomainFromPagetitle(pagetitle);
+        const data = await response.json();
+        this.taggingMaps = data;
         
-        return `/${subdomain}/${pageParts.join('/')}`;
-      },
-      extractSubdomainFromPagetitle(pagetitle) {
-        // 현재는 모든 페이지에 대해 'dmoweb3' 반환
-        // 실제 구현에서는 DB에서 해당 PAGETITLE의 URL을 찾아 서브도메인 추출
-        return 'dmoweb3';
+        // 디버깅용 정보
+        this.debugInfo = `API 응답: ${data.length}개의 항목 로드됨`;
+      } catch (error) {
+        console.error('Error fetching taggingMaps:', error);
+        this.error = `데이터 로드 실패: ${error.message}`;
+        this.debugInfo = `오류: ${error.toString()}`;
+      } finally {
+        this.loading = false;
       }
+    },
+    getValue(dataArray, key) {
+      if (Array.isArray(dataArray) && dataArray.length > 0) {
+        return dataArray[0][key] || '-';
+      }
+      return '-';
     }
   }
-  </script>
-  
-  <style scoped>
-  .home {
-    padding: 20px;
-    max-width: 1200px;
-    margin: 0 auto;
-  }
-  
-  h1 {
-    margin-bottom: 30px;
-    color: #333;
-    border-bottom: 2px solid #eaeaea;
-    padding-bottom: 15px;
-  }
-  
-  .page-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 15px;
-  }
-  
-  .page-item {
-    background-color: #f8f9fa;
-    border: 1px solid #e9ecef;
-    border-radius: 5px;
-    padding: 15px;
-    transition: transform 0.2s, box-shadow 0.2s;
-  }
-  
-  .page-item:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-  }
-  
-  .page-item a {
-    color: #495057;
-    text-decoration: none;
-    display: block;
-    font-weight: 500;
-  }
-  
-  .loading, .error {
-    text-align: center;
-    padding: 40px 0;
-  }
-  
-  .spinner {
-    border: 4px solid rgba(0, 0, 0, 0.1);
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    border-left-color: #09f;
-    animation: spin 1s linear infinite;
-    margin: 0 auto 20px;
-  }
-  
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-  
-  button {
-    padding: 8px 16px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-  }
-  
-  button:hover {
-    background-color: #0069d9;
-  }
-  </style>
+};
+</script>
+
+<style scoped>
+.home {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.page-data {
+  border: 1px solid #eee;
+  margin-bottom: 20px;
+  padding: 15px;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.image-section {
+  margin-bottom: 15px;
+}
+
+.error {
+  color: red;
+  font-weight: bold;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+th, td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+
+th {
+  background-color: #f2f2f2;
+}
+
+img {
+  max-width: 100%;
+  max-height: 300px;
+  object-fit: contain;
+}
+</style>
