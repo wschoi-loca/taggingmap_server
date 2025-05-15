@@ -1,6 +1,7 @@
-// taggingmap_front/src/router/index.js
+// src/router/index.js
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
+import PageDetailView from '../views/PageDetailView.vue'
 
 const routes = [
   {
@@ -9,8 +10,14 @@ const routes = [
     component: HomeView
   },
   {
-    path: '/:pathMatch(.*)*',
+    path: '/home',
     redirect: '/'
+  },
+  {
+    path: '/:subdomain/:pathMatch(.*)*',
+    name: 'pageDetail',
+    component: PageDetailView,
+    props: true
   }
 ]
 
