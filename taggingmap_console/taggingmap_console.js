@@ -18,24 +18,6 @@
     document.head.appendChild(script);
 })();
 
-// Firebase 클라이언트 SDK 로드 (폴백용)
-(function() {
-    var script = document.createElement('script');
-    script.src = 'https://www.gstatic.com/firebasejs/9.6.0/firebase-app.js';
-    script.onload = function() {
-        console.log('Firebase App SDK loaded.');
-    };
-    document.head.appendChild(script);
-})();
-
-(function() {
-    var script = document.createElement('script');
-    script.src = 'https://www.gstatic.com/firebasejs/9.6.0/firebase-storage.js';
-    script.onload = function() {
-        console.log('Firebase Storage SDK loaded.');
-    };
-    document.head.appendChild(script);
-})();
 
 // 현재 날짜와 시간을 "YYYYMMDD_HHmmss" 형식으로 반환하는 함수
 function getCurrentTimestamp() {
@@ -114,28 +96,12 @@ const API_BASE_URL = window.location.hostname === 'localhost'
     ? 'http://localhost:5000' 
     : 'https://taggingmap-server-bd06b783e6ac.herokuapp.com';
 
-// Firebase 초기화 (폴백용)
-const firebaseConfig = {
-    apiKey: "AIzaSyDJ_ODZY1Iq603TmAguXzQpgq66N_QaLyw",
-    authDomain: "loca-ga-taggingmap.firebaseapp.com",
-    projectId: "loca-ga-taggingmap",
-    storageBucket: "loca-ga-taggingmap.firebasestorage.app",
-    messagingSenderId: "434460786285",
-    appId: "1:434460786285:web:3f6096b85e32751990c964"
-};
-
-// Firebase는 폴백으로만 사용
-try {
-    if (firebase && firebase.initializeApp) {
-        firebase.initializeApp(firebaseConfig);
-        console.log('Firebase initialized as fallback');
-    }
-} catch (e) {
-    console.log('Firebase not initialized, will use Cloudinary only');
-}
-
 // Cloudinary를 통해 이미지 업로드하는 함수
 function uploadDataDirectly(jsonData, imageBlob, eventType, timestamp) {
+    console.log('Starting direct server upload...');
+    
+    // 서버에 바로 업로드 (가장 안정적인 방법)
+    uploadDataDirectToServer(jsonData, imageBlob, eventType, timestamp);
     // FormData 생성
     const formData = new FormData();
     
@@ -163,14 +129,34 @@ function uploadDataDirectly(jsonData, imageBlob, eventType, timestamp) {
     })
     .then(data => {
         console.log('Cloudinary upload successful:', data);
-        
-        var eventParams = JSON.stringify(jsonData)
+        var viewEvent = eventType == 'visibility' ? 'view' : eventType;
+        var eventName;
+        if (el.hasAttribute('data-gtm-popup-click')) {
+            eventName = 'popup_click';
+        } else if (el.hasAttribute('data-gtm-popup-visibility')) {
+            eventName = 'popup_view';
+        } else if (el.hasAttribute('data-gtm-auto-click')) {
+            eventName = 'cts_click';
+        } else if (el.hasAttribute('data-gtm-select-item')) {
+            eventName = 'select-item';
+        } else if (el.hasAttribute('data-gtm-view-item-list')) {
+            eventName = 'view-item-list';
+        } else if (el.hasAttribute('data-gtm-etc')) {
+            eventName = 'etc';
+        } else {
+            eventName = 'cts_' + viewEvent;
+        }
+        var pathname = document.location.pathname.substring(1);
+        if (pathname.endsWith('/')) {
+            pathname = pathname.slice(0, -1);
+        }
+        var title = pathname.replace(/\//g, '>');
         // 이미지 URL과 JSON 데이터를 서버에 전송
         const serverFormData = new FormData();
         serverFormData.append('eventParams', eventParams);
         serverFormData.append('TIME', new Date().toISOString());
-        serverFormData.append('EVENTNAME', eventParams[0].EVENTNAME);
-        serverFormData.append('PAGETITLE', eventParams[0].PAGETITLE);
+        serverFormData.append('EVENTNAME', eventName);
+        serverFormData.append('PAGETITLE', title);
         serverFormData.append('URL', document.location.href);
         serverFormData.append('timestamp', new Date().toISOString());
         serverFormData.append('imageUrl', data.secure_url); // Cloudinary 이미지 URL
@@ -191,21 +177,28 @@ function uploadDataDirectly(jsonData, imageBlob, eventType, timestamp) {
     })
     .catch(error => {
         console.error('Error uploading to Cloudinary:', error);
-        
-        // Cloudinary 업로드 실패 시 Firebase로 폴백 시도
-        console.log('Attempting fallback upload via Firebase...');
-        uploadDataToFirebase(jsonData, imageBlob, eventType, timestamp);
     });
 }
 
-// 서버에 직접 업로드하는 최종 폴백 함수
+// 서버에 직접 업로드하는 함수
 function uploadDataDirectToServer(jsonData, imageBlob, eventType, timestamp) {
     const formData = new FormData();
-    var eventParams = JSON.stringify(jsonData);
+    
+    // 이벤트 타입에 따른 이벤트 이름 설정
+    let eventName = 'cts_' + (eventType === 'visibility' ? 'view' : eventType);
+    
+    // URL에서 페이지 타이틀 추출
+    let pathname = document.location.pathname.substring(1);
+    if (pathname.endsWith('/')) {
+        pathname = pathname.slice(0, -1);
+    }
+    let title = pathname.replace(/\//g, '>') || document.title;
+    
+    // 서버 요청 데이터 설정
     formData.append('eventParams', JSON.stringify(jsonData));
     formData.append('TIME', new Date().toISOString());
-    formData.append('EVENTNAME', eventParams[0].EVENTNAME);
-    formData.append('PAGETITLE', eventParams[0].PAGETITLE);
+    formData.append('EVENTNAME', eventName);
+    formData.append('PAGETITLE', title);
     formData.append('URL', document.location.href);
     formData.append('timestamp', new Date().toISOString());
     
@@ -213,6 +206,7 @@ function uploadDataDirectToServer(jsonData, imageBlob, eventType, timestamp) {
     const filename = `${timestamp}_${eventType}_${transformHref(document.location.href)}.png`;
     formData.append('image', new File([imageBlob], filename, { type: 'image/png' }));
 
+    // 서버에 업로드
     fetch(`${API_BASE_URL}/api/taggingMaps`, {
         method: 'POST',
         body: formData,
@@ -226,11 +220,10 @@ function uploadDataDirectToServer(jsonData, imageBlob, eventType, timestamp) {
         return response.text();
     })
     .then(function(data) {
-        console.log('Direct server upload successful:', data);
+        console.log('Server upload successful:', data);
     })
     .catch(function(error) {
-        console.error('All upload attempts failed:', error);
-        alert('이미지 업로드에 실패했습니다. 네트워크 연결을 확인해주세요.');
+        console.error('Server upload failed:', error);
     });
 }
 
@@ -990,9 +983,9 @@ function 태깅맵_DB노출() {
         }
     }).then(function(canvas) {
         canvas.toBlob(function(blob) {
-            // 로컬 다운로드 및 클라우드 업로드
+            // 로컬 다운로드 및 서버 업로드
             downloadBlob(blob, timestamp + '_visibility_' + transformHref(document.location.href) + '.png');
-            uploadDataDirectly(jsonData, blob, 'visibility', timestamp);
+            uploadDataDirectToServer(jsonData, blob, 'visibility', timestamp);
         }, 'image/png');
     });
 }
@@ -1011,13 +1004,12 @@ function 태깅맵_DB클릭() {
         }
     }).then(function(canvas) {
         canvas.toBlob(function(blob) {
-            // 로컬 다운로드 및 클라우드 업로드
+            // 로컬 다운로드 및 서버 업로드
             downloadBlob(blob, timestamp + '_click_' + transformHref(document.location.href) + '.png');
-            uploadDataDirectly(jsonData, blob, 'click', timestamp);
+            uploadDataDirectToServer(jsonData, blob, 'click', timestamp);
         }, 'image/png');
     });
 }
-
 function 태깅맵_지우기() {
     removeHighlightGtmElements();
 }
