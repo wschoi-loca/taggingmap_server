@@ -87,7 +87,10 @@ const upload = multer({ storage: storage });
 // 로컬 파일 서빙
 app.use('/uploads', express.static(uploadsDir));
 
-// Routes
+// 1. 정적 파일 서빙 (Vue 앱)
+app.use(express.static(path.join(__dirname, 'taggingmap_front/dist')));
+
+// 2. API Routes
 app.post('/api/taggingMaps', upload.single('image'), async (req, res) => {
   try {
     console.log('Received request body:', req.body);
@@ -145,14 +148,38 @@ app.get('/api/taggingMaps', async (req, res) => {
   }
 });
 
-// 프론트엔드 서빙
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, 'taggingmap_front/dist')));
-  
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'taggingmap_front/dist/index.html'));
-  });
-}
+// 모든 고유 PAGETITLE 목록을 가져오는 API
+app.get('/api/pagetitles', async (req, res) => {
+  try {
+    const titles = await TaggingMap.aggregate([
+      { $unwind: "$eventParams" },
+      { $group: { _id: "$eventParams.PAGETITLE" } },
+      { $sort: { _id: 1 } },
+      { $project: { _id: 0, pagetitle: "$_id" } }
+    ]);
+    
+    res.json(titles);
+  } catch (error) {
+    console.error('Error fetching page titles:', error);
+    res.status(500).send('Error fetching page titles');
+  }
+});
+
+// 특정 PAGETITLE에 대한 데이터를 가져오는 API
+app.get('/api/taggingmaps/page/:pagetitle', async (req, res) => {
+  try {
+    const pagetitle = req.params.pagetitle.replace(/\//g, '>');
+    
+    const data = await TaggingMap.find({
+      "eventParams.PAGETITLE": pagetitle
+    });
+    
+    res.json(data);
+  } catch (error) {
+    console.error('Error fetching page data:', error);
+    res.status(500).send('Error fetching page data');
+  }
+});
 
 // 상태 확인 엔드포인트
 app.get('/api/health', (req, res) => {
@@ -163,8 +190,8 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// 동적 라우팅 - 모든 하위 경로에 대해 Vue 앱 제공
-app.get('/:subdomain*', (req, res) => {
+// 3. 모든 나머지 요청은 Vue Router가 처리하도록 설정
+app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'taggingmap_front/dist/index.html'));
 });
 

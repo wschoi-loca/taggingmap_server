@@ -1,7 +1,7 @@
-// router/index.js
+// taggingmap_front/src/router/index.js
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
-import PageDetailView from '../views/PageDetailView.vue'
+import HomeView from '../views/HomeView.vue'  // 경로 확인 필요
+import PageDetailView from '../views/PageDetailView.vue'  // 경로 확인 필요
 
 const routes = [
   {
@@ -10,19 +10,19 @@ const routes = [
     component: HomeView
   },
   {
-    path: '/:subdomain/:path*',
+    path: '/home',
+    redirect: '/'
+  },
+  {
+    path: '/:subdomain/:pathMatch(.*)*',
     name: 'pageDetail',
     component: PageDetailView,
-    props: route => ({
-      subdomain: route.params.subdomain,
-      path: route.params.path || '',
-      pathMatch: route.params.pathMatch || []
-    })
+    props: true
   }
 ]
 
 const router = createRouter({
-  history: createWebHistory(process.env.BASE_URL),
+  history: createWebHistory(),
   routes
 })
 
