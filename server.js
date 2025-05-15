@@ -163,6 +163,11 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// 동적 라우팅 - 모든 하위 경로에 대해 Vue 앱 제공
+app.get('/:subdomain*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'taggingmap_front/dist/index.html'));
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
