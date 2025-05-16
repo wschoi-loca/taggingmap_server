@@ -650,23 +650,6 @@ function extractGtmData(eventType, mapping) {
     var transformedHref = transformHref(document.location.href);
 
     Array.prototype.forEach.call(elements, function(el, index) {
-        var viewEvent = eventType == 'visibility' ? 'view' : eventType;
-        var eventName;
-        if (el.hasAttribute('data-gtm-popup-click')) {
-            eventName = 'popup_click';
-        } else if (el.hasAttribute('data-gtm-popup-visibility')) {
-            eventName = 'popup_view';
-        } else if (el.hasAttribute('data-gtm-auto-click')) {
-            eventName = 'cts_click';
-        } else if (el.hasAttribute('data-gtm-select-item')) {
-            eventName = 'select-item';
-        } else if (el.hasAttribute('data-gtm-view-item-list')) {
-            eventName = 'view-item-list';
-        } else if (el.hasAttribute('data-gtm-etc')) {
-            eventName = 'etc';
-        } else {
-            eventName = 'cts_' + viewEvent;
-        }
     
         var location = document.location.href;
         var dataGtmBodyEvent = el.getAttribute('data-gtm-body') || null;
@@ -866,7 +849,7 @@ function extractGtmData(eventType, mapping) {
     
         var result = {
             SHOT_NUMBER: index,
-            EVENTNAME: eventName,
+            EVENTNAME: eventType,
             PAGEPATH: location,
             PAGETITLE: title,
             TIME: getCurrentTimestamp(),
