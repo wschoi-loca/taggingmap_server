@@ -82,7 +82,6 @@ export default {
     // PAGETITLE별로 URL 그룹화 및 중복 제거
     groupDataByPageTitle(data) {
       const groupedData = {};
-      const distinctTimesMap = {}; // URL별 고유 시간(TIME) 추적용
       
       data.forEach(item => {
         if (!item.PAGETITLE || !item.URL || !item.TIME) return;
