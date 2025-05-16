@@ -285,8 +285,8 @@ app.get('/api/taggingmaps/filtered', async (req, res) => {
     
     // MongoDB 쿼리 실행
     const taggingMaps = await TaggingMap.find({
-      "eventParams.PAGETITLE": pagetitle,
-      "eventParams.EVENTNAME": eventname,
+      "PAGETITLE": pagetitle,
+      "EVENTNAME": eventname,
       "URL": url,
       "TIME": { $regex: time.split('.')[0] } // 밀리초를 제외하고 비교
     });
