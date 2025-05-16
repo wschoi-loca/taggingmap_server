@@ -218,8 +218,8 @@ app.get('/api/urls/:pagetitle/:eventname', async (req, res) => {
     const urls = await TaggingMap.aggregate([
       { 
         $match: { 
-          "eventParams.PAGETITLE": pagetitle,
-          "eventParams.EVENTNAME": eventname
+          "PAGETITLE": pagetitle,
+          "EVENTNAME": eventname
         } 
       },
       { $group: { _id: "$URL" } },
@@ -242,8 +242,8 @@ app.get('/api/times/:pagetitle/:eventname/:url', async (req, res) => {
     const times = await TaggingMap.aggregate([
       { 
         $match: { 
-          "eventParams.PAGETITLE": pagetitle,
-          "eventParams.EVENTNAME": eventname,
+          "PAGETITLE": pagetitle,
+          "EVENTNAME": eventname,
           "URL": url
         } 
       },
