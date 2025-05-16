@@ -1,23 +1,48 @@
-// html2canvas-pro 라이브러리 로드
-(function() {
-    var script = document.createElement('script');
-    script.src = 'https://unpkg.com/html2canvas-pro@latest/dist/html2canvas-pro.min.js';
-    script.onload = function() {
-        console.log('html2canvas-pro loaded.');
-    };
-    document.head.appendChild(script);
-})();
+// Function to check if a script is loaded
+function isScriptLoaded(src) {
+    var scripts = document.getElementsByTagName('script');
+    for (var i = 0; i < scripts.length; i++) {
+        if (scripts[i].src === src) {
+            return true;
+        }
+    }
+    return false;
+}
 
-// Cloudinary 위젯 로드
-(function() {
-    var script = document.createElement('script');
-    script.src = 'https://widget.cloudinary.com/v2.0/global/all.js';
-    script.onload = function() {
-        console.log('Cloudinary widget loaded.');
-    };
-    document.head.appendChild(script);
-})();
+// Async function to load a script
+async function loadScript(src) {
+    if (isScriptLoaded(src)) {
+        console.log('Script already loaded:', src);
+        return;
+    }
+    
+    return new Promise(function(resolve, reject) {
+        var script = document.createElement('script');
+        script.src = src;
+        script.onload = function() {
+            console.log('Script loaded:', src);
+            resolve();
+        };
+        script.onerror = function() {
+            reject(new Error('Failed to load script: ' + src));
+        };
+        document.head.appendChild(script);
+    });
+}
 
+// Async function to ensure required libraries are loaded
+async function ensureLibrariesLoaded() {
+    try {
+        await Promise.all([
+            loadScript('https://unpkg.com/html2canvas-pro@latest/dist/html2canvas-pro.min.js'),
+            loadScript('https://widget.cloudinary.com/v2.0/global/all.js')
+        ]);
+        console.log('All required libraries loaded.');
+    } catch (error) {
+        console.error('Error loading libraries:', error);
+        throw error;
+    }
+}
 
 // 현재 날짜와 시간을 "YYYYMMDD_HHmmss" 형식으로 반환하는 함수
 function getCurrentTimestamp() {
@@ -129,23 +154,7 @@ function uploadDataDirectly(jsonData, imageBlob, eventType, timestamp) {
     })
     .then(data => {
         console.log('Cloudinary upload successful:', data);
-        var viewEvent = eventType == 'visibility' ? 'view' : eventType;
-        var eventName;
-        if (el.hasAttribute('data-gtm-popup-click')) {
-            eventName = 'popup_click';
-        } else if (el.hasAttribute('data-gtm-popup-visibility')) {
-            eventName = 'popup_view';
-        } else if (el.hasAttribute('data-gtm-auto-click')) {
-            eventName = 'cts_click';
-        } else if (el.hasAttribute('data-gtm-select-item')) {
-            eventName = 'select-item';
-        } else if (el.hasAttribute('data-gtm-view-item-list')) {
-            eventName = 'view-item-list';
-        } else if (el.hasAttribute('data-gtm-etc')) {
-            eventName = 'etc';
-        } else {
-            eventName = 'cts_' + viewEvent;
-        }
+
         var pathname = document.location.pathname.substring(1);
         if (pathname.endsWith('/')) {
             pathname = pathname.slice(0, -1);
@@ -155,7 +164,7 @@ function uploadDataDirectly(jsonData, imageBlob, eventType, timestamp) {
         const serverFormData = new FormData();
         serverFormData.append('eventParams', eventParams);
         serverFormData.append('TIME', new Date().toISOString());
-        serverFormData.append('EVENTNAME', eventName);
+        serverFormData.append('EVENTNAME', eventType);
         serverFormData.append('PAGETITLE', title);
         serverFormData.append('URL', document.location.href);
         serverFormData.append('timestamp', new Date().toISOString());
@@ -184,9 +193,6 @@ function uploadDataDirectly(jsonData, imageBlob, eventType, timestamp) {
 function uploadDataDirectToServer(jsonData, imageBlob, eventType, timestamp) {
     const formData = new FormData();
     
-    // 이벤트 타입에 따른 이벤트 이름 설정
-    let eventName = 'cts_' + (eventType === 'visibility' ? 'view' : eventType);
-    
     // URL에서 페이지 타이틀 추출
     let pathname = document.location.pathname.substring(1);
     if (pathname.endsWith('/')) {
@@ -197,7 +203,7 @@ function uploadDataDirectToServer(jsonData, imageBlob, eventType, timestamp) {
     // 서버 요청 데이터 설정
     formData.append('eventParams', JSON.stringify(jsonData));
     formData.append('TIME', new Date().toISOString());
-    formData.append('EVENTNAME', eventName);
+    formData.append('EVENTNAME', eventType);
     formData.append('PAGETITLE', title);
     formData.append('URL', document.location.href);
     formData.append('timestamp', new Date().toISOString());
@@ -239,6 +245,10 @@ function highlightGtmElements(eventType) {
     var elements = document.querySelectorAll(selector);
     var highlightElements = [];
 
+    // Find the highest z-index on the page to ensure our numbers appear on top
+    var highestZIndex = getHighestZIndex();
+    var superHighZIndex = Math.max(highestZIndex + 1000, 10000); // Use at least 10000 or higher than existing + 1000
+
     Array.prototype.forEach.call(elements, function(el, index) {
         if (eventType === "visibility") {
             el.style.backgroundColor = 'rgba(191, 255, 0, 0.3)';
@@ -249,10 +259,10 @@ function highlightGtmElements(eventType) {
         var rect = el.getBoundingClientRect();
         var idSpan = document.createElement('span');
         idSpan.textContent = index;
-        idSpan.style.position = 'absolute';
-        idSpan.style.top = rect.top + window.scrollY + 'px';
-        idSpan.style.left = rect.left + window.scrollX + 'px';
-        idSpan.style.zIndex = '1001'; // 기존 요소보다 위에 표시되도록 z-index 설정
+        idSpan.style.position = 'fixed'; // Change to fixed position so it's always visible
+        idSpan.style.top = rect.top + 'px';
+        idSpan.style.left = rect.left + 'px';
+        idSpan.style.zIndex = superHighZIndex; // Use extremely high z-index to be above popups
         idSpan.setAttribute('data-gtm-id', 'highlight-' + index); // 고유 식별자 추가
         if (eventType === "visibility") {
             idSpan.style.backgroundColor = 'green';
@@ -271,9 +281,24 @@ function highlightGtmElements(eventType) {
     function updateHighlightPositions() {
         highlightElements.forEach(function(item) {
             var rect = item.el.getBoundingClientRect();
-            item.idSpan.style.top = rect.top + window.scrollY + 'px';
-            item.idSpan.style.left = rect.left + window.scrollX + 'px';
+            item.idSpan.style.top = rect.top + 'px';
+            item.idSpan.style.left = rect.left + 'px';
         });
+    }
+
+    // Function to find the highest z-index on the page
+    function getHighestZIndex() {
+        var elements = document.getElementsByTagName('*');
+        var highest = 0;
+        
+        for (var i = 0; i < elements.length; i++) {
+            var zIndex = parseInt(window.getComputedStyle(elements[i]).zIndex);
+            if (zIndex > highest && !isNaN(zIndex)) {
+                highest = zIndex;
+            }
+        }
+        
+        return highest;
     }
 
     var observer = new MutationObserver(updateHighlightPositions);
@@ -650,7 +675,97 @@ function extractGtmData(eventType, mapping) {
     var transformedHref = transformHref(document.location.href);
 
     Array.prototype.forEach.call(elements, function(el, index) {
-    
+        var viewEvent = eventType == 'visibility' ? 'view' : eventType;
+        var eventName;
+        
+        if (viewEvent == 'view') {
+            // When viewEvent is 'view', only check for these two attributes
+            if (el.hasAttribute('data-gtm-popup-visibility')) {
+                eventName = 'popup_view';
+            } else {
+                // First check if there's a closest section with is_popup="1"
+                var sectionElement = el.closest('[data-gtm-section]');
+                var isPopup = false;
+                
+                if (sectionElement && sectionElement.hasAttribute('data-gtm-body')) {
+                    try {
+                        var sectionData = JSON.parse(sectionElement.getAttribute('data-gtm-body'));
+                        if (sectionData.is_popup === "1") {
+                            isPopup = true;
+                        }
+                    } catch (e) {
+                        console.error('Error parsing data-gtm-body on section:', e);
+                    }
+                }
+                
+                // Then check the element itself if no popup found in section
+                if (!isPopup && el.hasAttribute('data-gtm-body')) {
+                    try {
+                        var elData = JSON.parse(el.getAttribute('data-gtm-body'));
+                        if (elData.is_popup === "1") {
+                            isPopup = true;
+                        }
+                    } catch (e) {
+                        console.error('Error parsing data-gtm-body on element:', e);
+                    }
+                }
+                
+                if (isPopup) {
+                    eventName = 'popup_view';
+                } else if (el.hasAttribute('data-gtm-view-item-list')) {
+                    eventName = 'view-item-list';
+                } else {
+                    eventName = 'cts_view';
+                }
+            }
+        } else {
+            // For all other event types, use the original logic with the same section-first approach
+            if (el.hasAttribute('data-gtm-popup-click')) {
+                eventName = 'popup_click';
+            } else {
+                // First check if there's a closest section with is_popup="1"
+                var sectionElement = el.closest('[data-gtm-section]');
+                var isPopup = false;
+                
+                if (sectionElement && sectionElement.hasAttribute('data-gtm-body')) {
+                    try {
+                        var sectionData = JSON.parse(sectionElement.getAttribute('data-gtm-body'));
+                        if (sectionData.is_popup === "1") {
+                            isPopup = true;
+                        }
+                    } catch (e) {
+                        console.error('Error parsing data-gtm-body on section:', e);
+                    }
+                }
+                
+                // Then check the element itself if no popup found in section
+                if (!isPopup && el.hasAttribute('data-gtm-body')) {
+                    try {
+                        var elData = JSON.parse(el.getAttribute('data-gtm-body'));
+                        if (elData.is_popup === "1") {
+                            isPopup = true;
+                        }
+                    } catch (e) {
+                        console.error('Error parsing data-gtm-body on element:', e);
+                    }
+                }
+                
+                if (isPopup) {
+                    eventName = 'popup_click';
+                } else if (el.hasAttribute('data-gtm-auto-click')) {
+                    eventName = 'cts_click';
+                } else if (el.hasAttribute('data-gtm-select-item')) {
+                    eventName = 'select-item';
+                } else if (el.hasAttribute('data-gtm-view-item-list')) {
+                    eventName = 'view-item-list';
+                } else if (el.hasAttribute('data-gtm-etc')) {
+                    eventName = 'etc';
+                } else {
+                    eventName = 'cts_' + viewEvent;
+                }
+            }
+        }
+
         var location = document.location.href;
         var dataGtmBodyEvent = el.getAttribute('data-gtm-body') || null;
         var dataGtmBodySection = {};
@@ -849,7 +964,7 @@ function extractGtmData(eventType, mapping) {
     
         var result = {
             SHOT_NUMBER: index,
-            EVENTNAME: eventType,
+            EVENTNAME: eventName,
             PAGEPATH: location,
             PAGETITLE: title,
             TIME: getCurrentTimestamp(),
@@ -877,198 +992,229 @@ function extractGtmData(eventType, mapping) {
 }
 
 function 태깅맵_RDP노출() {
-    var timestamp = getCurrentTimestamp();
-    highlightGtmElements("visibility");
-    var jsonData = extractGtmData("visibility", 'rdp');
-    
-    html2canvas(document.querySelector(captureAreaId), {
-        backgroundColor: null,
-        useCORS: true,
-        allowTaint: true,
-        ignoreElements: function(element) { 
-            return element.classList && element.classList.contains('gnb-wrapper'); 
-        }
-    }).then(function(canvas) {
-        canvas.toBlob(function(blob) {
-            downloadBlob(blob, timestamp + '_visibility_' + transformHref(document.location.href) + '.png');
-        }, 'image/png');
-    });
+    태깅맵_지우기();
+    ensureLibrariesLoaded().then(function() {
+        var timestamp = getCurrentTimestamp();
+        highlightGtmElements("visibility");
+        var jsonData = extractGtmData("visibility", 'rdp');
+        
+        html2canvas(document.querySelector(captureAreaId), {
+            backgroundColor: null,
+            useCORS: true,
+            allowTaint: true,
+            ignoreElements: function(element) { 
+                return element.classList && element.classList.contains('gnb-wrapper'); 
+            }
+        }).then(function(canvas) {
+            canvas.toBlob(function(blob) {
+                downloadBlob(blob, timestamp + '_visibility_' + transformHref(document.location.href) + '.png');
+            }, 'image/png');
+        });
+    }).catch(error => console.error('Error in 태깅맵_RDP노출:', error));
 }
 
 function 태깅맵_GA노출() {
-    var timestamp = getCurrentTimestamp();
-    highlightGtmElements("visibility");
-    var jsonData = extractGtmData("visibility", 'ga');
-    
-    html2canvas(document.querySelector(captureAreaId), {
-        backgroundColor: null,
-        useCORS: true,
-        allowTaint: true,
-        ignoreElements: function(element) { 
-            return element.classList && element.classList.contains('gnb-wrapper'); 
-        }
-    }).then(function(canvas) {
-        canvas.toBlob(function(blob) {
-            downloadBlob(blob, timestamp + '_visibility_' + transformHref(document.location.href) + '.png');
-        }, 'image/png');
-    });
+    태깅맵_지우기();
+    ensureLibrariesLoaded().then(function() {
+        var timestamp = getCurrentTimestamp();
+        highlightGtmElements("visibility");
+        var jsonData = extractGtmData("visibility", 'ga');
+        
+        html2canvas(document.querySelector(captureAreaId), {
+            backgroundColor: null,
+            useCORS: true,
+            allowTaint: true,
+            ignoreElements: function(element) { 
+                return element.classList && element.classList.contains('gnb-wrapper'); 
+            }
+        }).then(function(canvas) {
+            canvas.toBlob(function(blob) {
+                downloadBlob(blob, timestamp + '_visibility_' + transformHref(document.location.href) + '.png');
+            }, 'image/png');
+        });
+    }).catch(error => console.error('Error in 태깅맵_GA노출:', error));
 }
 
 function 태깅맵_RDP클릭() {
-    var timestamp = getCurrentTimestamp();
-    highlightGtmElements("click");
-    var jsonData = extractGtmData("click", 'rdp');
-    
-    html2canvas(document.querySelector(captureAreaId), {
-        backgroundColor: null,
-        useCORS: true,
-        allowTaint: true,
-        ignoreElements: function(element) { 
-            return element.classList && element.classList.contains('gnb-wrapper'); 
-        }
-    }).then(function(canvas) {
-        canvas.toBlob(function(blob) {
-            downloadBlob(blob, timestamp + '_click_' + transformHref(document.location.href) + '.png');
-        }, 'image/png');
-    });
+    태깅맵_지우기();
+    ensureLibrariesLoaded().then(function() {
+        var timestamp = getCurrentTimestamp();
+        highlightGtmElements("click");
+        var jsonData = extractGtmData("click", 'rdp');
+        
+        html2canvas(document.querySelector(captureAreaId), {
+            backgroundColor: null,
+            useCORS: true,
+            allowTaint: true,
+            ignoreElements: function(element) { 
+                return element.classList && element.classList.contains('gnb-wrapper'); 
+            }
+        }).then(function(canvas) {
+            canvas.toBlob(function(blob) {
+                downloadBlob(blob, timestamp + '_click_' + transformHref(document.location.href) + '.png');
+            }, 'image/png');
+        });
+    }).catch(error => console.error('Error in 태깅맵_RDP클릭:', error));
 }
 
 function 태깅맵_GA클릭() {
-    var timestamp = getCurrentTimestamp();
-    highlightGtmElements("click");
-    var jsonData = extractGtmData("click", 'ga');
-    
-    html2canvas(document.querySelector(captureAreaId), {
-        backgroundColor: null,
-        useCORS: true,
-        allowTaint: true,
-        ignoreElements: function(element) { 
-            return element.classList && element.classList.contains('gnb-wrapper'); 
-        }
-    }).then(function(canvas) {
-        canvas.toBlob(function(blob) {
-            downloadBlob(blob, timestamp + '_click_' + transformHref(document.location.href) + '.png');
-        }, 'image/png');
-    });
+    태깅맵_지우기();
+    ensureLibrariesLoaded().then(function() {
+        var timestamp = getCurrentTimestamp();
+        highlightGtmElements("click");
+        var jsonData = extractGtmData("click", 'ga');
+        
+        html2canvas(document.querySelector(captureAreaId), {
+            backgroundColor: null,
+            useCORS: true,
+            allowTaint: true,
+            ignoreElements: function(element) { 
+                return element.classList && element.classList.contains('gnb-wrapper'); 
+            }
+        }).then(function(canvas) {
+            canvas.toBlob(function(blob) {
+                downloadBlob(blob, timestamp + '_click_' + transformHref(document.location.href) + '.png');
+            }, 'image/png');
+        });
+    }).catch(error => console.error('Error in 태깅맵_GA클릭:', error));
 }
 
 function 태깅맵_DB노출() {
-    var timestamp = getCurrentTimestamp();
-    highlightGtmElements("visibility");
-    var jsonData = extractGtmData("visibility", 'rdp');
-    
-    html2canvas(document.querySelector(captureAreaId), {
-        backgroundColor: null,
-        useCORS: true,
-        allowTaint: true,
-        ignoreElements: function(element) { 
-            return element.classList && element.classList.contains('gnb-wrapper'); 
-        }
-    }).then(function(canvas) {
-        canvas.toBlob(function(blob) {
-            // 로컬 다운로드 및 서버 업로드
-            downloadBlob(blob, timestamp + '_visibility_' + transformHref(document.location.href) + '.png');
-            uploadDataDirectToServer(jsonData, blob, 'visibility', timestamp);
-        }, 'image/png');
-    });
+    태깅맵_지우기();
+    ensureLibrariesLoaded().then(function() {
+        var timestamp = getCurrentTimestamp();
+        highlightGtmElements("visibility");
+        var jsonData = extractGtmData("visibility", 'rdp');
+        
+        html2canvas(document.querySelector(captureAreaId), {
+            backgroundColor: null,
+            useCORS: true,
+            allowTaint: true,
+            ignoreElements: function(element) { 
+                return element.classList && element.classList.contains('gnb-wrapper'); 
+            }
+        }).then(function(canvas) {
+            canvas.toBlob(function(blob) {
+                // 로컬 다운로드 및 서버 업로드
+                downloadBlob(blob, timestamp + '_visibility_' + transformHref(document.location.href) + '.png');
+                uploadDataDirectToServer(jsonData, blob, 'visibility', timestamp);
+            }, 'image/png');
+        });
+    }).catch(error => console.error('Error in 태깅맵_DB노출:', error));
 }
 
 function 태깅맵_DB클릭() {
-    var timestamp = getCurrentTimestamp();
-    highlightGtmElements("click");
-    var jsonData = extractGtmData("click", 'rdp');
-    
-    html2canvas(document.querySelector(captureAreaId), {
-        backgroundColor: null,
-        useCORS: true,
-        allowTaint: true,
-        ignoreElements: function(element) { 
-            return element.classList && element.classList.contains('gnb-wrapper'); 
-        }
-    }).then(function(canvas) {
-        canvas.toBlob(function(blob) {
-            // 로컬 다운로드 및 서버 업로드
-            downloadBlob(blob, timestamp + '_click_' + transformHref(document.location.href) + '.png');
-            uploadDataDirectToServer(jsonData, blob, 'click', timestamp);
-        }, 'image/png');
-    });
+    태깅맵_지우기();
+    ensureLibrariesLoaded().then(function() {
+        var timestamp = getCurrentTimestamp();
+        highlightGtmElements("click");
+        var jsonData = extractGtmData("click", 'rdp');
+        
+        html2canvas(document.querySelector(captureAreaId), {
+            backgroundColor: null,
+            useCORS: true,
+            allowTaint: true,
+            ignoreElements: function(element) { 
+                return element.classList && element.classList.contains('gnb-wrapper'); 
+            }
+        }).then(function(canvas) {
+            canvas.toBlob(function(blob) {
+                // 로컬 다운로드 및 서버 업로드
+                downloadBlob(blob, timestamp + '_click_' + transformHref(document.location.href) + '.png');
+                uploadDataDirectToServer(jsonData, blob, 'click', timestamp);
+            }, 'image/png');
+        });
+    }).catch(error => console.error('Error in 태깅맵_DB클릭:', error));
 }
+
 function 태깅맵_지우기() {
     removeHighlightGtmElements();
 }
 
 function 태깅맵_RDP노출_오버레이() {
-    var timestamp = getCurrentTimestamp();
-    highlightGtmElementsOverlay("visibility");
-    var jsonData = extractGtmData("visibility", 'rdp');
-    
-    html2canvas(document.querySelector(captureAreaId), {
-        backgroundColor: null,
-        useCORS: true,
-        allowTaint: true,
-        ignoreElements: function(element) { 
-            return element.classList && element.classList.contains('gnb-wrapper'); 
-        }
-    }).then(function(canvas) {
-        canvas.toBlob(function(blob) {
-            downloadBlob(blob, timestamp + '_visibility_' + transformHref(document.location.href) + '.png');
-        }, 'image/png');
-    });
+    태깅맵_지우기();
+    ensureLibrariesLoaded().then(function() {
+        var timestamp = getCurrentTimestamp();
+        highlightGtmElementsOverlay("visibility");
+        var jsonData = extractGtmData("visibility", 'rdp');
+        
+        html2canvas(document.querySelector(captureAreaId), {
+            backgroundColor: null,
+            useCORS: true,
+            allowTaint: true,
+            ignoreElements: function(element) { 
+                return element.classList && element.classList.contains('gnb-wrapper'); 
+            }
+        }).then(function(canvas) {
+            canvas.toBlob(function(blob) {
+                downloadBlob(blob, timestamp + '_visibility_' + transformHref(document.location.href) + '.png');
+            }, 'image/png');
+        });
+    }).catch(error => console.error('Error in 태깅맵_RDP노출_오버레이:', error));
 }
 
 function 태깅맵_GA노출_오버레이() {
-    var timestamp = getCurrentTimestamp();
-    highlightGtmElementsOverlay("visibility");
-    var jsonData = extractGtmData("visibility", 'ga');
-    
-    html2canvas(document.querySelector(captureAreaId), {
-        backgroundColor: null,
-        useCORS: true,
-        allowTaint: true,
-        ignoreElements: function(element) { 
-            return element.classList && element.classList.contains('gnb-wrapper'); 
-        }
-    }).then(function(canvas) {
-        canvas.toBlob(function(blob) {
-            downloadBlob(blob, timestamp + '_visibility_' + transformHref(document.location.href) + '.png');
-        }, 'image/png');
-    });
+    태깅맵_지우기();
+    ensureLibrariesLoaded().then(function() {
+        var timestamp = getCurrentTimestamp();
+        highlightGtmElementsOverlay("visibility");
+        var jsonData = extractGtmData("visibility", 'ga');
+        
+        html2canvas(document.querySelector(captureAreaId), {
+            backgroundColor: null,
+            useCORS: true,
+            allowTaint: true,
+            ignoreElements: function(element) { 
+                return element.classList && element.classList.contains('gnb-wrapper'); 
+            }
+        }).then(function(canvas) {
+            canvas.toBlob(function(blob) {
+                downloadBlob(blob, timestamp + '_visibility_' + transformHref(document.location.href) + '.png');
+            }, 'image/png');
+        });
+    }).catch(error => console.error('Error in 태깅맵_GA노출_오버레이:', error));
 }
 
 function 태깅맵_RDP클릭_오버레이() {
-    var timestamp = getCurrentTimestamp();
-    highlightGtmElementsOverlay("click");
-    var jsonData = extractGtmData("click", 'rdp');
-    
-    html2canvas(document.querySelector(captureAreaId), {
-        backgroundColor: null,
-        useCORS: true,
-        allowTaint: true,
-        ignoreElements: function(element) { 
-            return element.classList && element.classList.contains('gnb-wrapper'); 
-        }
-    }).then(function(canvas) {
-        canvas.toBlob(function(blob) {
-            downloadBlob(blob, timestamp + '_click_' + transformHref(document.location.href) + '.png');
-        }, 'image/png');
-    });
+    태깅맵_지우기();
+    ensureLibrariesLoaded().then(function() {
+        var timestamp = getCurrentTimestamp();
+        highlightGtmElementsOverlay("click");
+        var jsonData = extractGtmData("click", 'rdp');
+        
+        html2canvas(document.querySelector(captureAreaId), {
+            backgroundColor: null,
+            useCORS: true,
+            allowTaint: true,
+            ignoreElements: function(element) { 
+                return element.classList && element.classList.contains('gnb-wrapper'); 
+            }
+        }).then(function(canvas) {
+            canvas.toBlob(function(blob) {
+                downloadBlob(blob, timestamp + '_click_' + transformHref(document.location.href) + '.png');
+            }, 'image/png');
+        });
+    }).catch(error => console.error('Error in 태깅맵_RDP클릭_오버레이:', error));
 }
 
 function 태깅맵_GA클릭_오버레이() {
-    var timestamp = getCurrentTimestamp();
-    highlightGtmElementsOverlay("click");
-    var jsonData = extractGtmData("click", 'ga');
-    
-    html2canvas(document.querySelector(captureAreaId), {
-        backgroundColor: null,
-        useCORS: true,
-        allowTaint: true,
-        ignoreElements: function(element) { 
-            return element.classList && element.classList.contains('gnb-wrapper'); 
-        }
-    }).then(function(canvas) {
-        canvas.toBlob(function(blob) {
-            downloadBlob(blob, timestamp + '_click_' + transformHref(document.location.href) + '.png');
-        }, 'image/png');
-    });
+    태깅맵_지우기();
+    ensureLibrariesLoaded().then(function() {
+        var timestamp = getCurrentTimestamp();
+        highlightGtmElementsOverlay("click");
+        var jsonData = extractGtmData("click", 'ga');
+        
+        html2canvas(document.querySelector(captureAreaId), {
+            backgroundColor: null,
+            useCORS: true,
+            allowTaint: true,
+            ignoreElements: function(element) { 
+                return element.classList && element.classList.contains('gnb-wrapper'); 
+            }
+        }).then(function(canvas) {
+            canvas.toBlob(function(blob) {
+                downloadBlob(blob, timestamp + '_click_' + transformHref(document.location.href) + '.png');
+            }, 'image/png');
+        });
+    }).catch(error => console.error('Error in 태깅맵_GA클릭_오버레이:', error));
 }
