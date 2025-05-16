@@ -144,7 +144,7 @@
       
       // 사용자 친화적 형태로 PAGETITLE 포맷팅
       formattedPagetitle() {
-        return this.pagetitle.replace(/>/g, ' > ');
+        return this.pagetitle.replace(/>/g, '>');
       }
     },
     created() {

@@ -270,21 +270,50 @@ app.get('/api/taggingmaps/filtered', async (req, res) => {
     const { pagetitle, eventname, time } = req.query;
     let url = req.query.url;
     
-    // URL이 이중 인코딩되었는지 확인하고 필요시 디코딩
+    // URL이 이중으로 인코딩된 경우 처리
     if (url && url.includes('%25')) {
       url = decodeURIComponent(url);
+      console.log('URL after first decoding:', url);
     }
     
-    console.log('Searching with params:', { pagetitle, eventname, url, time });
+    console.log('Filter parameters:', { 
+      pagetitle, 
+      eventname, 
+      url, 
+      time 
+    });
     
+    // MongoDB 쿼리 실행
     const taggingMaps = await TaggingMap.find({
       "eventParams.PAGETITLE": pagetitle,
       "eventParams.EVENTNAME": eventname,
       "URL": url,
-      "TIME": time
+      "TIME": { $regex: time.split('.')[0] } // 밀리초를 제외하고 비교
     });
     
-    console.log(`Found ${taggingMaps.length} matching records`);
+    console.log(`Found ${taggingMaps.length} matching documents`);
+    
+    if (taggingMaps.length === 0) {
+      // 결과가 없을 때 디버깅 정보 제공
+      console.log('No results found. Performing diagnostic query...');
+      
+      // URL만 일치하는 문서 확인
+      const urlMatches = await TaggingMap.countDocuments({ "URL": url });
+      console.log(`Documents with matching URL: ${urlMatches}`);
+      
+      // PAGETITLE만 일치하는 문서 확인
+      const pagetitleMatches = await TaggingMap.countDocuments({ "eventParams.PAGETITLE": pagetitle });
+      console.log(`Documents with matching PAGETITLE: ${pagetitleMatches}`);
+      
+      // EVENTNAME만 일치하는 문서 확인
+      const eventnameMatches = await TaggingMap.countDocuments({ "eventParams.EVENTNAME": eventname });
+      console.log(`Documents with matching EVENTNAME: ${eventnameMatches}`);
+      
+      // TIME만 일치하는 문서 확인
+      const timeMatches = await TaggingMap.countDocuments({ "TIME": time });
+      console.log(`Documents with matching TIME: ${timeMatches}`);
+    }
+    
     res.json(taggingMaps);
   } catch (error) {
     console.error('Error fetching filtered data:', error);
