@@ -26,7 +26,7 @@
               class="url-link" 
               :title="url"
             >
-              {{ shortenUrl(url) }}
+              {{ url }}
             </router-link>
             <span class="url-count">({{ urlData.distinctCount }}건)</span>
           </li>
@@ -124,26 +124,6 @@ export default {
           acc[pageTitle] = groupedData[pageTitle];
           return acc;
         }, {});
-    },
-    
-    // URL 단축 표시 (가독성을 위해)
-    shortenUrl(url) {
-      if (!url) return '';
-      
-      try {
-        const parsedUrl = new URL(url);
-        let path = parsedUrl.pathname;
-        
-        // 경로가 너무 길면 축약
-        if (path.length > 30) {
-          path = path.substring(0, 27) + '...';
-        }
-        
-        // 쿼리 파라미터가 있으면 축약 표시
-        return `${path}${parsedUrl.search ? '?' + parsedUrl.search.substring(1, 15) + (parsedUrl.search.length > 15 ? '...' : '') : ''}`;
-      } catch (e) {
-        return url.length > 50 ? url.substring(0, 47) + '...' : url;
-      }
     },
     
     // 상세 페이지 라우트 생성 함수 (문서 루트의 PAGETITLE 사용)
