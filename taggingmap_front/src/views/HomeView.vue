@@ -8,7 +8,15 @@
     <div v-else>
       <div v-for="taggingMap in taggingMaps" :key="taggingMap._id" class="page-data">
         <div class="image-section">
-          <h3>{{ getValue(taggingMap.eventParams, 'PAGETITLE') }}</h3>
+          <!-- 페이지 타이틀 클릭 시 상세 페이지로 이동 -->
+          <h3 class="page-title">
+            <router-link 
+              :to="generateDetailRoute(taggingMap)" 
+              class="page-link"
+            >
+              {{ getValue(taggingMap.eventParams, 'PAGETITLE') }}
+            </router-link>
+          </h3>
           <img v-if="taggingMap.image" :src="taggingMap.image" alt="Captured Image" />
           <p v-else>이미지 없음</p>
         </div>
@@ -81,6 +89,21 @@ export default {
         return dataArray[0][key] || '-';
       }
       return '-';
+    },
+    // 새로 추가: 상세 페이지 라우트 생성 함수
+    generateDetailRoute(taggingMap) {
+      if (!taggingMap.eventParams || taggingMap.eventParams.length === 0) {
+        return '/';
+      }
+      
+      const pageTitle = taggingMap.eventParams[0].PAGETITLE;
+      if (!pageTitle) return '/';
+      
+      // PAGETITLE 형식 (예: 'dmoweb3>front>satellite>main>discovery')를 
+      // URL 경로 형식으로 변환 (예: '/dmoweb3/front/satellite/main/discovery')
+      const urlPath = pageTitle.replace(/>/g, '/');
+      
+      return `/${urlPath}`;
     }
   }
 };
@@ -102,6 +125,22 @@ export default {
 
 .image-section {
   margin-bottom: 15px;
+}
+
+.page-title {
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+
+.page-link {
+  color: #2c3e50;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.page-link:hover {
+  color: #42b983;
+  text-decoration: underline;
 }
 
 .error {

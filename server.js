@@ -190,6 +190,99 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// 추가: 특정 PAGETITLE의 이벤트 이름 목록을 가져오는 API
+app.get('/api/eventnames/:pagetitle', async (req, res) => {
+  try {
+    const pagetitle = req.params.pagetitle;
+    
+    const eventNames = await TaggingMap.aggregate([
+      { $match: { "eventParams.PAGETITLE": pagetitle } },
+      { $unwind: "$eventParams" },
+      { $match: { "eventParams.PAGETITLE": pagetitle } },
+      { $group: { _id: "$eventParams.EVENTNAME" } },
+      { $project: { _id: 0, eventname: "$_id" } }
+    ]);
+    
+    res.json(eventNames);
+  } catch (error) {
+    console.error('Error fetching event names:', error);
+    res.status(500).send('Error fetching event names');
+  }
+});
+
+// 추가: 특정 PAGETITLE 및 EVENTNAME의 URL 목록을 가져오는 API
+app.get('/api/urls/:pagetitle/:eventname', async (req, res) => {
+  try {
+    const { pagetitle, eventname } = req.params;
+    
+    const urls = await TaggingMap.aggregate([
+      { 
+        $match: { 
+          "eventParams.PAGETITLE": pagetitle,
+          "eventParams.EVENTNAME": eventname
+        } 
+      },
+      { $group: { _id: "$URL" } },
+      { $project: { _id: 0, url: "$_id" } }
+    ]);
+    
+    res.json(urls);
+  } catch (error) {
+    console.error('Error fetching URLs:', error);
+    res.status(500).send('Error fetching URLs');
+  }
+});
+
+// 추가: 특정 PAGETITLE, EVENTNAME, URL의 시간 목록을 가져오는 API
+app.get('/api/times/:pagetitle/:eventname/:url', async (req, res) => {
+  try {
+    const { pagetitle, eventname } = req.params;
+    const url = decodeURIComponent(req.params.url);
+    
+    const times = await TaggingMap.aggregate([
+      { 
+        $match: { 
+          "eventParams.PAGETITLE": pagetitle,
+          "eventParams.EVENTNAME": eventname,
+          "URL": url
+        } 
+      },
+      { 
+        $project: { 
+          _id: 0, 
+          time: "$TIME",
+          timestamp: "$timestamp" 
+        } 
+      },
+      { $sort: { timestamp: -1 } }
+    ]);
+    
+    res.json(times);
+  } catch (error) {
+    console.error('Error fetching times:', error);
+    res.status(500).send('Error fetching times');
+  }
+});
+
+// 추가: 필터링된 데이터를 가져오는 API
+app.get('/api/taggingmaps/filtered', async (req, res) => {
+  try {
+    const { pagetitle, eventname, url, time } = req.query;
+    
+    const taggingMaps = await TaggingMap.find({
+      "eventParams.PAGETITLE": pagetitle,
+      "eventParams.EVENTNAME": eventname,
+      "URL": url,
+      "TIME": time
+    });
+    
+    res.json(taggingMaps);
+  } catch (error) {
+    console.error('Error fetching filtered data:', error);
+    res.status(500).send('Error fetching filtered data');
+  }
+});
+
 // 3. 모든 나머지 요청은 Vue Router가 처리하도록 설정
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'taggingmap_front/dist/index.html'));

@@ -113,7 +113,10 @@
   
   export default {
     name: 'PageDetailView',
-    props: ['subdomain', 'path', 'pathMatch'],
+    props: {
+      subdomain: String,
+      pathMatch: Array
+    },
     data() {
       return {
         taggingMaps: [],
@@ -130,15 +133,13 @@
     computed: {
       // URL 경로에서 PAGETITLE 형식 계산
       pagetitle() {
-        if (!this.path) return '';
+        let path = this.subdomain || '';
         
-        let fullPath = this.path;
-        if (this.pathMatch && this.pathMatch.length) {
-          fullPath = fullPath + '/' + this.pathMatch.join('/');
+        if (this.pathMatch && this.pathMatch.length > 0) {
+          path = path + '>' + this.pathMatch.join('>');
         }
         
-        // /를 >로 변환하여 PAGETITLE 형식으로
-        return fullPath.split('/').join('>');
+        return path;
       },
       
       // 사용자 친화적 형태로 PAGETITLE 포맷팅

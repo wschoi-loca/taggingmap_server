@@ -14,10 +14,14 @@ const routes = [
     redirect: '/'
   },
   {
+    // 첫번째 경로 세그먼트를 subdomain으로 캡처
     path: '/:subdomain/:pathMatch(.*)*',
     name: 'pageDetail',
     component: PageDetailView,
-    props: true
+    props: route => ({
+      subdomain: route.params.subdomain,
+      pathMatch: route.params.pathMatch
+    })
   }
 ]
 
