@@ -20,11 +20,15 @@
 
         <!-- URL 목록 -->
         <ul class="url-list">
-          <li v-for="(count, url) in urls" :key="url" class="url-item">
-            <a :href="url" target="_blank" class="url-link" :title="url">
+          <li v-for="(urlData, url) in urls" :key="url" class="url-item">
+            <router-link 
+              :to="generateDetailRouteWithUrlFilter(pageTitle, url)" 
+              class="url-link" 
+              :title="url"
+            >
               {{ shortenUrl(url) }}
-            </a>
-            <span class="url-count">({{ count }}건)</span>
+            </router-link>
+            <span class="url-count">({{ urlData.distinctCount }}건)</span>
           </li>
         </ul>
       </div>
@@ -78,23 +82,40 @@ export default {
     // PAGETITLE별로 URL 그룹화 및 중복 제거
     groupDataByPageTitle(data) {
       const groupedData = {};
+      const distinctTimesMap = {}; // URL별 고유 시간(TIME) 추적용
       
       data.forEach(item => {
-        if (!item.PAGETITLE) return;
+        if (!item.PAGETITLE || !item.URL || !item.TIME) return;
         
         const pageTitle = item.PAGETITLE;
         const url = item.URL;
+        const eventName = item.EVENTNAME || '';
+        const time = item.TIME;
         
+        // 페이지 타이틀 초기화
         if (!groupedData[pageTitle]) {
           groupedData[pageTitle] = {};
         }
         
-        // URL별 카운트 증가
+        // URL 초기화
         if (!groupedData[pageTitle][url]) {
-          groupedData[pageTitle][url] = 1;
-        } else {
-          groupedData[pageTitle][url]++;
+          groupedData[pageTitle][url] = {
+            distinctTimes: new Set(),
+            eventNames: new Set(),
+            distinctCount: 0
+          };
         }
+        
+        // 고유 시간 추가
+        groupedData[pageTitle][url].distinctTimes.add(time);
+        
+        // 이벤트 이름 추가
+        if (eventName) {
+          groupedData[pageTitle][url].eventNames.add(eventName);
+        }
+        
+        // 고유 카운트 업데이트
+        groupedData[pageTitle][url].distinctCount = groupedData[pageTitle][url].distinctTimes.size;
       });
       
       // 페이지 타이틀 알파벳순 정렬
@@ -126,7 +147,7 @@ export default {
       }
     },
     
-    // 수정: 상세 페이지 라우트 생성 함수 (문서 루트의 PAGETITLE 사용)
+    // 상세 페이지 라우트 생성 함수 (문서 루트의 PAGETITLE 사용)
     generateDetailRoute(pageTitle) {
       if (!pageTitle) return '/';
       
@@ -135,6 +156,28 @@ export default {
       const urlPath = pageTitle.replace(/>/g, '/');
       
       return `/${urlPath}`;
+    },
+    
+    // URL 필터가 적용된 상세 페이지 라우트 생성 함수
+    generateDetailRouteWithUrlFilter(pageTitle, url) {
+      if (!pageTitle || !url) return '/';
+      
+      const basePath = this.generateDetailRoute(pageTitle);
+      
+      // URL을 쿼리 파라미터로 인코딩하여 전달
+      const encodedUrl = encodeURIComponent(url);
+      
+      // URL 정보를 쿼리 파라미터로 포함
+      return {
+        path: basePath,
+        query: {
+          url: encodedUrl,
+          // 해당 URL의 기본 이벤트 이름이 있으면 함께 전달 (첫 번째 항목)
+          eventName: this.groupedData[pageTitle][url].eventNames.size > 0 
+            ? Array.from(this.groupedData[pageTitle][url].eventNames)[0] 
+            : undefined
+        }
+      };
     }
   }
 };

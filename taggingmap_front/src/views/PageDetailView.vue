@@ -127,7 +127,9 @@
         selectedUrl: '',
         selectedTime: '',
         loading: true,
-        error: null
+        error: null,
+        preSelectedUrl: null,
+        preSelectedEventName: null
       }
     },
     computed: {
@@ -148,8 +150,22 @@
       }
     },
     created() {
+      // URL 쿼리 파라미터 확인
+      const urlParam = this.$route.query.url;
+      const eventNameParam = this.$route.query.eventName;
+      
+      // 쿼리 파라미터가 있으면 저장
+      if (urlParam) {
+        this.preSelectedUrl = decodeURIComponent(urlParam);
+      }
+      
+      if (eventNameParam) {
+        this.preSelectedEventName = eventNameParam;
+      }
+      
       this.fetchPageData();
     },
+
     watch: {
       // 경로가 변경되면 데이터 다시 로드
       '$route.params'() {
@@ -165,21 +181,24 @@
           
           const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
           
-          // 1. 해당 PAGETITLE의 EVENTNAME 목록 가져오기
+          // 1. 이벤트 이름 목록 가져오기
           const eventNamesResponse = await axios.get(`${baseUrl}/api/eventnames/${this.pagetitle}`);
           this.eventNames = eventNamesResponse.data;
           
-          // 기본 EVENTNAME 설정 (cts_view 우선, 없으면 첫번째)
+          // 기본 EVENTNAME 설정 (URL에서 전달된 값 우선, 없으면 cts_view 우선, 없으면 첫번째)
           if (this.eventNames.length > 0) {
-            const ctsView = this.eventNames.find(e => e.eventname === 'cts_view');
-            this.selectedEventName = ctsView ? ctsView.eventname : this.eventNames[0].eventname;
+            if (this.preSelectedEventName && this.eventNames.find(e => e.eventname === this.preSelectedEventName)) {
+              this.selectedEventName = this.preSelectedEventName;
+            } else {
+              const ctsView = this.eventNames.find(e => e.eventname === 'cts_view');
+              this.selectedEventName = ctsView ? ctsView.eventname : this.eventNames[0].eventname;
+            }
             
-            // 선택된 EVENTNAME으로 URL 목록 가져오기
+            // URL 목록 가져오기
             await this.handleEventNameChange();
           } else {
             this.loading = false;
           }
-          
         } catch (error) {
           console.error('Error fetching page data:', error);
           this.error = '페이지 데이터를 불러오는데 실패했습니다.';
@@ -196,26 +215,33 @@
           
           const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
           
-          // 2. 선택된 EVENTNAME의 URL 목록 가져오기
+          // URL 목록 가져오기
           const urlsResponse = await axios.get(
             `${baseUrl}/api/urls/${this.pagetitle}/${this.selectedEventName}`
           );
           this.urls = urlsResponse.data;
           
-          // 기본 URL 설정 (있으면 첫번째)
+          // URL 선택 (쿼리 파라미터에서 전달된 값 우선, 없으면 첫번째)
           if (this.urls.length > 0) {
-            this.selectedUrl = this.urls[0].url;
+            if (this.preSelectedUrl && this.urls.find(u => u.url === this.preSelectedUrl)) {
+              this.selectedUrl = this.preSelectedUrl;
+            } else {
+              this.selectedUrl = this.urls[0].url;
+            }
             
-            // 선택된 URL로 TIME 목록 가져오기
+            // 선택된 URL로 시간 목록 가져오기
             await this.handleUrlChange();
+            
+            // 사전 선택된 URL 처리 후 변수 초기화
+            this.preSelectedUrl = null;
+            this.preSelectedEventName = null;
           }
-          
         } catch (error) {
           console.error('Error fetching URLs:', error);
           this.error = 'URL 목록을 불러오는데 실패했습니다.';
         }
       },
-      
+
       async handleUrlChange() {
         try {
           this.selectedTime = '';
