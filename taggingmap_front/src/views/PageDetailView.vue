@@ -24,7 +24,7 @@
       </div>
       
       <!-- 팝업 필터 추가 -->
-      <div class="filter-group">
+      <div class="filter-group checkbox-container">
         <label class="checkbox-label">
           <input 
             type="checkbox" 
@@ -34,7 +34,7 @@
           팝업 이벤트만 보기
         </label>
       </div>
-
+      
       <!-- URL 필터 -->
       <div class="filter-group">
         <label for="url-select">URL:</label>
@@ -68,7 +68,58 @@
       </div>
     </div>
     
-    <!-- 내용은 기존과 동일 -->
+    <!-- 로딩 상태 -->
+    <div v-if="loading" class="loading">
+      <div class="spinner"></div>
+      <p>데이터를 불러오는 중입니다...</p>
+    </div>
+    
+    <!-- 에러 상태 -->
+    <div v-else-if="error" class="error">
+      <p>{{ error }}</p>
+      <button @click="fetchPageData">다시 시도</button>
+    </div>
+    
+    <!-- 데이터 없음 상태 -->
+    <div v-else-if="taggingMaps.length === 0" class="no-data">
+      <p>선택한 조건에 맞는 데이터가 없습니다.</p>
+    </div>
+    
+    <!-- 데이터 표시 -->
+    <div v-else class="content-section">
+      <div class="image-section">
+        <img :src="taggingMaps[0].image" alt="Captured Image" />
+      </div>
+      
+      <div class="data-section">
+        <table>
+          <thead>
+            <tr>
+              <th>SHOT_NUMBER</th>
+              <th>EVENTNAME</th>
+              <th>LABEL_TEXT</th>
+              <th>CONTENT_NM</th>
+              <th>PAGE_MKT_CONTS_ID</th>
+              <th>SUB_CONTENT_ID</th>
+              <th>HORIZONTAL_INDEX</th>
+              <th>VERTICAL_INDEX</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="data in taggingMaps[0].eventParams" :key="data.SHOT_NUMBER">
+              <td>{{ data.SHOT_NUMBER }}</td>
+              <td>{{ data.EVENTNAME }}</td>
+              <td>{{ data.LABEL_TEXT || '-' }}</td>
+              <td>{{ data.CONTENT_NM || '-' }}</td>
+              <td>{{ data.PAGE_MKT_CONTS_ID || '-' }}</td>
+              <td>{{ data.SUB_CONTENT_ID || '-' }}</td>
+              <td>{{ data.HORIZONTAL_INDEX || '-' }}</td>
+              <td>{{ data.VERTICAL_INDEX || '-' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -86,7 +137,7 @@ export default {
       taggingMaps: [],
       urls: [],
       times: [],
-      selectedEventName: 'cts_view',
+      selectedEventName: 'cts_view', // 기본값을 'cts_view'로 설정
       selectedUrl: '',
       selectedTime: '',
       isPopupFilter: false, // 팝업 필터링 상태
@@ -96,7 +147,55 @@ export default {
       preSelectedEventName: null
     }
   },
-  // computed, created 등 기존 코드 유지...
+  computed: {
+    // URL 경로에서 PAGETITLE 형식 계산
+    pagetitle() {
+      let path = this.subdomain || '';
+      
+      if (this.pathMatch && this.pathMatch.length > 0) {
+        path = path + '>' + this.pathMatch.join('>');
+      }
+      
+      return path;
+    },
+    
+    // 사용자 친화적 형태로 PAGETITLE 포맷팅
+    formattedPagetitle() {
+      return this.pagetitle.replace(/>/g, '>');
+    }
+  },
+  created() {
+    // URL 쿼리 파라미터 확인
+    const urlParam = this.$route.query.url;
+    const eventNameParam = this.$route.query.eventName;
+    const isPopupParam = this.$route.query.isPopup;
+    
+    // 쿼리 파라미터가 있으면 저장
+    if (urlParam) {
+      this.preSelectedUrl = decodeURIComponent(urlParam);
+    }
+    
+    // 이벤트 이름 쿼리 파라미터가 cts_view 또는 cts_click인 경우만 적용
+    if (eventNameParam && ['cts_view', 'cts_click'].includes(eventNameParam)) {
+      this.preSelectedEventName = eventNameParam;
+      this.selectedEventName = eventNameParam;
+    }
+    
+    // 팝업 필터 쿼리 파라미터 확인
+    if (isPopupParam === 'true') {
+      this.isPopupFilter = true;
+    }
+    
+    this.fetchPageData();
+  },
+
+  watch: {
+    // 경로가 변경되면 데이터 다시 로드
+    '$route.params'() {
+      this.resetFilters();
+      this.fetchPageData();
+    }
+  },
   methods: {
     // 팝업 필터 변경 처리
     async handlePopupFilterChange() {
@@ -151,7 +250,7 @@ export default {
         );
         this.urls = urlsResponse.data;
         
-        // URL 선택 로직
+        // URL 선택 (쿼리 파라미터에서 전달된 값 우선, 없으면 첫번째)
         if (this.urls.length > 0) {
           if (this.preSelectedUrl && this.urls.find(u => u.url === this.preSelectedUrl)) {
             this.selectedUrl = this.preSelectedUrl;
@@ -202,6 +301,7 @@ export default {
         } else {
           this.loading = false;
         }
+        
       } catch (error) {
         console.error('Error fetching times:', error);
         this.error = '시간 목록을 불러오는데 실패했습니다.';
@@ -234,6 +334,7 @@ export default {
         
         this.taggingMaps = filteredResponse.data;
         this.loading = false;
+        
       } catch (error) {
         console.error('Error fetching filtered data:', error);
         this.error = '필터링된 데이터를 불러오는데 실패했습니다.';
@@ -252,6 +353,7 @@ export default {
     },
     
     formatTime(isoTime) {
+      // ISO 시간을 사용자 친화적 형식으로 변환 (예: "2025-05-13 20:07:00")
       const date = new Date(isoTime);
       return date.toLocaleString();
     }
@@ -260,17 +362,166 @@ export default {
 </script>
 
 <style scoped>
-/* 기존 CSS 유지... */
+.page-detail {
+  padding: 20px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
 
-/* 체크박스 레이블 스타일 */
+h1 {
+  margin-bottom: 20px;
+  color: #333;
+  border-bottom: 2px solid #eaeaea;
+  padding-bottom: 15px;
+}
+
+.filter-section {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 5px;
+  padding: 15px;
+  margin-bottom: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.filter-group {
+  flex: 1;
+  min-width: 250px;
+}
+
+.checkbox-container {
+  flex: 0.5;
+  min-width: 200px;
+  display: flex;
+  align-items: center;
+}
+
+.filter-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+
 .checkbox-label {
   display: flex;
   align-items: center;
   cursor: pointer;
+  font-weight: normal !important;
   user-select: none;
 }
 
 .checkbox-label input[type="checkbox"] {
   margin-right: 8px;
+}
+
+.button-group {
+  display: flex;
+  gap: 10px;
+}
+
+.filter-button {
+  padding: 8px 16px;
+  background-color: #f0f0f0;
+  color: #333;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: normal;
+  flex: 1;
+  transition: all 0.2s ease;
+}
+
+.filter-button:hover {
+  background-color: #e0e0e0;
+}
+
+.filter-button.active {
+  background-color: #007bff;
+  color: white;
+  border: 1px solid #0062cc;
+}
+
+select {
+  width: 100%;
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #ced4da;
+}
+
+.content-section {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.image-section {
+  flex: 1;
+  min-width: 300px;
+}
+
+.image-section img {
+  max-width: 100%;
+  height: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.data-section {
+  flex: 2;
+  min-width: 500px;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+
+th {
+  background-color: #f2f2f2;
+  position: sticky;
+  top: 0;
+}
+
+tr:nth-child(even) {
+  background-color: #f8f9fa;
+}
+
+.loading, .error, .no-data {
+  text-align: center;
+  padding: 40px 0;
+}
+
+.spinner {
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border-left-color: #09f;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+button {
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button:hover {
+  opacity: 0.9;
 }
 </style>

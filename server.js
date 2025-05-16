@@ -190,7 +190,7 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// 수정: 특정 PAGETITLE의 이벤트 이름 목록을 가져오는 API - 팝업 필터링 추가
+// 추가: 특정 PAGETITLE의 이벤트 이름 목록을 가져오는 API - 팝업 필터링 추가
 app.get('/api/eventnames/:pagetitle', async (req, res) => {
   try {
     const pagetitle = req.params.pagetitle;
@@ -227,12 +227,13 @@ app.get('/api/eventnames/:pagetitle', async (req, res) => {
   }
 });
 
-// 수정: 특정 PAGETITLE 및 EVENTNAME의 URL 목록을 가져오는 API - 팝업 필터링 추가
+// 추가: 특정 PAGETITLE 및 EVENTNAME의 URL 목록을 가져오는 API - 팝업 필터링 추가
 app.get('/api/urls/:pagetitle/:eventname', async (req, res) => {
   try {
     const { pagetitle, eventname } = req.params;
     const isPopup = req.query.isPopup === 'true'; // 팝업 필터링 파라미터
     
+    // 기본 매치 조건
     let matchCondition = {
       "PAGETITLE": pagetitle
     };
@@ -272,13 +273,14 @@ app.get('/api/urls/:pagetitle/:eventname', async (req, res) => {
   }
 });
 
-// 수정: 특정 PAGETITLE, EVENTNAME, URL의 시간 목록을 가져오는 API - 팝업 필터링 추가
+// 추가: 특정 PAGETITLE, EVENTNAME, URL의 시간 목록을 가져오는 API - 팝업 필터링 추가
 app.get('/api/times/:pagetitle/:eventname/:url', async (req, res) => {
   try {
     const { pagetitle, eventname } = req.params;
     const url = decodeURIComponent(req.params.url);
     const isPopup = req.query.isPopup === 'true'; // 팝업 필터링 파라미터
     
+    // 기본 매치 조건
     let matchCondition = {
       "PAGETITLE": pagetitle,
       "URL": url
@@ -324,7 +326,7 @@ app.get('/api/times/:pagetitle/:eventname/:url', async (req, res) => {
   }
 });
 
-// 수정: 필터링된 태깅맵 데이터 API - 팝업 필터링 추가
+// 추가: 필터링된 태깅맵 데이터 API - 팝업 필터링 추가
 app.get('/api/taggingmaps/filtered', async (req, res) => {
   try {
     const { pagetitle, eventname, time } = req.query;
