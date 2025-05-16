@@ -190,35 +190,17 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// 수정: 특정 PAGETITLE의 이벤트 이름 목록을 가져오는 API - eventParams 내 이벤트 이름 기준
+// 추가: 특정 PAGETITLE의 이벤트 이름 목록을 가져오는 API
 app.get('/api/eventnames/:pagetitle', async (req, res) => {
   try {
     const pagetitle = req.params.pagetitle;
     
-    // eventParams 내부의 EVENTNAME 필드 추출
     const eventNames = await TaggingMap.aggregate([
+      { $match: { "eventParams.PAGETITLE": pagetitle } },
       { $unwind: "$eventParams" },
       { $match: { "eventParams.PAGETITLE": pagetitle } },
-      // 고유한 이벤트 이름만 추출하되, 노출과 클릭으로 그룹화
-      { 
-        $group: { 
-          _id: {
-            $cond: [
-              { $in: ["$eventParams.EVENTNAME", ["cts_view", "popup_view"]] },
-              "cts_view", // 노출 관련 이벤트는 cts_view로 그룹화
-              {
-                $cond: [
-                  { $in: ["$eventParams.EVENTNAME", ["cts_click", "popup_click"]] },
-                  "cts_click", // 클릭 관련 이벤트는 cts_click으로 그룹화
-                  "$eventParams.EVENTNAME" // 그 외 이벤트는 원래 이름 유지
-                ]
-              }
-            ]
-          }
-        }
-      },
-      { $project: { _id: 0, eventname: "$_id" } },
-      { $sort: { eventname: 1 } } // 정렬 추가
+      { $group: { _id: "$eventParams.EVENTNAME" } },
+      { $project: { _id: 0, eventname: "$_id" } }
     ]);
     
     res.json(eventNames);
@@ -228,39 +210,20 @@ app.get('/api/eventnames/:pagetitle', async (req, res) => {
   }
 });
 
-// 수정: 중복된 엔드포인트 제거 및 개선
-// 특정 PAGETITLE 및 EVENTNAME의 URL 목록을 가져오는 API
+// 추가: 특정 PAGETITLE 및 EVENTNAME의 URL 목록을 가져오는 API
 app.get('/api/urls/:pagetitle/:eventname', async (req, res) => {
   try {
     const { pagetitle, eventname } = req.params;
     
-    // 이벤트 타입에 따른 필터링 로직
-    let eventFilter;
-    if (eventname === 'cts_view') {
-      // 노출 버튼: cts_view와 popup_view 포함
-      eventFilter = { $in: ['cts_view', 'popup_view'] };
-    } else if (eventname === 'cts_click') {
-      // 클릭 버튼: cts_click과 popup_click 포함
-      eventFilter = { $in: ['cts_click', 'popup_click'] };
-    } else {
-      // 그 외 경우 - 정확히 일치하는 것만 필터링
-      eventFilter = eventname;
-    }
-    
     const urls = await TaggingMap.aggregate([
       { 
-        $match: {
-          "eventParams": {
-            $elemMatch: {
-              "PAGETITLE": pagetitle,
-              "EVENTNAME": eventFilter
-            }
-          }
-        }
+        $match: { 
+          "PAGETITLE": pagetitle,
+          "EVENTNAME": eventname
+        } 
       },
       { $group: { _id: "$URL" } },
-      { $project: { _id: 0, url: "$_id" } },
-      { $sort: { url: 1 } }
+      { $project: { _id: 0, url: "$_id" } }
     ]);
     
     res.json(urls);
@@ -270,36 +233,19 @@ app.get('/api/urls/:pagetitle/:eventname', async (req, res) => {
   }
 });
 
-// 특정 PAGETITLE, EVENTNAME, URL의 시간 목록을 가져오는 API
+// 추가: 특정 PAGETITLE, EVENTNAME, URL의 시간 목록을 가져오는 API
 app.get('/api/times/:pagetitle/:eventname/:url', async (req, res) => {
   try {
     const { pagetitle, eventname } = req.params;
     const url = decodeURIComponent(req.params.url);
     
-    // 이벤트 타입에 따른 필터링 로직
-    let eventFilter;
-    if (eventname === 'cts_view') {
-      // 노출 버튼: cts_view와 popup_view 포함
-      eventFilter = { $in: ['cts_view', 'popup_view'] };
-    } else if (eventname === 'cts_click') {
-      // 클릭 버튼: cts_click과 popup_click 포함
-      eventFilter = { $in: ['cts_click', 'popup_click'] };
-    } else {
-      // 그 외 경우 - 정확히 일치하는 것만 필터링
-      eventFilter = eventname;
-    }
-    
     const times = await TaggingMap.aggregate([
       { 
         $match: { 
-          "URL": url,
-          "eventParams": {
-            $elemMatch: {
-              "PAGETITLE": pagetitle,
-              "EVENTNAME": eventFilter
-            }
-          }
-        }
+          "PAGETITLE": pagetitle,
+          "EVENTNAME": eventname,
+          "URL": url
+        } 
       },
       { 
         $project: { 
@@ -318,40 +264,55 @@ app.get('/api/times/:pagetitle/:eventname/:url', async (req, res) => {
   }
 });
 
-// 필터링된 태깅맵 데이터를 가져오는 API
+// server.js의 /api/taggingmaps/filtered 엔드포인트 수정
 app.get('/api/taggingmaps/filtered', async (req, res) => {
   try {
-    const { pagetitle, eventname, url, time } = req.query;
+    const { pagetitle, eventname, time } = req.query;
+    let url = req.query.url;
     
-    // 기본 쿼리 조건
-    const query = {
-      "URL": url,
-      "TIME": time
-    };
-    
-    // 이벤트 타입에 따른 필터링 로직
-    let eventFilter;
-    if (eventname === 'cts_view') {
-      // 노출 버튼: cts_view와 popup_view 포함
-      eventFilter = { $in: ['cts_view', 'popup_view'] };
-    } else if (eventname === 'cts_click') {
-      // 클릭 버튼: cts_click과 popup_click 포함
-      eventFilter = { $in: ['cts_click', 'popup_click'] };
-    } else {
-      // 그 외 경우 - 정확히 일치하는 것만 필터링
-      eventFilter = eventname;
+    // URL이 이중으로 인코딩된 경우 처리
+    if (url && url.includes('%25')) {
+      url = decodeURIComponent(url);
+      console.log('URL after first decoding:', url);
     }
     
-    // MongoDB $elemMatch를 사용하여 eventParams 배열 내에서 조건에 맞는 요소 필터링
-    const taggingMaps = await TaggingMap.find({
-      ...query,
-      "eventParams": {
-        $elemMatch: {
-          "PAGETITLE": pagetitle,
-          "EVENTNAME": eventFilter
-        }
-      }
+    console.log('Filter parameters:', { 
+      pagetitle, 
+      eventname, 
+      url, 
+      time 
     });
+    
+    // MongoDB 쿼리 실행
+    const taggingMaps = await TaggingMap.find({
+      //"PAGETITLE": pagetitle,
+      "EVENTNAME": eventname,
+      //"URL": url,
+      "TIME": { $regex: time.split('.')[0] } // 밀리초를 제외하고 비교
+    });
+    
+    console.log(`Found ${taggingMaps.length} matching documents`);
+    
+    if (taggingMaps.length === 0) {
+      // 결과가 없을 때 디버깅 정보 제공
+      console.log('No results found. Performing diagnostic query...');
+      
+      // URL만 일치하는 문서 확인
+      const urlMatches = await TaggingMap.countDocuments({ "URL": url });
+      console.log(`Documents with matching URL: ${urlMatches}`);
+      
+      // PAGETITLE만 일치하는 문서 확인
+      const pagetitleMatches = await TaggingMap.countDocuments({ "eventParams.PAGETITLE": pagetitle });
+      console.log(`Documents with matching PAGETITLE: ${pagetitleMatches}`);
+      
+      // EVENTNAME만 일치하는 문서 확인
+      const eventnameMatches = await TaggingMap.countDocuments({ "eventParams.EVENTNAME": eventname });
+      console.log(`Documents with matching EVENTNAME: ${eventnameMatches}`);
+      
+      // TIME만 일치하는 문서 확인
+      const timeMatches = await TaggingMap.countDocuments({ "TIME": time });
+      console.log(`Documents with matching TIME: ${timeMatches}`);
+    }
     
     res.json(taggingMaps);
   } catch (error) {
