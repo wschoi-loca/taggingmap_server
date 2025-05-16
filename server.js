@@ -264,10 +264,18 @@ app.get('/api/times/:pagetitle/:eventname/:url', async (req, res) => {
   }
 });
 
-// 추가: 필터링된 데이터를 가져오는 API
+// server.js의 /api/taggingmaps/filtered 엔드포인트 수정
 app.get('/api/taggingmaps/filtered', async (req, res) => {
   try {
-    const { pagetitle, eventname, url, time } = req.query;
+    const { pagetitle, eventname, time } = req.query;
+    let url = req.query.url;
+    
+    // URL이 이중 인코딩되었는지 확인하고 필요시 디코딩
+    if (url && url.includes('%25')) {
+      url = decodeURIComponent(url);
+    }
+    
+    console.log('Searching with params:', { pagetitle, eventname, url, time });
     
     const taggingMaps = await TaggingMap.find({
       "eventParams.PAGETITLE": pagetitle,
@@ -276,6 +284,7 @@ app.get('/api/taggingmaps/filtered', async (req, res) => {
       "TIME": time
     });
     
+    console.log(`Found ${taggingMaps.length} matching records`);
     res.json(taggingMaps);
   } catch (error) {
     console.error('Error fetching filtered data:', error);
