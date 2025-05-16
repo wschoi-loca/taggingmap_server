@@ -219,7 +219,7 @@ app.get('/api/urls/:pagetitle/:eventname', async (req, res) => {
       { 
         $match: { 
           "PAGETITLE": pagetitle,
-          "EVENTNAME": eventname
+          "eventParams.EVENTNAME": eventname
         } 
       },
       { $group: { _id: "$URL" } },
@@ -243,7 +243,7 @@ app.get('/api/times/:pagetitle/:eventname/:url', async (req, res) => {
       { 
         $match: { 
           "PAGETITLE": pagetitle,
-          "EVENTNAME": eventname,
+          "eventParams.EVENTNAME": eventname,
           "URL": url
         } 
       },
@@ -286,7 +286,7 @@ app.get('/api/taggingmaps/filtered', async (req, res) => {
     // MongoDB 쿼리 실행
     const taggingMaps = await TaggingMap.find({
       //"PAGETITLE": pagetitle,
-      "EVENTNAME": eventname,
+      "eventParams.EVENTNAME": eventname,
       //"URL": url,
       "TIME": { $regex: time.split('.')[0] } // 밀리초를 제외하고 비교
     });
