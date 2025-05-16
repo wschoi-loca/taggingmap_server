@@ -4,43 +4,29 @@
     <h2>태깅맵 목록</h2>
     <div v-if="loading">로딩중...</div>
     <div v-else-if="error" class="error">{{ error }}</div>
-    <div v-else-if="taggingMaps.length === 0">데이터가 없습니다.</div>
-    <div v-else>
-      <div v-for="taggingMap in taggingMaps" :key="taggingMap._id" class="page-data">
-        <div class="image-section">
-          <!-- 페이지 타이틀 클릭 시 상세 페이지로 이동 -->
-          <h3 class="page-title">
-            <router-link 
-              :to="generateDetailRoute(taggingMap)" 
-              class="page-link"
-            >
-              {{ getValue(taggingMap.eventParams, 'PAGETITLE') }}
-            </router-link>
-          </h3>
-          <img v-if="taggingMap.image" :src="taggingMap.image" alt="Captured Image" />
-          <p v-else>이미지 없음</p>
-        </div>
-        <table v-if="Array.isArray(taggingMap.eventParams) && taggingMap.eventParams.length > 0">
-          <thead>
-            <tr>
-              <th>SHOT_NUMBER</th>
-              <th>EVENTNAME</th>
-              <th>PAGETITLE</th>
-              <th>TIME</th>
-              <th>LABEL_TEXT</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(data, index) in taggingMap.eventParams" :key="index">
-              <td>{{ data.SHOT_NUMBER || '-' }}</td>
-              <td>{{ data.EVENTNAME || '-' }}</td>
-              <td>{{ data.PAGETITLE || '-' }}</td>
-              <td>{{ data.TIME || '-' }}</td>
-              <td>{{ data.LABEL_TEXT || '-' }}</td>
-            </tr>
-          </tbody>
-        </table>
-        <p v-else>태깅 데이터 없음</p>
+    <div v-else-if="Object.keys(groupedData).length === 0">데이터가 없습니다.</div>
+    <div v-else class="page-list">
+      <!-- PAGETITLE 목록 -->
+      <div v-for="(urls, pageTitle) in groupedData" :key="pageTitle" class="page-group">
+        <!-- 페이지 타이틀 -->
+        <h3 class="page-title">
+          <router-link 
+            :to="generateDetailRoute(pageTitle)" 
+            class="page-link"
+          >
+            {{ pageTitle }}
+          </router-link>
+        </h3>
+
+        <!-- URL 목록 -->
+        <ul class="url-list">
+          <li v-for="(count, url) in urls" :key="url" class="url-item">
+            <a :href="url" target="_blank" class="url-link" :title="url">
+              {{ shortenUrl(url) }}
+            </a>
+            <span class="url-count">({{ count }}건)</span>
+          </li>
+        </ul>
       </div>
     </div>
     <pre style="text-align: left; margin-top: 20px;">{{ debugInfo }}</pre>
@@ -53,6 +39,7 @@ export default {
   data() {
     return {
       taggingMaps: [],
+      groupedData: {},
       error: null,
       loading: true,
       debugInfo: ''
@@ -74,8 +61,11 @@ export default {
         const data = await response.json();
         this.taggingMaps = data;
         
+        // PAGETITLE별로 URL을 그룹화
+        this.groupDataByPageTitle(data);
+        
         // 디버깅용 정보
-        this.debugInfo = `API 응답: ${data.length}개의 항목 로드됨`;
+        this.debugInfo = `API 응답: ${data.length}개의 항목, ${Object.keys(this.groupedData).length}개의 고유 페이지 타이틀 로드됨`;
       } catch (error) {
         console.error('Error fetching taggingMaps:', error);
         this.error = `데이터 로드 실패: ${error.message}`;
@@ -84,19 +74,60 @@ export default {
         this.loading = false;
       }
     },
-    getValue(dataArray, key) {
-      if (Array.isArray(dataArray) && dataArray.length > 0) {
-        return dataArray[0][key] || '-';
-      }
-      return '-';
-    },
-    // 새로 추가: 상세 페이지 라우트 생성 함수
-    generateDetailRoute(taggingMap) {
-      if (!taggingMap.eventParams || taggingMap.eventParams.length === 0) {
-        return '/';
-      }
+    
+    // PAGETITLE별로 URL 그룹화 및 중복 제거
+    groupDataByPageTitle(data) {
+      const groupedData = {};
       
-      const pageTitle = taggingMap.eventParams[0].PAGETITLE;
+      data.forEach(item => {
+        if (!item.PAGETITLE) return;
+        
+        const pageTitle = item.PAGETITLE;
+        const url = item.URL;
+        
+        if (!groupedData[pageTitle]) {
+          groupedData[pageTitle] = {};
+        }
+        
+        // URL별 카운트 증가
+        if (!groupedData[pageTitle][url]) {
+          groupedData[pageTitle][url] = 1;
+        } else {
+          groupedData[pageTitle][url]++;
+        }
+      });
+      
+      // 페이지 타이틀 알파벳순 정렬
+      this.groupedData = Object.keys(groupedData)
+        .sort()
+        .reduce((acc, pageTitle) => {
+          acc[pageTitle] = groupedData[pageTitle];
+          return acc;
+        }, {});
+    },
+    
+    // URL 단축 표시 (가독성을 위해)
+    shortenUrl(url) {
+      if (!url) return '';
+      
+      try {
+        const parsedUrl = new URL(url);
+        let path = parsedUrl.pathname;
+        
+        // 경로가 너무 길면 축약
+        if (path.length > 30) {
+          path = path.substring(0, 27) + '...';
+        }
+        
+        // 쿼리 파라미터가 있으면 축약 표시
+        return `${path}${parsedUrl.search ? '?' + parsedUrl.search.substring(1, 15) + (parsedUrl.search.length > 15 ? '...' : '') : ''}`;
+      } catch (e) {
+        return url.length > 50 ? url.substring(0, 47) + '...' : url;
+      }
+    },
+    
+    // 수정: 상세 페이지 라우트 생성 함수 (문서 루트의 PAGETITLE 사용)
+    generateDetailRoute(pageTitle) {
       if (!pageTitle) return '/';
       
       // PAGETITLE 형식 (예: 'dmoweb3>front>satellite>main>discovery')를 
@@ -113,23 +144,27 @@ export default {
 .home {
   max-width: 1200px;
   margin: 0 auto;
+  padding: 20px;
 }
 
-.page-data {
+.page-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.page-group {
   border: 1px solid #eee;
-  margin-bottom: 20px;
-  padding: 15px;
-  border-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.image-section {
-  margin-bottom: 15px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
 .page-title {
-  cursor: pointer;
-  margin-bottom: 10px;
+  margin: 0;
+  padding: 12px 15px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #eee;
 }
 
 .page-link {
@@ -143,30 +178,56 @@ export default {
   text-decoration: underline;
 }
 
+.url-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.url-item {
+  padding: 10px 15px;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.url-item:last-child {
+  border-bottom: none;
+}
+
+.url-link {
+  color: #0366d6;
+  text-decoration: none;
+  font-family: monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 85%;
+}
+
+.url-link:hover {
+  text-decoration: underline;
+}
+
+.url-count {
+  color: #6c757d;
+  font-size: 0.85em;
+  margin-left: 8px;
+}
+
 .error {
-  color: red;
-  font-weight: bold;
+  color: #dc3545;
+  padding: 15px;
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  border-radius: 4px;
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 10px;
-}
-
-th, td {
-  border: 1px solid #ddd;
-  padding: 8px;
-  text-align: left;
-}
-
-th {
-  background-color: #f2f2f2;
-}
-
-img {
-  max-width: 100%;
-  max-height: 300px;
-  object-fit: contain;
+pre {
+  background-color: #f8f9fa;
+  padding: 10px;
+  border-radius: 4px;
+  overflow: auto;
 }
 </style>
