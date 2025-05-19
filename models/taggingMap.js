@@ -5,7 +5,7 @@ const taggingMapSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    EVENTNAME: {
+    EVENTTYPE: {
         type: String,
         required: true,
     },

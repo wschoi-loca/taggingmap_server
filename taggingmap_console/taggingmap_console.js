@@ -388,7 +388,7 @@ function removeHighlightGtmElements() {
     }
 }
 
-function extractGtmData(eventType, mapping) {btn_id_tooltip_close
+function extractGtmData(eventType, mapping) {
     var results = [];
 
     var selector = getGtmSelector(eventType);
@@ -958,7 +958,7 @@ function extractGtmData(eventType, mapping) {btn_id_tooltip_close
     
         var result = {
             SHOT_NUMBER: index,
-            EVENTNAME: eventName,
+            EVENTTYPE: eventType,
             PAGEPATH: location,
             PAGETITLE: title,
             TIME: getCurrentTimestamp(),
