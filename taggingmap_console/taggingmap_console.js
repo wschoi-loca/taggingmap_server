@@ -44,6 +44,19 @@ async function ensureLibrariesLoaded() {
     }
 }
 
+// Function to generate common GTM selector based on event type
+function getGtmSelector(eventType) {
+    var baseSelector = '[data-gtm-' + eventType + ']:not(.gnb-wrapper *):not(.loginTime *)';
+    
+    if (eventType === "visibility") {
+        return baseSelector + ', [data-gtm-view-item-list]:not(.gnb-wrapper *):not(.loginTime *), [data-gtm-popup-visibility]:not(.gnb-wrapper *):not(.loginTime *)';
+    } else if (eventType === "click") {
+        return baseSelector + ', [data-gtm-select-item]:not(.gnb-wrapper *):not(.loginTime *), [data-gtm-auto-click]:not(.gnb-wrapper *):not(.loginTime *),[data-gtm-popup-click]:not(.gnb-wrapper *):not(.loginTime *), [data-gtm-etc]:not(.gnb-wrapper *):not(.loginTime *)';
+    }
+    
+    return baseSelector;
+}
+
 // 현재 날짜와 시간을 "YYYYMMDD_HHmmss" 형식으로 반환하는 함수
 function getCurrentTimestamp() {
     var now = new Date();
@@ -234,14 +247,7 @@ function uploadDataDirectToServer(jsonData, imageBlob, eventType, timestamp) {
 }
 
 function highlightGtmElements(eventType) {
-    var selector = '[data-gtm-' + eventType + ']:not(.gnb-wrapper *)';
-
-    if (eventType === "visibility") {
-        selector += ', [data-gtm-view-item-list]:not(.gnb-wrapper *), [data-gtm-popup-visibility]:not(.gnb-wrapper *)';
-    } else if (eventType === "click") {
-        selector += ', [data-gtm-select-item]:not(.gnb-wrapper *), [data-gtm-auto-click]:not(.gnb-wrapper *),[data-gtm-popup-click]:not(.gnb-wrapper *), [data-gtm-etc]:not(.gnb-wrapper *)';
-    }
-
+    var selector = getGtmSelector(eventType);
     var elements = document.querySelectorAll(selector);
     var highlightElements = [];
 
@@ -317,14 +323,8 @@ function highlightGtmElements(eventType) {
 }
 
 function highlightGtmElementsOverlay(eventType) {
-    var selector = '[data-gtm-' + eventType + ']:not(.gnb-wrapper *)';
 
-    if (eventType === "visibility") {
-        selector += ', [data-gtm-view-item-list]:not(.gnb-wrapper *), [data-gtm-popup-visibility]:not(.gnb-wrapper *)';
-    } else if (eventType === "click") {
-        selector += ', [data-gtm-select-item]:not(.gnb-wrapper *), [data-gtm-popup-click]:not(.gnb-wrapper *), [data-gtm-etc]:not(.gnb-wrapper *)';
-    }
-
+    var selector = getGtmSelector(eventType);
     var elements = document.querySelectorAll(selector);
 
     Array.prototype.forEach.call(elements, function(el, index) {
@@ -388,16 +388,10 @@ function removeHighlightGtmElements() {
     }
 }
 
-function extractGtmData(eventType, mapping) {
+function extractGtmData(eventType, mapping) {btn_id_tooltip_close
     var results = [];
-    var selector = '[data-gtm-' + eventType + ']:not(.gnb-wrapper *)';
 
-    if (eventType === "visibility") {
-        selector += ', [data-gtm-view-item-list]:not(.gnb-wrapper *), [data-gtm-popup-visibility]:not(.gnb-wrapper *)';
-    } else if (eventType === "click") {
-        selector += ', [data-gtm-select-item]:not(.gnb-wrapper *), [data-gtm-popup-click]:not(.gnb-wrapper *), [data-gtm-auto-click]:not(.gnb-wrapper *), [data-gtm-etc]:not(.gnb-wrapper *)';
-    }
-
+    var selector = getGtmSelector(eventType);
     var elements = document.querySelectorAll(selector);
 
     var rdp_event_mapping = {
