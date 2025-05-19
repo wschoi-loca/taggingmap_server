@@ -120,7 +120,7 @@ app.post('/api/taggingMaps', upload.single('image'), async (req, res) => {
     // 새로운 태깅맵 생성
     const newTaggingMap = new TaggingMap({
       TIME: req.body.TIME || new Date().toISOString(),
-      EVENTNAME: req.body.EVENTNAME || 'UNKNOWN',
+      EVENTTYPE: req.body.EVENTTYPE || 'UNKNOWN',
       PAGETITLE: req.body.PAGETITLE || '',
       URL: req.body.URL || '',
       eventParams: eventParams,
