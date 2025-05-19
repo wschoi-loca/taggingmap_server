@@ -39,10 +39,10 @@
       <div class="filter-group">
         <label for="url-select">URL:</label>
         <select 
-          id="url-select" 
-          v-model="selectedUrl" 
-          @change="handleUrlChange"
-          :disabled="!selectedEventName || urls.length === 0"
+        id="url-select" 
+        v-model="selectedUrl" 
+        @change="handleUrlChange"
+        :disabled="!selectedEventType || urls.length === 0"
         >
           <option value="">URL 선택</option>
           <option v-for="url in urls" :key="url.url" :value="url.url">
@@ -144,7 +144,7 @@ export default {
       loading: true,
       error: null,
       preSelectedUrl: null,
-      preSelectedEventName: null
+      preSelectedEventType: null // 변수명 통일
     }
   },
   computed: {
@@ -167,7 +167,7 @@ export default {
   created() {
     // URL 쿼리 파라미터 확인
     const urlParam = this.$route.query.url;
-    const eventNameParam = this.$route.query.eventName;
+    const eventTypeParam = this.$route.query.eventType; // 파라미터 이름 변경
     const isPopupParam = this.$route.query.isPopup;
     
     // 쿼리 파라미터가 있으면 저장
@@ -175,10 +175,10 @@ export default {
       this.preSelectedUrl = decodeURIComponent(urlParam);
     }
     
-    // 이벤트 이름 쿼리 파라미터가 cts_view 또는 cts_click인 경우만 적용
-    if (eventNameParam && ['cts_view', 'cts_click'].includes(eventNameParam)) {
-      this.preSelectedEventName = eventNameParam;
-      this.selectedEventName = eventNameParam;
+    // 이벤트 타입 쿼리 파라미터가 view 또는 click인 경우만 적용
+    if (eventTypeParam && ['view', 'click'].includes(eventTypeParam)) {
+      this.preSelectedEventType = eventTypeParam;
+      this.selectedEventType = eventTypeParam;
     }
     
     // 팝업 필터 쿼리 파라미터 확인
@@ -202,14 +202,14 @@ export default {
       this.selectedUrl = '';
       this.selectedTime = '';
       this.taggingMaps = [];
-      await this.handleEventNameChange();
+      await this.handleEventTypeChange(); // 메서드명 변경
     },
     
     // 이벤트 타입 선택 핸들러
-    selectEventType(eventName) {
-      if (this.selectedEventName === eventName) return;
-      this.selectedEventName = eventName;
-      this.handleEventNameChange();
+    selectEventType(eventType) {
+      if (this.selectedEventType === eventType) return;
+      this.selectedEventType = eventType;
+      this.handleEventTypeChange(); // 메서드명 변경
     },
     
     async fetchPageData() {
@@ -217,13 +217,13 @@ export default {
         this.loading = true;
         this.error = null;
         
-        // 사전 선택된 이벤트 이름이 있으면 적용
-        if (this.preSelectedEventName) {
-          this.selectedEventName = this.preSelectedEventName;
+        // 사전 선택된 이벤트 타입이 있으면 적용
+        if (this.preSelectedEventType) {
+          this.selectedEventType = this.preSelectedEventType;
         }
         
         // URL 목록 가져오기
-        await this.handleEventNameChange();
+        await this.handleEventTypeChange(); // 메서드명 변경
       } catch (error) {
         console.error('Error fetching page data:', error);
         this.error = '페이지 데이터를 불러오는데 실패했습니다.';
@@ -231,7 +231,7 @@ export default {
       }
     },
     
-    async handleEventNameChange() {
+    async handleEventTypeChange() { // 메서드명 변경
       try {
         this.selectedUrl = '';
         this.selectedTime = '';
@@ -263,7 +263,7 @@ export default {
           
           // 사전 선택된 URL 처리 후 변수 초기화
           this.preSelectedUrl = null;
-          this.preSelectedEventName = null;
+          this.preSelectedEventType = null; // 변수명 통일
         } else {
           this.loading = false;
         }
@@ -284,7 +284,7 @@ export default {
         
         // 선택된 URL의 TIME 목록 가져오기 - 팝업 필터링 파라미터 추가
         const timesResponse = await axios.get(
-          `${baseUrl}/api/times/${this.pagetitle}/${this.selectedEventName}/${encodedUrl}`, {
+          `${baseUrl}/api/times/${this.pagetitle}/${this.selectedEventType}/${encodedUrl}`, {
             params: {
               isPopup: this.isPopupFilter
             }
@@ -311,7 +311,7 @@ export default {
     
     async fetchFilteredData() {
       try {
-        if (!this.selectedEventName || !this.selectedUrl || !this.selectedTime) {
+        if (!this.selectedEventType || !this.selectedUrl || !this.selectedTime) {
           this.loading = false;
           return;
         }
@@ -325,7 +325,7 @@ export default {
         const filteredResponse = await axios.get(`${baseUrl}/api/taggingmaps/filtered`, {
           params: {
             pagetitle: this.pagetitle,
-            eventname: this.selectedEventName,
+            eventtype: this.selectedEventType, // 파라미터 이름 변경
             url: encodedUrl,
             time: this.selectedTime,
             isPopup: this.isPopupFilter
@@ -345,10 +345,10 @@ export default {
     resetFilters() {
       this.urls = [];
       this.times = [];
-      this.selectedEventName = 'cts_view';
+      this.selectedEventType = 'view'; // 기본값 변경
       this.selectedUrl = '';
       this.selectedTime = '';
-      this.isPopupFilter = false; // 팝업 필터 초기화
+      this.isPopupFilter = false;
       this.taggingMaps = [];
     },
     

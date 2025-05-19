@@ -177,7 +177,7 @@ function uploadDataDirectly(jsonData, imageBlob, eventType, timestamp) {
         const serverFormData = new FormData();
         serverFormData.append('eventParams', eventParams);
         serverFormData.append('TIME', new Date().toISOString());
-        serverFormData.append('EVENTNAME', eventType);
+        serverFormData.append('EVENTTYPE', eventType);
         serverFormData.append('PAGETITLE', title);
         serverFormData.append('URL', document.location.href);
         serverFormData.append('timestamp', new Date().toISOString());
@@ -216,7 +216,7 @@ function uploadDataDirectToServer(jsonData, imageBlob, eventType, timestamp) {
     // 서버 요청 데이터 설정
     formData.append('eventParams', JSON.stringify(jsonData));
     formData.append('TIME', new Date().toISOString());
-    formData.append('EVENTNAME', eventType);
+    formData.append('EVENTTYPE', eventType);
     formData.append('PAGETITLE', title);
     formData.append('URL', document.location.href);
     formData.append('timestamp', new Date().toISOString());
@@ -785,7 +785,6 @@ function extractGtmData(eventType, mapping) {
         }
     
         var eventParameter = {};
-        var shotKey = transformedHref + (index);
         var pathname = document.location.pathname.substring(1);
         if (pathname.endsWith('/')) {
             pathname = pathname.slice(0, -1);
@@ -958,11 +957,10 @@ function extractGtmData(eventType, mapping) {
     
         var result = {
             SHOT_NUMBER: index,
-            EVENTTYPE: eventType,
+            EVENTNAME: eventName,
             PAGEPATH: location,
             PAGETITLE: title,
             TIME: getCurrentTimestamp(),
-            //SHOT_KEY: shotKey
         };
         
         Object.assign(result, eventParameter);
