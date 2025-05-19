@@ -9,14 +9,14 @@
         <label>이벤트 유형:</label>
         <div class="button-group">
           <button 
-            :class="['filter-button', selectedEventName === 'cts_view' ? 'active' : '']"
-            @click="selectEventType('cts_view')"
+            :class="['filter-button', selectedEventType === 'view' ? 'active' : '']"
+            @click="selectEventType('view')"
           >
             노출
           </button>
           <button 
-            :class="['filter-button', selectedEventName === 'cts_click' ? 'active' : '']"
-            @click="selectEventType('cts_click')"
+            :class="['filter-button', selectedEventType === 'click' ? 'active' : '']"
+            @click="selectEventType('click')"
           >
             클릭
           </button>
@@ -31,7 +31,7 @@
             v-model="isPopupFilter"
             @change="handlePopupFilterChange"
           >
-          팝업 이벤트만 보기
+          팝업 포함된 태깅맵만 보기
         </label>
       </div>
       
@@ -137,7 +137,7 @@ export default {
       taggingMaps: [],
       urls: [],
       times: [],
-      selectedEventName: 'cts_view', // 기본값을 'cts_view'로 설정
+      selectedEventType: 'view', // 기본값을 'view'로 설정
       selectedUrl: '',
       selectedTime: '',
       isPopupFilter: false, // 팝업 필터링 상태
@@ -242,7 +242,7 @@ export default {
         
         // URL 목록 가져오기 - 팝업 필터링 파라미터 추가
         const urlsResponse = await axios.get(
-          `${baseUrl}/api/urls/${this.pagetitle}/${this.selectedEventName}`, {
+          `${baseUrl}/api/urls/${this.pagetitle}/${this.selectedEventType}`, {
             params: {
               isPopup: this.isPopupFilter
             }

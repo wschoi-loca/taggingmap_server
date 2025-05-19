@@ -191,69 +191,67 @@ app.get('/api/health', (req, res) => {
 });
 
 // 추가: 특정 PAGETITLE의 이벤트 이름 목록을 가져오는 API - 팝업 필터링 추가
-app.get('/api/eventnames/:pagetitle', async (req, res) => {
+app.get('/api/eventtypes/:pagetitle', async (req, res) => { // 경로 이름 변경
   try {
     const pagetitle = req.params.pagetitle;
-    const isPopup = req.query.isPopup === 'true'; // 팝업 필터링 파라미터
+    const isPopup = req.query.isPopup === 'true';
     
-    // 필터링된 이벤트 이름 쿼리 생성
     let matchCondition = {
       "eventParams.PAGETITLE": pagetitle
     };
     
-    // 팝업 필터링 조건 추가
+    // 팝업 필터링 조건 - eventParams 내 EVENTNAME은 그대로 사용
     if (isPopup) {
-      matchCondition["eventParams.EVENTNAME"] = { $regex: /popup/ };
+      matchCondition["eventParams.EVENTNAME"] = { $regex: /popup/ }; // EVENTNAME 유지
     }
     
-    const eventNames = await TaggingMap.aggregate([
+    const eventTypes = await TaggingMap.aggregate([ // 변수명 변경
       { $match: matchCondition },
       { $unwind: "$eventParams" },
       { 
         $match: { 
           "eventParams.PAGETITLE": pagetitle,
-          ...(isPopup ? {"eventParams.EVENTNAME": { $regex: /popup/ }} : {})
+          ...(isPopup ? {"eventParams.EVENTNAME": { $regex: /popup/ }} : {}) // EVENTNAME 유지
         } 
       },
-      { $group: { _id: "$eventParams.EVENTNAME" } },
-      { $project: { _id: 0, eventname: "$_id" } },
-      { $sort: { eventname: 1 } }
+      { $group: { _id: "$eventParams.EVENTNAME" } }, // EVENTNAME 유지
+      { $project: { _id: 0, eventtype: "$_id" } }, // 출력 필드명 변경
+      { $sort: { eventtype: 1 } } // 정렬 필드 변경
     ]);
     
-    res.json(eventNames);
+    res.json(eventTypes);
   } catch (error) {
-    console.error('Error fetching event names:', error);
-    res.status(500).send('Error fetching event names');
+    console.error('Error fetching event types:', error);
+    res.status(500).send('Error fetching event types');
   }
 });
 
 // 추가: 특정 PAGETITLE 및 EVENTNAME의 URL 목록을 가져오는 API - 팝업 필터링 추가
-app.get('/api/urls/:pagetitle/:eventname', async (req, res) => {
+app.get('/api/urls/:pagetitle/:eventtype', async (req, res) => { // 파라미터 이름 변경
   try {
-    const { pagetitle, eventname } = req.params;
-    const isPopup = req.query.isPopup === 'true'; // 팝업 필터링 파라미터
+    const { pagetitle, eventtype } = req.params; // 변수 이름 변경
+    const isPopup = req.query.isPopup === 'true';
     
-    // 기본 매치 조건
+    // 기본 매치 조건 - 루트 레벨은 EVENTTYPE 사용
     let matchCondition = {
-      "PAGETITLE": pagetitle
+      "PAGETITLE": pagetitle,
+      "EVENTTYPE": eventtype // EVENTNAME -> EVENTTYPE
     };
     
-    // eventParams 내 eventname 필터링 로직
+    // eventParams 내 eventname 필터링 로직 - EVENTNAME 유지
     let eventParamsMatch = {
       "eventParams.PAGETITLE": pagetitle
     };
     
     if (isPopup) {
-      // 팝업 필터링이 활성화된 경우
-      eventParamsMatch["eventParams.EVENTNAME"] = { $regex: /popup/ };
+      eventParamsMatch["eventParams.EVENTNAME"] = { $regex: /popup/ }; // EVENTNAME 유지
     } else {
-      // 일반 필터링 (팝업 여부와 상관없이)
-      eventParamsMatch["eventParams.EVENTNAME"] = eventname;
+      eventParamsMatch["eventParams.EVENTNAME"] = eventtype; // eventParams 내에서는 입력값 그대로 사용
     }
     
+    // MongoDB 쿼리 실행
     const urls = await TaggingMap.aggregate([
       { $match: matchCondition },
-      // eventParams 배열의 요소 중 조건을 만족하는 문서만 필터링
       {
         $match: {
           eventParams: {
@@ -274,34 +272,32 @@ app.get('/api/urls/:pagetitle/:eventname', async (req, res) => {
 });
 
 // 추가: 특정 PAGETITLE, EVENTNAME, URL의 시간 목록을 가져오는 API - 팝업 필터링 추가
-app.get('/api/times/:pagetitle/:eventname/:url', async (req, res) => {
+app.get('/api/times/:pagetitle/:eventtype/:url', async (req, res) => { // 파라미터 이름 변경
   try {
-    const { pagetitle, eventname } = req.params;
+    const { pagetitle, eventtype } = req.params; // 변수 이름 변경
     const url = decodeURIComponent(req.params.url);
-    const isPopup = req.query.isPopup === 'true'; // 팝업 필터링 파라미터
+    const isPopup = req.query.isPopup === 'true';
     
-    // 기본 매치 조건
+    // 기본 매치 조건 - 루트 레벨은 EVENTTYPE 사용
     let matchCondition = {
       "PAGETITLE": pagetitle,
+      "EVENTTYPE": eventtype, // EVENTNAME -> EVENTTYPE
       "URL": url
     };
     
-    // eventParams 내 eventname 필터링 로직
+    // eventParams 내 이벤트 이름 필터링 로직 - EVENTNAME 유지
     let eventParamsMatch = {
       "eventParams.PAGETITLE": pagetitle
     };
     
     if (isPopup) {
-      // 팝업 필터링이 활성화된 경우
-      eventParamsMatch["eventParams.EVENTNAME"] = { $regex: /popup/ };
+      eventParamsMatch["eventParams.EVENTNAME"] = { $regex: /popup/ }; // EVENTNAME 유지
     } else {
-      // 일반 필터링 (팝업 여부와 상관없이)
-      eventParamsMatch["eventParams.EVENTNAME"] = eventname;
+      eventParamsMatch["eventParams.EVENTNAME"] = eventtype; // eventParams 내에서는 입력값 그대로 사용
     }
     
     const times = await TaggingMap.aggregate([
       { $match: matchCondition },
-      // eventParams 배열의 요소 중 조건을 만족하는 문서만 필터링
       {
         $match: {
           eventParams: {
@@ -329,9 +325,9 @@ app.get('/api/times/:pagetitle/:eventname/:url', async (req, res) => {
 // 추가: 필터링된 태깅맵 데이터 API - 팝업 필터링 추가
 app.get('/api/taggingmaps/filtered', async (req, res) => {
   try {
-    const { pagetitle, eventname, time } = req.query;
+    const { pagetitle, eventtype, time } = req.query; // 변수 이름 변경
     let url = req.query.url;
-    const isPopup = req.query.isPopup === 'true'; // 팝업 필터링 파라미터
+    const isPopup = req.query.isPopup === 'true';
     
     // URL이 이중으로 인코딩된 경우 처리
     if (url && url.includes('%25')) {
@@ -341,30 +337,29 @@ app.get('/api/taggingmaps/filtered', async (req, res) => {
     
     console.log('Filter parameters:', { 
       pagetitle, 
-      eventname, 
+      eventtype, // 로깅 변수명 변경
       url, 
       time,
       isPopup
     });
     
-    // 기본 쿼리 조건
+    // 기본 쿼리 조건 - 루트 레벨은 EVENTTYPE 사용
     let query = {
       "PAGETITLE": pagetitle,
+      "EVENTTYPE": eventtype, // EVENTNAME -> EVENTTYPE
       "URL": url,
       "TIME": time
     };
     
-    // eventParams 내의 조건
+    // eventParams 내의 조건 - EVENTNAME 유지
     let eventParamsMatch = {
       "eventParams.PAGETITLE": pagetitle
     };
     
     if (isPopup) {
-      // 팝업 필터링이 활성화된 경우
-      eventParamsMatch["eventParams.EVENTNAME"] = { $regex: /popup/ };
+      eventParamsMatch["eventParams.EVENTNAME"] = { $regex: /popup/ }; // EVENTNAME 유지
     } else {
-      // 일반 필터링 (특정 이벤트 이름)
-      eventParamsMatch["eventParams.EVENTNAME"] = eventname;
+      eventParamsMatch["eventParams.EVENTNAME"] = eventtype; // eventParams 내에서는 입력값 그대로 사용
     }
     
     // MongoDB 쿼리 실행
@@ -378,7 +373,7 @@ app.get('/api/taggingmaps/filtered', async (req, res) => {
     console.log(`Found ${taggingMaps.length} matching documents with${isPopup ? ' popup' : ''} events`);
     
     if (taggingMaps.length === 0) {
-      // 결과가 없을 때 디버깅 정보 제공
+      // 결과가 없을 때 디버깅 정보 제공 로직
       console.log('No results found. Performing diagnostic query...');
       
       // URL만 일치하는 문서 확인
@@ -389,18 +384,22 @@ app.get('/api/taggingmaps/filtered', async (req, res) => {
       const pagetitleMatches = await TaggingMap.countDocuments({ "PAGETITLE": pagetitle });
       console.log(`Documents with matching PAGETITLE: ${pagetitleMatches}`);
       
-      // 팝업 이벤트로 필터링 시 eventParams 내 조건 확인
+      // EVENTTYPE만 일치하는 문서 확인
+      const eventtypeMatches = await TaggingMap.countDocuments({ "EVENTTYPE": eventtype }); // 필드명 변경
+      console.log(`Documents with matching EVENTTYPE '${eventtype}': ${eventtypeMatches}`);
+      
+      // 팝업 이벤트로 필터링 시 eventParams 내 조건 확인 - EVENTNAME 유지
       if (isPopup) {
         const popupMatches = await TaggingMap.countDocuments({ 
-          "eventParams.EVENTNAME": { $regex: /popup/ } 
+          "eventParams.EVENTNAME": { $regex: /popup/ } // EVENTNAME 유지
         });
         console.log(`Documents with popup events: ${popupMatches}`);
       } else {
-        // 일반 이벤트로 필터링 시 eventParams 내 조건 확인
+        // 일반 이벤트로 필터링 시 eventParams 내 조건 확인 - EVENTNAME 유지
         const eventnameMatches = await TaggingMap.countDocuments({ 
-          "eventParams.EVENTNAME": eventname 
+          "eventParams.EVENTNAME": eventtype // eventParams 내에서는 입력값 그대로 사용
         });
-        console.log(`Documents with eventname '${eventname}': ${eventnameMatches}`);
+        console.log(`Documents with eventname '${eventtype}': ${eventnameMatches}`);
       }
     }
     
