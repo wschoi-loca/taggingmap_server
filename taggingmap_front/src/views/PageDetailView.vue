@@ -137,7 +137,7 @@ export default {
       taggingMaps: [],
       urls: [],
       times: [],
-      selectedEventType: 'visibility', // 기본값을 'view'로 설정
+      selectedEventType: 'visibility', // 기본값을 'visibility'로 설정
       selectedUrl: '',
       selectedTime: '',
       isPopupFilter: false, // 팝업 필터링 상태
@@ -345,7 +345,7 @@ export default {
     resetFilters() {
       this.urls = [];
       this.times = [];
-      this.selectedEventType = 'view'; // 기본값 변경
+      this.selectedEventType = 'visibility'; // 기본값 변경
       this.selectedUrl = '';
       this.selectedTime = '';
       this.isPopupFilter = false;
