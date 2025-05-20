@@ -9,8 +9,8 @@
         <label>이벤트 유형:</label>
         <div class="button-group">
           <button 
-            :class="['filter-button', selectedEventType === 'view' ? 'active' : '']"
-            @click="selectEventType('view')"
+            :class="['filter-button', selectedEventType === 'visibility' ? 'active' : '']"
+            @click="selectEventType('visibility')"
           >
             노출
           </button>
