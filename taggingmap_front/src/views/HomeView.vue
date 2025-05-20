@@ -2,9 +2,37 @@
 <template>
   <div class="home">
     <h2>태깅맵 목록</h2>
-    <div v-if="loading">로딩중...</div>
-    <div v-else-if="error" class="error">{{ error }}</div>
-    <div v-else-if="Object.keys(groupedData).length === 0">데이터가 없습니다.</div>
+    
+    <!-- 검색 및 필터링 섹션 -->
+    <div class="filter-controls">
+      <div class="search-box">
+        <input 
+          type="text" 
+          v-model="searchQuery" 
+          placeholder="페이지 타이틀 검색..." 
+          @input="handleSearchInput"
+        />
+      </div>
+    </div>
+    
+    <!-- 로딩 상태 -->
+    <div v-if="loading" class="loading-container">
+      <div class="spinner"></div>
+      <p>데이터를 불러오는 중입니다...</p>
+    </div>
+    
+    <!-- 에러 상태 -->
+    <div v-else-if="error" class="error">
+      <p>{{ error }}</p>
+      <button @click="fetchPageData" class="retry-button">다시 시도</button>
+    </div>
+    
+    <!-- 데이터 없음 상태 -->
+    <div v-else-if="Object.keys(groupedData).length === 0" class="no-data">
+      <p>데이터가 없습니다.</p>
+    </div>
+    
+    <!-- 페이지 목록 표시 -->
     <div v-else class="page-list">
       <!-- PAGETITLE 목록 -->
       <div v-for="(urls, pageTitle) in groupedData" :key="pageTitle" class="page-group">
@@ -33,7 +61,28 @@
         </ul>
       </div>
     </div>
-    <pre style="text-align: left; margin-top: 20px;">{{ debugInfo }}</pre>
+    
+    <!-- 페이지네이션 컨트롤 -->
+    <div v-if="totalPages > 1" class="pagination">
+      <button 
+        @click="loadPreviousPage" 
+        :disabled="currentPage <= 1" 
+        class="pagination-button"
+      >
+        이전
+      </button>
+      <span class="page-info">{{ currentPage }} / {{ totalPages }}</span>
+      <button 
+        @click="loadNextPage" 
+        :disabled="currentPage >= totalPages" 
+        class="pagination-button"
+      >
+        다음
+      </button>
+    </div>
+    
+    <!-- 디버그 정보 (개발 중에만 표시) -->
+    <pre v-if="showDebug" class="debug-info">{{ debugInfo }}</pre>
   </div>
 </template>
 
@@ -42,36 +91,85 @@ export default {
   name: 'HomeView',
   data() {
     return {
-      taggingMaps: [],
       groupedData: {},
       error: null,
       loading: true,
+      currentPage: 1,
+      totalPages: 0,
+      itemsPerPage: 20,
+      searchQuery: '',
+      searchTimeout: null,
+      showDebug: process.env.NODE_ENV === 'development',
       debugInfo: ''
     };
   },
+  
   created() {
-    this.fetchTaggingMaps();
+    this.fetchPageData();
   },
+  
   methods: {
-    async fetchTaggingMaps() {
+    async fetchPageData() {
       try {
         this.loading = true;
-        const response = await fetch('/api/taggingMaps');
+        
+        // 검색어 및 페이지네이션 파라미터 구성
+        const params = new URLSearchParams({
+          page: this.currentPage,
+          limit: this.itemsPerPage
+        });
+        
+        if (this.searchQuery) {
+          params.append('search', this.searchQuery);
+        }
+        
+        const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
+        const response = await fetch(`${baseUrl}/api/taggingMaps/summary?${params}`);
         
         if (!response.ok) {
           throw new Error(`API 응답 오류: ${response.status}`);
         }
         
-        const data = await response.json();
-        this.taggingMaps = data;
+        const { data, pagination } = await response.json();
         
-        // PAGETITLE별로 URL을 그룹화
-        this.groupDataByPageTitle(data);
+        // 데이터를 적절한 형식으로 변환
+        const formattedData = data.reduce((acc, item) => {
+          const urls = {};
+          
+          // URL 데이터 구성
+          if (item.urls && Array.isArray(item.urls)) {
+            item.urls.forEach(urlItem => {
+              if (urlItem.url) {
+                urls[urlItem.url] = { 
+                  distinctCount: urlItem.distinctCount || 0,
+                  eventNames: urlItem.eventNames || []
+                };
+              }
+            });
+          }
+          
+          if (item.pagetitle) {
+            acc[item.pagetitle] = urls;
+          }
+          
+          return acc;
+        }, {});
         
-        // 디버깅용 정보
-        this.debugInfo = `API 응답: ${data.length}개의 항목, ${Object.keys(this.groupedData).length}개의 고유 페이지 타이틀 로드됨`;
+        // 데이터 및 페이지네이션 정보 업데이트
+        this.groupedData = formattedData;
+        this.currentPage = pagination.page;
+        this.totalPages = Math.ceil(pagination.total / pagination.limit);
+        
+        // 디버깅 정보
+        this.debugInfo = `요약 데이터 로드: ${data.length}개 페이지, 총 ${pagination.total}개 중 ${pagination.page}/${Math.ceil(pagination.total/pagination.limit)} 페이지`;
+        
+        if (Object.keys(this.groupedData).length === 0 && this.currentPage > 1) {
+          // 현재 페이지에 데이터가 없으면 첫 페이지로 이동
+          this.currentPage = 1;
+          await this.fetchPageData();
+        }
       } catch (error) {
-        console.error('Error fetching taggingMaps:', error);
+        console.error('Error fetching data:', error);
         this.error = `데이터 로드 실패: ${error.message}`;
         this.debugInfo = `오류: ${error.toString()}`;
       } finally {
@@ -79,51 +177,35 @@ export default {
       }
     },
     
-    // PAGETITLE별로 URL 그룹화 및 중복 제거
-    groupDataByPageTitle(data) {
-      const groupedData = {};
+    // 검색 입력 처리 (디바운스 적용)
+    handleSearchInput() {
+      if (this.searchTimeout) {
+        clearTimeout(this.searchTimeout);
+      }
       
-      data.forEach(item => {
-        if (!item.PAGETITLE || !item.URL || !item.TIME) return;
-        
-        const pageTitle = item.PAGETITLE;
-        const url = item.URL;
-        const eventName = item.EVENTNAME || '';
-        const time = item.TIME;
-        
-        // 페이지 타이틀 초기화
-        if (!groupedData[pageTitle]) {
-          groupedData[pageTitle] = {};
-        }
-        
-        // URL 초기화
-        if (!groupedData[pageTitle][url]) {
-          groupedData[pageTitle][url] = {
-            distinctTimes: new Set(),
-            eventNames: new Set(),
-            distinctCount: 0
-          };
-        }
-        
-        // 고유 시간 추가
-        groupedData[pageTitle][url].distinctTimes.add(time);
-        
-        // 이벤트 이름 추가
-        if (eventName) {
-          groupedData[pageTitle][url].eventNames.add(eventName);
-        }
-        
-        // 고유 카운트 업데이트
-        groupedData[pageTitle][url].distinctCount = groupedData[pageTitle][url].distinctTimes.size;
-      });
-      
-      // 페이지 타이틀 알파벳순 정렬
-      this.groupedData = Object.keys(groupedData)
-        .sort()
-        .reduce((acc, pageTitle) => {
-          acc[pageTitle] = groupedData[pageTitle];
-          return acc;
-        }, {});
+      this.searchTimeout = setTimeout(() => {
+        this.currentPage = 1;  // 검색 시 첫 페이지로 이동
+        this.fetchPageData();
+      }, 500);  // 500ms 디바운스
+    },
+    
+    // 페이지네이션 처리
+    loadNextPage() {
+      if (this.currentPage < this.totalPages) {
+        this.currentPage++;
+        this.fetchPageData();
+        // 페이지 상단으로 스크롤
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    },
+    
+    loadPreviousPage() {
+      if (this.currentPage > 1) {
+        this.currentPage--;
+        this.fetchPageData();
+        // 페이지 상단으로 스크롤
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     },
     
     // 상세 페이지 라우트 생성 함수 (문서 루트의 PAGETITLE 사용)
@@ -146,15 +228,13 @@ export default {
       // URL을 쿼리 파라미터로 인코딩하여 전달
       const encodedUrl = encodeURIComponent(url);
       
-      // URL 정보를 쿼리 파라미터로 포함
+      // URL 정보와 이벤트 타입을 쿼리 파라미터로 포함
       return {
         path: basePath,
         query: {
           url: encodedUrl,
-          // 해당 URL의 기본 이벤트 이름이 있으면 함께 전달 (첫 번째 항목)
-          eventName: this.groupedData[pageTitle][url].eventNames.size > 0 
-            ? Array.from(this.groupedData[pageTitle][url].eventNames)[0] 
-            : undefined
+          // 해당 URL의 기본 이벤트 타입 (click 또는 visibility)
+          eventType: this.groupedData[pageTitle][url].eventNames?.includes('click') ? 'click' : 'visibility'
         }
       };
     }
@@ -169,6 +249,54 @@ export default {
   padding: 20px;
 }
 
+h2 {
+  margin-bottom: 20px;
+  color: #333;
+  border-bottom: 2px solid #eaeaea;
+  padding-bottom: 10px;
+}
+
+.filter-controls {
+  margin-bottom: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  align-items: center;
+}
+
+.search-box {
+  flex: 1;
+  min-width: 250px;
+}
+
+.search-box input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+.loading-container {
+  text-align: center;
+  padding: 40px 0;
+}
+
+.spinner {
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border-left-color: #09f;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 .page-list {
   display: flex;
   flex-direction: column;
@@ -180,6 +308,12 @@ export default {
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.page-group:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
 .page-title {
@@ -193,6 +327,7 @@ export default {
   color: #2c3e50;
   text-decoration: none;
   font-weight: bold;
+  display: block;
 }
 
 .page-link:hover {
@@ -204,6 +339,8 @@ export default {
   list-style: none;
   margin: 0;
   padding: 0;
+  max-height: 300px;
+  overflow-y: auto;
 }
 
 .url-item {
@@ -212,10 +349,15 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  transition: background-color 0.2s ease;
 }
 
 .url-item:last-child {
   border-bottom: none;
+}
+
+.url-item:hover {
+  background-color: #f8f9fa;
 }
 
 .url-link {
@@ -236,6 +378,7 @@ export default {
   color: #6c757d;
   font-size: 0.85em;
   margin-left: 8px;
+  white-space: nowrap;
 }
 
 .error {
@@ -244,12 +387,77 @@ export default {
   background-color: #f8d7da;
   border: 1px solid #f5c6cb;
   border-radius: 4px;
+  margin-bottom: 20px;
 }
 
-pre {
+.no-data {
+  text-align: center;
+  padding: 40px 0;
+  color: #6c757d;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 20px;
+  gap: 15px;
+}
+
+.pagination-button {
+  padding: 8px 16px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s ease;
+}
+
+.pagination-button:hover:not(:disabled) {
+  background-color: #0056b3;
+}
+
+.pagination-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.page-info {
+  font-size: 14px;
+  color: #6c757d;
+}
+
+.retry-button {
+  margin-top: 10px;
+  padding: 8px 16px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.retry-button:hover {
+  background-color: #218838;
+}
+
+.debug-info {
   background-color: #f8f9fa;
   padding: 10px;
   border-radius: 4px;
-  overflow: auto;
+  font-size: 12px;
+  color: #6c757d;
+  margin-top: 20px;
+  white-space: pre-wrap;
+  overflow-x: auto;
 }
 </style>
+
+<!-- 
+  Last updated: 2025-05-20 10:52:44
+  Author: wschoi-loca 
+-->

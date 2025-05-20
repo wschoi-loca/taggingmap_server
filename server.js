@@ -312,6 +312,74 @@ app.get('/api/taggingmaps/filtered', async (req, res) => {
   }
 });
 
+// 서버 측 - 집계된 데이터만 반환하는 새 엔드포인트 구현
+app.get('/api/taggingMaps/summary', async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+    
+    // MongoDB 집계 파이프라인을 사용해 서버에서 처리
+    const summaryData = await TaggingMap.aggregate([
+      {
+        $group: {
+          _id: "$PAGETITLE",
+          urls: {
+            $addToSet: {
+              url: "$URL",
+              time: "$TIME"
+            }
+          }
+        }
+      },
+      { $sort: { _id: 1 } },
+      { $skip: skip },
+      { $limit: limit }
+    ]);
+    
+    // 추가 처리로 URL별 카운트 계산
+    const processedData = summaryData.map(item => {
+      const urlCounts = {};
+      item.urls.forEach(u => {
+        if (u.url) {
+          if (!urlCounts[u.url]) urlCounts[u.url] = new Set();
+          urlCounts[u.url].add(u.time);
+        }
+      });
+      
+      return {
+        pagetitle: item._id,
+        urls: Object.keys(urlCounts).map(url => ({
+          url,
+          distinctCount: urlCounts[url].size
+        }))
+      };
+    });
+    
+    // 전체 페이지 수 계산을 위한 카운트
+    const total = await TaggingMap.aggregate([
+      {
+        $group: {
+          _id: "$PAGETITLE"
+        }
+      },
+      { $count: "total" }
+    ]);
+    
+    res.json({
+      data: processedData,
+      pagination: {
+        page,
+        limit,
+        total: total.length > 0 ? total[0].total : 0
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching summary data:', error);
+    res.status(500).send('Error fetching summary data');
+  }
+});
+
 // 3. 모든 나머지 요청은 Vue Router가 처리하도록 설정
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'taggingmap_front/dist/index.html'));
