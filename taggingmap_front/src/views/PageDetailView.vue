@@ -11,12 +11,14 @@
           <button 
             :class="['filter-button', selectedEventType === 'visibility' ? 'active' : '']"
             @click="selectEventType('visibility')"
+            :disabled="loading"
           >
             노출
           </button>
           <button 
             :class="['filter-button', selectedEventType === 'click' ? 'active' : '']"
             @click="selectEventType('click')"
+            :disabled="loading"
           >
             클릭
           </button>
@@ -220,13 +222,82 @@ export default {
         // 사전 선택된 이벤트 타입이 있으면 적용
         if (this.preSelectedEventType) {
           this.selectedEventType = this.preSelectedEventType;
+        } else {
+          // 기본값은 visibility로 설정
+          this.selectedEventType = 'visibility';
         }
         
         // URL 목록 가져오기
-        await this.handleEventTypeChange(); // 메서드명 변경
+        await this.handleEventTypeChange(true); // 자동 전환 플래그 추가
       } catch (error) {
         console.error('Error fetching page data:', error);
         this.error = '페이지 데이터를 불러오는데 실패했습니다.';
+        this.loading = false;
+      }
+    },
+
+    // 이벤트 타입 변경 핸들러
+    selectEventType(eventType) {
+      if (this.selectedEventType === eventType) return;
+      this.selectedEventType = eventType;
+      this.handleEventTypeChange(false); // 자동 전환 없음
+    },
+
+    async handleEventTypeChange(autoSwitch = false) { // autoSwitch 파라미터 추가
+      try {
+        this.selectedUrl = '';
+        this.selectedTimestamp = '';
+        this.times = [];
+        this.taggingMaps = [];
+        
+        const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
+        
+        // URL 목록 가져오기
+        const urlsResponse = await axios.get(
+          `${baseUrl}/api/urls/${this.pagetitle}/${this.selectedEventType}`, {
+            params: {
+              isPopup: this.isPopupFilter
+            }
+          }
+        );
+        this.urls = urlsResponse.data;
+        
+        // URL이 없고, 현재 이벤트 타입이 visibility이며, 자동 전환이 활성화된 경우
+        if (this.urls.length === 0 && this.selectedEventType === 'visibility' && autoSwitch) {
+          console.log('No visibility data found, switching to click events');
+          this.selectedEventType = 'click';
+          
+          // 클릭 이벤트로 다시 시도
+          const clickUrlsResponse = await axios.get(
+            `${baseUrl}/api/urls/${this.pagetitle}/click`, {
+              params: {
+                isPopup: this.isPopupFilter
+              }
+            }
+          );
+          this.urls = clickUrlsResponse.data;
+        }
+        
+        // URL 선택 처리
+        if (this.urls.length > 0) {
+          if (this.preSelectedUrl && this.urls.find(u => u.url === this.preSelectedUrl)) {
+            this.selectedUrl = this.preSelectedUrl;
+          } else {
+            this.selectedUrl = this.urls[0].url;
+          }
+          
+          // 선택된 URL로 시간 목록 가져오기
+          await this.handleUrlChange();
+          
+          // 사전 선택된 URL 처리 후 변수 초기화
+          this.preSelectedUrl = null;
+          this.preSelectedEventType = null;
+        } else {
+          this.loading = false;
+        }
+      } catch (error) {
+        console.error('Error fetching URLs:', error);
+        this.error = 'URL 목록을 불러오는데 실패했습니다.';
         this.loading = false;
       }
     },
@@ -282,7 +353,7 @@ export default {
         const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
         const encodedUrl = encodeURIComponent(this.selectedUrl);
         
-        // 선택된 URL의 TIME 목록 가져오기 - 팝업 필터링 파라미터 추가
+        // 시간 목록 가져오기
         const timesResponse = await axios.get(
           `${baseUrl}/api/times/${this.pagetitle}/${this.selectedEventType}/${encodedUrl}`, {
             params: {
@@ -290,14 +361,28 @@ export default {
             }
           }
         );
-        this.times = timesResponse.data;
         
-        // 기본 TIME 설정 (최신 시간)
+        // 시간 목록 정렬 (최신순) - 서버에서 정렬되어 있어도 한번 더 클라이언트에서 확인
+        this.times = timesResponse.data.sort((a, b) => 
+          new Date(b.timestamp) - new Date(a.timestamp)
+        );
+        
+        console.log('Times loaded:', this.times.length);
+        
+        // 기본 timestamp 설정 (최신 시간)
         if (this.times.length > 0) {
-          this.selectedTime = this.times[0].timestamp;
-          
-          // 필터링된 데이터 가져오기
-          await this.fetchFilteredData();
+          // timestamp가 있는지 명시적으로 확인
+          const latestTime = this.times[0];
+          if (latestTime && latestTime.timestamp) {
+            this.selectedTimestamp = latestTime.timestamp;
+            console.log('Auto-selected timestamp:', this.selectedTimestamp);
+            
+            // 필터링된 데이터 가져오기
+            await this.fetchFilteredData();
+          } else {
+            console.error('Latest time object does not have timestamp:', latestTime);
+            this.loading = false;
+          }
         } else {
           this.loading = false;
         }
