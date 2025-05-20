@@ -330,27 +330,33 @@ app.get('/api/taggingmaps/filtered', async (req, res) => {
     let url = req.query.url;
     const isPopup = req.query.isPopup === 'true';
     
-    // URL이 이중으로 인코딩된 경우 처리
-    if (url && url.includes('%25')) {
-      url = decodeURIComponent(url);
-      console.log('URL after first decoding:', url);
+    // URL 완전히 디코딩 (이중 인코딩 처리)
+    if (url) {
+      // 최대 2회까지 디코딩을 시도하여 완전히 디코딩된 URL 확보
+      while (url.includes('%')) {
+        let decodedUrl = decodeURIComponent(url);
+        if (decodedUrl === url) break; // 더 이상 변화가 없으면 중단
+        url = decodedUrl;
+        console.log('URL after decoding:', url);
+      }
     }
     
-    console.log('Filter parameters:', { 
-      pagetitle, 
-      eventtype, 
-      url, 
-      time,
-      isPopup
-    });
+    console.log('Final decoded URL:', url);
     
-    // 기본 쿼리 조건
+    // 기본 쿼리 조건 구성
     let query = {
       "PAGETITLE": pagetitle,
       "EVENTTYPE": eventtype,
-      "URL": url,
       "TIME": time
     };
+    
+    // URL 조건을 두 가지 방식으로 추가 (디코딩된 URL과 원본 URL 모두 확인)
+    if (url) {
+      query["$or"] = [
+        { "URL": url },                   // 완전히 디코딩된 URL
+        { "URL": encodeURIComponent(url) } // 한 번 인코딩된 URL
+      ];
+    }
     
     // 팝업 필터링이 활성화된 경우 추가 조건
     if (isPopup) {
