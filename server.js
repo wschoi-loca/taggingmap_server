@@ -236,6 +236,7 @@ app.get('/api/eventtypes/:pagetitle', async (req, res) => {
 });
 
 // 특정 PAGETITLE 및 EVENTTYPE의 URL 목록을 가져오는 API
+// 특정 PAGETITLE 및 EVENTTYPE의 URL 목록을 가져오는 API
 app.get('/api/urls/:pagetitle/:eventtype', async (req, res) => {
   try {
     const { pagetitle, eventtype } = req.params;
@@ -247,7 +248,7 @@ app.get('/api/urls/:pagetitle/:eventtype', async (req, res) => {
       "EVENTTYPE": eventtype
     };
     
-    // 팝업 필터링 조건 구성 - 중요한 변경점
+    // 팝업 필터링 조건 구성
     let pipeline = [
       { $match: matchCondition }
     ];
@@ -264,7 +265,14 @@ app.get('/api/urls/:pagetitle/:eventtype', async (req, res) => {
         }
       });
       
-      // 3. 다시 원래 문서로 그룹화
+      // 3. URL이 존재하고 null이 아닌 문서만 선택
+      pipeline.push({
+        $match: {
+          "URL": { $ne: null, $exists: true }
+        }
+      });
+      
+      // 4. 다시 원래 문서로 그룹화
       pipeline.push({
         $group: {
           _id: "$URL",
@@ -276,6 +284,8 @@ app.get('/api/urls/:pagetitle/:eventtype', async (req, res) => {
     // 최종 그룹화 및 출력 형식 지정
     pipeline = pipeline.concat([
       { $group: { _id: "$URL" } },
+      // null 값 필터링
+      { $match: { _id: { $ne: null } } },
       { $project: { _id: 0, url: "$_id" } },
       { $sort: { url: 1 } }
     ]);
@@ -283,13 +293,17 @@ app.get('/api/urls/:pagetitle/:eventtype', async (req, res) => {
     // MongoDB 집계 파이프라인 실행
     const urls = await TaggingMap.aggregate(pipeline);
     
+    // 빈 결과일 경우 빈 배열 반환
+    if (urls.length === 0) {
+      console.log(`No URLs found for ${pagetitle} with popup filter: ${isPopup}`);
+    }
+    
     res.json(urls);
   } catch (error) {
     console.error('Error fetching URLs:', error);
     res.status(500).send('Error fetching URLs');
   }
 });
-
 // 특정 PAGETITLE, EVENTTYPE, URL의 시간 목록을 가져오는 API
 app.get('/api/times/:pagetitle/:eventtype/:url', async (req, res) => {
   try {
@@ -298,6 +312,12 @@ app.get('/api/times/:pagetitle/:eventtype/:url', async (req, res) => {
     const isPopup = req.query.isPopup === 'true';
     
     console.log('Fetching times for:', { pagetitle, eventtype, url, isPopup });
+    
+    // URL이 'null' 문자열인 경우 에러 응답
+    if (url === 'null' || !url) {
+      console.error('Invalid URL parameter: null or empty');
+      return res.status(400).json({ error: 'URL cannot be null' });
+    }
     
     // URL 디코딩 처리
     while (url.includes('%')) {

@@ -253,9 +253,11 @@ export default {
             }
           }
         );
-        this.urls = urlsResponse.data;
         
-        // URL이 없고, 현재 이벤트 타입이 visibility이며, 자동 전환이 활성화된 경우
+        // null URL 필터링
+        this.urls = urlsResponse.data.filter(url => url.url !== null);
+        
+        // URLs이 없고, 현재 이벤트 타입이 visibility이며, 자동 전환이 활성화된 경우
         if (this.urls.length === 0 && this.selectedEventType === 'visibility' && autoSwitch) {
           console.log('No visibility data found, switching to click events');
           this.selectedEventType = 'click';
@@ -268,9 +270,18 @@ export default {
               }
             }
           );
-          this.urls = clickUrlsResponse.data;
+          
+          // null URL 필터링
+          this.urls = clickUrlsResponse.data.filter(url => url.url !== null);
         }
         
+        // 팝업 필터가 켜져 있고 URL 결과가 없을 경우 사용자에게 알림
+        if (this.urls.length === 0 && this.isPopupFilter) {
+          this.error = '선택한 페이지에 팝업 이벤트가 포함된 태깅맵이 없습니다.';
+          this.loading = false;
+          return;
+        }
+            
         // URL 선택 처리
         if (this.urls.length > 0) {
           if (this.preSelectedUrl && this.urls.find(u => u.url === this.preSelectedUrl)) {
