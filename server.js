@@ -400,7 +400,7 @@ app.get('/api/taggingmaps/filtered', async (req, res) => {
       const pipeline = [
         { $match: query },
         { $unwind: "$eventParams" },
-        { $match: { "eventParams.EVENTNAME": { $regex: /popup/ } } },
+        { $match: { "eventParams.EVENTNAME": {  $in: ["popup_view", "popup_click"] } } },
         { $group: { 
           _id: "$_id",
           doc: { $first: "$$ROOT" },
