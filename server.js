@@ -194,35 +194,15 @@ app.get('/api/health', (req, res) => {
 app.get('/api/eventtypes/:pagetitle', async (req, res) => {
   try {
     const pagetitle = req.params.pagetitle;
-    const isPopup = req.query.isPopup === 'true';
     
     // 기본 매치 조건
     let matchCondition = {
       "PAGETITLE": pagetitle
     };
     
-    // eventParams 내 EVENTNAME에서 팝업 필터링 조건
-    let eventParamsMatch = {
-      "eventParams.PAGETITLE": pagetitle
-    };
-    
-    if (isPopup) {
-      eventParamsMatch["eventParams.EVENTNAME"] = { $regex: /popup/ };
-    }
-    
     // EVENTTYPE을 그룹화하여 고유값 추출
     const eventTypes = await TaggingMap.aggregate([
       { $match: matchCondition },
-      // 팝업 필터링이 활성화된 경우 팝업 이벤트가 포함된 문서만 선택
-      ...(isPopup ? [{
-        $match: {
-          eventParams: {
-            $elemMatch: {
-              "EVENTNAME": { $regex: /popup/ }
-            }
-          }
-        }
-      }] : []),
       { $group: { _id: "$EVENTTYPE" } },
       { $project: { _id: 0, eventtype: "$_id" } },
       { $sort: { eventtype: 1 } }
@@ -236,11 +216,9 @@ app.get('/api/eventtypes/:pagetitle', async (req, res) => {
 });
 
 // 특정 PAGETITLE 및 EVENTTYPE의 URL 목록을 가져오는 API
-// 특정 PAGETITLE 및 EVENTTYPE의 URL 목록을 가져오는 API
 app.get('/api/urls/:pagetitle/:eventtype', async (req, res) => {
   try {
     const { pagetitle, eventtype } = req.params;
-    const isPopup = req.query.isPopup === 'true';
     
     // 기본 매치 조건
     let matchCondition = {
@@ -248,57 +226,17 @@ app.get('/api/urls/:pagetitle/:eventtype', async (req, res) => {
       "EVENTTYPE": eventtype
     };
     
-    // 팝업 필터링 조건 구성
     let pipeline = [
-      { $match: matchCondition }
-    ];
-    
-    // 팝업 필터링이 활성화된 경우 추가 필터링 단계 삽입
-    if (isPopup) {
-      // 1. 문서를 언윈드하여 eventParams 배열 항목별로 처리
-      pipeline.push({ $unwind: "$eventParams" });
-      
-      // 2. EVENTNAME에 popup이 포함된 항목만 필터링
-      pipeline.push({
-        $match: {
-          "eventParams.EVENTNAME": { 
-            $in: ["popup_view", "popup_click"] 
-          }
-        }
-      });
-      
-      // 3. URL이 존재하고 null이 아닌 문서만 선택
-      pipeline.push({
-        $match: {
-          "URL": { $ne: null, $exists: true }
-        }
-      });
-      
-      // 4. 다시 원래 문서로 그룹화
-      pipeline.push({
-        $group: {
-          _id: "$URL",
-          doc: { $first: "$$ROOT" }
-        }
-      });
-    }
-    
-    // 최종 그룹화 및 출력 형식 지정
-    pipeline = pipeline.concat([
+      { $match: matchCondition },
       { $group: { _id: "$URL" } },
       // null 값 필터링
       { $match: { _id: { $ne: null } } },
       { $project: { _id: 0, url: "$_id" } },
       { $sort: { url: 1 } }
-    ]);
+    ];
     
     // MongoDB 집계 파이프라인 실행
     const urls = await TaggingMap.aggregate(pipeline);
-    
-    // 빈 결과일 경우 빈 배열 반환
-    if (urls.length === 0) {
-      console.log(`No URLs found for ${pagetitle} with popup filter: ${isPopup}`);
-    }
     
     res.json(urls);
   } catch (error) {
@@ -306,6 +244,7 @@ app.get('/api/urls/:pagetitle/:eventtype', async (req, res) => {
     res.status(500).send('Error fetching URLs');
   }
 });
+
 // 특정 PAGETITLE, EVENTTYPE, URL의 시간 목록을 가져오는 API
 app.get('/api/times/:pagetitle/:eventtype/:url', async (req, res) => {
   try {
@@ -348,7 +287,6 @@ app.get('/api/taggingmaps/filtered', async (req, res) => {
   try {
     const { pagetitle, eventtype, timestamp } = req.query; // time 대신 timestamp 사용
     let url = req.query.url;
-    const isPopup = req.query.isPopup === 'true';
     
     // URL 디코딩 처리
     if (url && url.includes('%')) {
@@ -363,34 +301,10 @@ app.get('/api/taggingmaps/filtered', async (req, res) => {
       "timestamp": timestamp // TIME 대신 timestamp 사용
     };
     
-    // 팝업 필터링 처리를 위한 집계 파이프라인
-    if (isPopup) {
-      const pipeline = [
-        { $match: query },
-        { $unwind: "$eventParams" },
-        { $match: { "eventParams.EVENTNAME": {  $in: ["popup_view", "popup_click"] } } },
-        { $group: { 
-          _id: "$_id",
-          doc: { $first: "$$ROOT" },
-          popup_params: { $push: "$eventParams" }
-        }},
-        {
-          $addFields: {
-            "doc.filtered_eventParams": "$popup_params"
-          }
-        },
-        { $replaceRoot: { newRoot: "$doc" } }
-      ];
-      
-      const taggingMaps = await TaggingMap.aggregate(pipeline);
-      console.log(`Found ${taggingMaps.length} matching documents with popup events`);
-      res.json(taggingMaps);
-    } else {
-      // 팝업 필터링이 없는 경우 기존 로직 사용
-      const taggingMaps = await TaggingMap.find(query);
-      console.log(`Found ${taggingMaps.length} matching documents with all events`);
-      res.json(taggingMaps);
-    }
+    // 팝업 필터링 없이 모든 데이터 가져오기
+    const taggingMaps = await TaggingMap.find(query);
+    console.log(`Found ${taggingMaps.length} matching documents`);
+    res.json(taggingMaps);
     
   } catch (error) {
     console.error('Error fetching filtered data:', error);
@@ -409,5 +323,4 @@ app.listen(PORT, () => {
   console.log(`Cloudinary configured for cloud: ${cloudinary.config().cloud_name}`);
 });
 
-
-// Deployed: 2025-05-20 07:30:15 by wschoi-loca
+// Deployed: 2025-05-20 09:57:42 by wschoi-loca
