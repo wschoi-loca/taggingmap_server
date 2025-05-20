@@ -125,7 +125,7 @@ export default {
       preSelectedUrl: null,
       preSelectedEventType: null, // 변수명 통일
       columnOrder: [
-      "EVENT_NAME",
+      "EVENTNAME",
       "CATEGORY_DEPTH1",
       "CATEGORY_DEPTH2",
       "CATEGORY_DEPTH3",
