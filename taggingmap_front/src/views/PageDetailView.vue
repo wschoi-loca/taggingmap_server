@@ -56,7 +56,7 @@
         <label for="time-select">캡처 시간:</label>
         <select 
           id="time-select" 
-          v-model="selectedTime"
+          v-model="selectedTimestamp"
           @change="fetchFilteredData"
           :disabled="!selectedUrl || times.length === 0"
         >
@@ -139,7 +139,7 @@ export default {
       times: [],
       selectedEventType: 'visibility', // 기본값을 'visibility'로 설정
       selectedUrl: '',
-      selectedTime: '',
+      selectedTimestamp: '',
       isPopupFilter: false, // 팝업 필터링 상태
       loading: true,
       error: null,
@@ -276,7 +276,7 @@ export default {
 
     async handleUrlChange() {
       try {
-        this.selectedTime = '';
+        this.selectedTimestamp = '';
         this.taggingMaps = [];
         
         const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
@@ -294,7 +294,7 @@ export default {
         
         // 기본 TIME 설정 (최신 시간)
         if (this.times.length > 0) {
-          this.selectedTime = this.times[0].time;
+          this.selectedTime = this.times[0].timestamp;
           
           // 필터링된 데이터 가져오기
           await this.fetchFilteredData();
@@ -311,7 +311,7 @@ export default {
     
     async fetchFilteredData() {
       try {
-        if (!this.selectedEventType || !this.selectedUrl || !this.selectedTime) {
+        if (!this.selectedEventType || !this.selectedUrl || !this.selectedTimestamp) {
           this.loading = false;
           return;
         }
@@ -319,17 +319,25 @@ export default {
         this.loading = true;
         
         const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
-        const encodedUrl = encodeURIComponent(this.selectedUrl);
+        let url = this.selectedUrl;
         
-        // 필터링된 데이터 가져오기 - 팝업 필터링 파라미터 추가
+        // URL 디코딩 처리
+        while (url.includes('%')) {
+          const decodedUrl = decodeURIComponent(url);
+          if (decodedUrl === url) break;
+          url = decodedUrl;
+        }
+        
+        // 필터링된 데이터 가져오기 - timestamp 파라미터 사용
         const filteredResponse = await axios.get(`${baseUrl}/api/taggingmaps/filtered`, {
           params: {
             pagetitle: this.pagetitle,
-            eventtype: this.selectedEventType, // 파라미터 이름 변경
-            url: encodedUrl,
-            time: this.selectedTime,
+            eventtype: this.selectedEventType,
+            url: url,
+            timestamp: this.selectedTimestamp, // time 대신 timestamp 사용
             isPopup: this.isPopupFilter
-          }
+          },
+          timeout: 30000
         });
         
         this.taggingMaps = filteredResponse.data;
@@ -347,7 +355,7 @@ export default {
       this.times = [];
       this.selectedEventType = 'visibility'; // 기본값 변경
       this.selectedUrl = '';
-      this.selectedTime = '';
+      this.selectedTimestamp = '';
       this.isPopupFilter = false;
       this.taggingMaps = [];
     },

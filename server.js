@@ -294,57 +294,53 @@ app.get('/api/urls/:pagetitle/:eventtype', async (req, res) => {
 app.get('/api/times/:pagetitle/:eventtype/:url', async (req, res) => {
   try {
     const { pagetitle, eventtype } = req.params;
-    const url = decodeURIComponent(req.params.url);
+    let url = decodeURIComponent(req.params.url);
     const isPopup = req.query.isPopup === 'true';
     
-    // 기본 매치 조건
+    console.log('Fetching times for:', { pagetitle, eventtype, url, isPopup });
+    
+    // URL 디코딩 처리
+    while (url.includes('%')) {
+      const decodedUrl = decodeURIComponent(url);
+      if (decodedUrl === url) break;
+      url = decodedUrl;
+    }
+    
     let matchCondition = {
       "PAGETITLE": pagetitle,
       "EVENTTYPE": eventtype,
       "URL": url
     };
     
-    // 팝업 필터링 조건 구성 - 중요한 변경점
-    let pipeline = [
-      { $match: matchCondition }
-    ];
+    // MongoDB 집계 파이프라인
+    let pipeline = [{ $match: matchCondition }];
     
-    // 팝업 필터링이 활성화된 경우 추가 필터링 단계 삽입
     if (isPopup) {
-      // 1. 문서를 언윈드하여 eventParams 배열 항목별로 처리
       pipeline.push({ $unwind: "$eventParams" });
-      
-      // 2. EVENTNAME에 popup이 포함된 항목만 필터링
       pipeline.push({
-        $match: {
-          "eventParams.EVENTNAME": { $regex: /popup/ }
-        }
+        $match: { "eventParams.EVENTNAME": { $regex: /popup/ } }
       });
-      
-      // 3. 다시 원래 문서로 그룹화
       pipeline.push({
         $group: {
-          _id: "$TIME",
-          timestamp: { $first: "$timestamp" },
-          time: { $first: "$TIME" }
+          _id: "$_id",
+          timestamp: { $first: "$timestamp" } // timestamp 필드만 유지
         }
       });
     }
     
-    // 최종 프로젝션 및 정렬
+    // 최종 프로젝션 및 정렬 - timestamp 만 반환
     pipeline = pipeline.concat([
       { 
         $project: { 
           _id: 0, 
-          time: "$time",
-          timestamp: "$timestamp" 
+          timestamp: "$timestamp" // time 필드 제거, timestamp만 사용
         } 
       },
       { $sort: { timestamp: -1 } }
     ]);
     
-    // MongoDB 집계 파이프라인 실행
     const times = await TaggingMap.aggregate(pipeline);
+    console.log(`Found ${times.length} times`);
     
     res.json(times);
   } catch (error) {
@@ -356,21 +352,21 @@ app.get('/api/times/:pagetitle/:eventtype/:url', async (req, res) => {
 // 필터링된 태깅맵 데이터 API
 app.get('/api/taggingmaps/filtered', async (req, res) => {
   try {
-    const { pagetitle, eventtype, time } = req.query;
+    const { pagetitle, eventtype, timestamp } = req.query; // time 대신 timestamp 사용
     let url = req.query.url;
     const isPopup = req.query.isPopup === 'true';
     
-    // URL 이중 인코딩 처리
-    if (url && url.includes('%25')) {
+    // URL 디코딩 처리
+    if (url && url.includes('%')) {
       url = decodeURIComponent(url);
     }
     
-    // 기본 쿼리 조건
+    // 기본 쿼리 조건 - timestamp 사용
     let query = {
       "PAGETITLE": pagetitle,
       "EVENTTYPE": eventtype,
       "URL": url,
-      "TIME": time
+      "timestamp": timestamp // TIME 대신 timestamp 사용
     };
     
     // 팝업 필터링 처리를 위한 집계 파이프라인
