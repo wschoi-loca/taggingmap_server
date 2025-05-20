@@ -61,7 +61,7 @@
           :disabled="!selectedUrl || times.length === 0"
         >
           <option value="">시간 선택</option>
-          <option v-for="time in times" :key="time.timestamp" :value="time.time">
+          <option v-for="time in times" :key="time.timestamp" :value="time.timestamp">
             {{ formatTime(time.timestamp) }}
           </option>
         </select>
