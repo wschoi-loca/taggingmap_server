@@ -320,12 +320,52 @@ app.get('/api/taggingMaps/summary', async (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
     const search = req.query.search || '';
+    const eventType = req.query.eventType || '';
     
     // 검색 조건 구성
     const matchCondition = {};
+    
+    // 페이지 타이틀 검색
     if (search) {
-      // 검색어를 포함하는 모든 PAGETITLE 찾기 (명시적으로 .*search.* 패턴 사용)
       matchCondition.PAGETITLE = { $regex: `.*${search}.*`, $options: 'i' };
+    }
+    
+    // 이벤트 타입 검색
+    if (eventType) {
+      matchCondition.EVENTTYPE = eventType;
+    }
+    
+    // 필드별 고급 검색 처리
+    const fieldQueries = [];
+    
+    // 요청에서 모든 필드 파라미터 추출
+    for (const key in req.query) {
+      // _exists 필드는 값의 존재 여부만 확인
+      if (key.endsWith('_exists') && req.query[key] === 'true') {
+        const fieldName = key.replace('_exists', '');
+        const existsQuery = {};
+        existsQuery[`eventParams.${fieldName}`] = { $exists: true, $ne: null, $ne: "" };
+        fieldQueries.push(existsQuery);
+      } 
+      // 일반 필드는 포함 검색
+      else if (
+        !['page', 'limit', 'search', 'eventType'].includes(key) && 
+        !key.endsWith('_exists')
+      ) {
+        const fieldQuery = {};
+        fieldQuery[`eventParams.${key}`] = { 
+          $regex: `.*${req.query[key]}.*`, 
+          $options: 'i' 
+        };
+        fieldQueries.push(fieldQuery);
+      }
+    }
+    
+    // eventParams 내 필드 검색 조건이 있으면 $elemMatch로 처리
+    if (fieldQueries.length > 0) {
+      matchCondition['$or'] = fieldQueries.map(query => ({ 
+        eventParams: { $elemMatch: query } 
+      }));
     }
     
     // MongoDB 집계 파이프라인 사용
@@ -405,6 +445,7 @@ app.get('/api/taggingMaps/summary', async (req, res) => {
     res.status(500).send('Error fetching summary data');
   }
 });
+
 // 3. 모든 나머지 요청은 Vue Router가 처리하도록 설정
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'taggingmap_front/dist/index.html'));
