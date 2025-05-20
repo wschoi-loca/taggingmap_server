@@ -85,25 +85,15 @@
           <thead>
             <tr>
               <th>SHOT_NUMBER</th>
-              <th>EVENTNAME</th>
-              <th>LABEL_TEXT</th>
-              <th>CONTENT_NM</th>
-              <th>PAGE_MKT_CONTS_ID</th>
-              <th>SUB_CONTENT_ID</th>
-              <th>HORIZONTAL_INDEX</th>
-              <th>VERTICAL_INDEX</th>
+              <th v-for="column in sortedColumns" :key="column">{{ column }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="data in taggingMaps[0].eventParams" :key="data.SHOT_NUMBER">
               <td>{{ data.SHOT_NUMBER }}</td>
-              <td>{{ data.EVENTNAME }}</td>
-              <td>{{ data.LABEL_TEXT || '-' }}</td>
-              <td>{{ data.CONTENT_NM || '-' }}</td>
-              <td>{{ data.PAGE_MKT_CONTS_ID || '-' }}</td>
-              <td>{{ data.SUB_CONTENT_ID || '-' }}</td>
-              <td>{{ data.HORIZONTAL_INDEX || '-' }}</td>
-              <td>{{ data.VERTICAL_INDEX || '-' }}</td>
+              <td v-for="column in sortedColumns" :key="`${data.SHOT_NUMBER}-${column}`">
+                {{ data[column] || '-' }}
+              </td>
             </tr>
           </tbody>
         </table>
@@ -133,7 +123,84 @@ export default {
       loading: true,
       error: null,
       preSelectedUrl: null,
-      preSelectedEventType: null // 변수명 통일
+      preSelectedEventType: null, // 변수명 통일
+      columnOrder: [
+      "EVENT_NAME",
+      "CATEGORY_DEPTH1",
+      "CATEGORY_DEPTH2",
+      "CATEGORY_DEPTH3",
+      "CATEGORY_DEPTH4",
+      "CATEGORY_DEPTH5",
+      "CATEGORY_DEPTH6",
+      "CATEGORY_DEPTH7",
+      "CATEGORY_DEPTH8",
+      "CATEGORY_DEPTH9",
+      "CATEGORY_DEPTH10",
+      "LABEL_TEXT",
+      "CONTENT_NM",
+      "PAGE_MKT_CONTS_ID",
+      "SUB_CTS_ID1",
+      "SUB_CTS_ID2",
+      "SUB_CTS_ID3",
+      "SUB_CTS_ID4",
+      "SUB_CTS_ID5",
+      "CONTENT_NM1",
+      "CONTENT_NM2",
+      "CONTENT_NM3",
+      "HORIZONTAL_INDEX",
+      "VERTICAL_INDEX",
+      "POPUP_MESSAGE",
+      "POPUP_BUTTON",
+      "POPUP_CLASS",
+      "AUTO_TAG_YN",
+      "PAGETITLE",
+      "PAGETITLE",
+      "ep_cd77_cur_page_title",
+      "PAGEPATH",
+      "CD123_CUR_PAGE_FULLURL",
+      "CTS_GROUP1",
+      "CTS_GROUP2",
+      "CTS_GROUP3",
+      "CTS_GROUP4",
+      "CTS_GROUP5",
+      "CTS_GROUP6",
+      "CTS_GROUP7",
+      "CTS_GROUP8",
+      "CTS_GROUP9",
+      "CTS_GROUP10",
+      "CTS_GROUP11",
+      "CTS_GROUP12",
+      "CTS_GROUP13",
+      "PAGE_DEPTH1",
+      "PAGE_DEPTH2",
+      "PAGE_DEPTH3",
+      "PAGE_DEPTH4",
+      "PAGE_DEPTH5",
+      "SEAK",
+      "SRCH_KEYWORD_TYPE",
+      "SEAK_SUS",
+      "SEAK_TP",
+      "CARD_NAME",
+      "CARD_CODE",
+      "PAGE_CARDAPL_CODE",
+      "PAGE_CARDAPL_KND",
+      "PAGE_FN_PD_NM",
+      "PAGE_FN_LOAN_AMT",
+      "PAGE_RVO_EGM_STT_RT",
+      "PAGE_RVO_EGM_STT_TE",
+      "PAGE_PD_APL_LVL",
+      "item_id",
+      "item_name",
+      "price",
+      "coupon_yn",
+      "discount",
+      "item_brand",
+      "CHANNEL_TYPE",
+      "EVENTCATEGORY",
+      "EVENTACTION",
+      "EVENTLABEL",
+      "CNO",
+      ]
     }
   },
   computed: {
@@ -151,6 +218,37 @@ export default {
     // 사용자 친화적 형태로 PAGETITLE 포맷팅
     formattedPagetitle() {
       return this.pagetitle.replace(/>/g, '>');
+    },
+
+    // 정렬된 컬럼 목록 계산
+    sortedColumns() {
+      if (!this.taggingMaps || this.taggingMaps.length === 0 || !this.taggingMaps[0].eventParams) {
+        return [];
+      }
+      
+      // 모든 데이터에서 사용된 모든 키 수집
+      const allKeys = new Set();
+      this.taggingMaps[0].eventParams.forEach(param => {
+        Object.keys(param).forEach(key => {
+          if (key !== 'SHOT_NUMBER') { // SHOT_NUMBER는 별도로 표시되므로 제외
+            allKeys.add(key);
+          }
+        });
+      });
+      
+      // columnOrder에 따라 키 정렬
+      return Array.from(allKeys).sort((a, b) => {
+        const indexA = this.columnOrder.indexOf(a);
+        const indexB = this.columnOrder.indexOf(b);
+        
+        // 순서 목록에 없는 키는 맨 뒤로
+        if (indexA === -1 && indexB === -1) return a.localeCompare(b);
+        if (indexA === -1) return 1;
+        if (indexB === -1) return -1;
+        
+        // 순서 목록에 있는 키는 해당 순서대로
+        return indexA - indexB;
+      });
     }
   },
   created() {
@@ -422,6 +520,12 @@ export default {
         });
         
         this.taggingMaps = filteredResponse.data;
+    
+        // 데이터가 로드된 후 콘솔에 사용 가능한 키 출력 (디버깅용)
+        if (this.taggingMaps.length > 0 && this.taggingMaps[0].eventParams && this.taggingMaps[0].eventParams.length > 0) {
+          console.log('Available columns:', Object.keys(this.taggingMaps[0].eventParams[0]));
+        }
+        
         this.loading = false;
         
       } catch (error) {
