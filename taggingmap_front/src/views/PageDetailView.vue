@@ -137,7 +137,7 @@ export default {
       taggingMaps: [],
       urls: [],
       times: [],
-      selectedEventType: 'view', // 기본값을 'view'로 설정
+      selectedEventType: 'visibility', // 기본값을 'view'로 설정
       selectedUrl: '',
       selectedTime: '',
       isPopupFilter: false, // 팝업 필터링 상태
@@ -176,7 +176,7 @@ export default {
     }
     
     // 이벤트 타입 쿼리 파라미터가 view 또는 click인 경우만 적용
-    if (eventTypeParam && ['view', 'click'].includes(eventTypeParam)) {
+    if (eventTypeParam && ['visibility', 'click'].includes(eventTypeParam)) {
       this.preSelectedEventType = eventTypeParam;
       this.selectedEventType = eventTypeParam;
     }
