@@ -261,7 +261,9 @@ app.get('/api/urls/:pagetitle/:eventtype', async (req, res) => {
       // 2. EVENTNAME에 popup이 포함된 항목만 필터링
       pipeline.push({
         $match: {
-          "eventParams.EVENTNAME": { $regex: /popup/ }
+          "eventParams.EVENTNAME": { 
+            $in: ["popup_view", "popup_click"] 
+          }
         }
       });
       
@@ -338,7 +340,11 @@ app.get('/api/times/:pagetitle/:eventtype/:url', async (req, res) => {
     if (isPopup) {
       pipeline.push({ $unwind: "$eventParams" });
       pipeline.push({
-        $match: { "eventParams.EVENTNAME": { $regex: /popup/ } }
+        $match: {
+          "eventParams.EVENTNAME": { 
+            $in: ["popup_view", "popup_click"] 
+          }
+        }
       });
       pipeline.push({
         $group: {
