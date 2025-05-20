@@ -68,7 +68,7 @@
           </option>
         </select>
       </div>
-          
+    </div>     
     <!-- 로딩 상태 -->
     <div v-if="loading" class="loading">
       <div class="spinner"></div>
