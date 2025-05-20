@@ -310,65 +310,33 @@ app.get('/api/urls/:pagetitle/:eventtype', async (req, res) => {
 app.get('/api/times/:pagetitle/:eventtype/:url', async (req, res) => {
   try {
     const { pagetitle, eventtype } = req.params;
-    let url = decodeURIComponent(req.params.url);
-    const isPopup = req.query.isPopup === 'true';
-    
-    console.log('Fetching times for:', { pagetitle, eventtype, url, isPopup });
-    
-    // URL이 'null' 문자열인 경우 에러 응답
-    if (url === 'null' || !url) {
-      console.error('Invalid URL parameter: null or empty');
-      return res.status(400).json({ error: 'URL cannot be null' });
-    }
+    let url = req.params.url;
     
     // URL 디코딩 처리
-    while (url.includes('%')) {
-      const decodedUrl = decodeURIComponent(url);
-      if (decodedUrl === url) break;
-      url = decodedUrl;
-    }
+    url = decodeURIComponent(url);
     
-    let matchCondition = {
-      "PAGETITLE": pagetitle,
-      "EVENTTYPE": eventtype,
-      "URL": url
-    };
+    // 모든 타임스탬프 가져오기
+    const documents = await TaggingMap.find({
+      PAGETITLE: pagetitle, 
+      EVENTTYPE: eventtype, 
+      URL: url
+    }).sort({ TIME: -1 });
     
-    // MongoDB 집계 파이프라인
-    let pipeline = [{ $match: matchCondition }];
+    // 각 타임스탬프에 팝업 정보 추가
+    const timesWithPopupInfo = documents.map(doc => {
+      // eventParams 배열에서 popup_view 또는 popup_click이 있는지 확인
+      const hasPopup = doc.eventParams.some(param => 
+        param.EVENTNAME === 'popup_view' || param.EVENTNAME === 'popup_click'
+      );
+      
+      return {
+        time: doc.TIME,
+        timestamp: doc.timestamp || doc.TIME,
+        hasPopup: hasPopup
+      };
+    });
     
-    if (isPopup) {
-      pipeline.push({ $unwind: "$eventParams" });
-      pipeline.push({
-        $match: {
-          "eventParams.EVENTNAME": { 
-            $in: ["popup_view", "popup_click"] 
-          }
-        }
-      });
-      pipeline.push({
-        $group: {
-          _id: "$_id",
-          timestamp: { $first: "$timestamp" } // timestamp 필드만 유지
-        }
-      });
-    }
-    
-    // 최종 프로젝션 및 정렬 - timestamp 만 반환
-    pipeline = pipeline.concat([
-      { 
-        $project: { 
-          _id: 0, 
-          timestamp: "$timestamp" // time 필드 제거, timestamp만 사용
-        } 
-      },
-      { $sort: { timestamp: -1 } }
-    ]);
-    
-    const times = await TaggingMap.aggregate(pipeline);
-    console.log(`Found ${times.length} times`);
-    
-    res.json(times);
+    res.json(timesWithPopupInfo);
   } catch (error) {
     console.error('Error fetching times:', error);
     res.status(500).send('Error fetching times');

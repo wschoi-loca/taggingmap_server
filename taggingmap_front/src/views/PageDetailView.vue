@@ -53,23 +53,22 @@
         </select>
       </div>
       
-      <!-- TIME 필터 -->
+      <!-- 타임스탬프 필터 -->
       <div class="filter-group">
-        <label for="time-select">캡처 시간:</label>
+        <label for="time-select">타임스탬프:</label>
         <select 
           id="time-select" 
           v-model="selectedTimestamp"
-          @change="fetchFilteredData"
+          @change="handleTimestampChange"
           :disabled="!selectedUrl || times.length === 0"
         >
-          <option value="">시간 선택</option>
+          <option value="">타임스탬프 선택</option>
           <option v-for="time in times" :key="time.timestamp" :value="time.timestamp">
-            {{ formatTime(time.timestamp) }}
+            {{ formatTimestamp(time.timestamp) }} {{ time.hasPopup ? "(popup 포함)" : "" }}
           </option>
         </select>
       </div>
-    </div>
-    
+          
     <!-- 로딩 상태 -->
     <div v-if="loading" class="loading">
       <div class="spinner"></div>
@@ -324,12 +323,53 @@ export default {
           }
         );
         
+        // 시간 데이터에 팝업 포함 여부 확인
+        const timesData = timesResponse.data;
+        
+        // 서버에서 hasPopup 필드가 없는 경우, 클라이언트에서 처리
+        // 각 타임스탬프에 대해 추가 API 호출로 팝업 여부 확인
+        const processedTimes = await Promise.all(timesData.map(async (timeItem) => {
+          // 이미 hasPopup 필드가 있으면 그대로 사용
+          if (typeof timeItem.hasPopup !== 'undefined') {
+            return timeItem;
+          }
+          
+          try {
+            // 해당 타임스탬프에 대한 태깅맵 데이터 가져오기
+            const taggingMapResponse = await axios.get(`${baseUrl}/api/taggingmaps/filtered`, {
+              params: {
+                pagetitle: this.pagetitle,
+                eventtype: this.selectedEventType,
+                url: this.selectedUrl,
+                timestamp: timeItem.timestamp
+              }
+            });
+            
+            // 태깅맵 데이터에서 팝업 이벤트 확인
+            const hasPopupEvent = taggingMapResponse.data.length > 0 && 
+                                 taggingMapResponse.data[0].eventParams.some(param => 
+                                   param.EVENTNAME === 'popup_view' || param.EVENTNAME === 'popup_click'
+                                 );
+            
+            return {
+              ...timeItem,
+              hasPopup: hasPopupEvent
+            };
+          } catch (err) {
+            console.error('Error checking popup for timestamp:', timeItem.timestamp, err);
+            return {
+              ...timeItem,
+              hasPopup: false // 에러 발생 시 기본값
+            };
+          }
+        }));
+        
         // 시간 목록 정렬 (최신순) - 서버에서 정렬되어 있어도 한번 더 클라이언트에서 확인
-        this.times = timesResponse.data.sort((a, b) => 
+        this.times = processedTimes.sort((a, b) => 
           new Date(b.timestamp) - new Date(a.timestamp)
         );
         
-        console.log('Times loaded:', this.times.length);
+        console.log('Times loaded with popup info:', this.times.length);
         
         // 기본 timestamp 설정 (최신 시간)
         if (this.times.length > 0) {
@@ -354,6 +394,12 @@ export default {
         this.error = '시간 목록을 불러오는데 실패했습니다.';
         this.loading = false;
       }
+    },
+    
+    // 타임스탬프 변경 핸들러 추가
+    async handleTimestampChange() {
+      if (!this.selectedTimestamp) return;
+      await this.fetchFilteredData();
     },
     
     async fetchFilteredData() {
@@ -405,6 +451,32 @@ export default {
       this.selectedTimestamp = '';
       this.isPopupFilter = false;
       this.taggingMaps = [];
+    },
+    
+    // 타임스탬프 포맷팅 함수
+    formatTimestamp(timestamp) {
+      if (!timestamp) return '';
+      try {
+        const date = new Date(timestamp);
+        
+        // 유효한 날짜인지 확인
+        if (isNaN(date.getTime())) {
+          return timestamp;
+        }
+        
+        // 날짜와 시간 포맷팅 (YYYY-MM-DD HH:MM:SS)
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+        
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+      } catch (error) {
+        console.error('Error formatting timestamp:', error);
+        return timestamp;
+      }
     },
     
     formatTime(isoTime) {
