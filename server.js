@@ -313,21 +313,32 @@ app.get('/api/taggingmaps/filtered', async (req, res) => {
 });
 
 // 서버 측 - 집계된 데이터만 반환하는 새 엔드포인트 구현
+// server.js에 추가할 새 API 엔드포인트
 app.get('/api/taggingMaps/summary', async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
+    const search = req.query.search || '';
     
-    // MongoDB 집계 파이프라인을 사용해 서버에서 처리
-    const summaryData = await TaggingMap.aggregate([
+    // 검색 조건 구성
+    const matchCondition = {};
+    if (search) {
+      // 검색어를 포함하는 모든 PAGETITLE 찾기 (명시적으로 .*search.* 패턴 사용)
+      matchCondition.PAGETITLE = { $regex: `.*${search}.*`, $options: 'i' };
+    }
+    
+    // MongoDB 집계 파이프라인 사용
+    const pipeline = [
+      ...(Object.keys(matchCondition).length > 0 ? [{ $match: matchCondition }] : []),
       {
         $group: {
           _id: "$PAGETITLE",
           urls: {
             $addToSet: {
               url: "$URL",
-              time: "$TIME"
+              time: "$TIME",
+              eventType: "$EVENTTYPE"
             }
           }
         }
@@ -335,36 +346,51 @@ app.get('/api/taggingMaps/summary', async (req, res) => {
       { $sort: { _id: 1 } },
       { $skip: skip },
       { $limit: limit }
-    ]);
+    ];
     
-    // 추가 처리로 URL별 카운트 계산
+    const summaryData = await TaggingMap.aggregate(pipeline);
+    
+    // 처리된 데이터 형식 구성
     const processedData = summaryData.map(item => {
-      const urlCounts = {};
+      const urlsMap = {};
+      
+      // URL별 타임스탬프 및 이벤트 유형 집계
       item.urls.forEach(u => {
         if (u.url) {
-          if (!urlCounts[u.url]) urlCounts[u.url] = new Set();
-          urlCounts[u.url].add(u.time);
+          if (!urlsMap[u.url]) {
+            urlsMap[u.url] = {
+              distinctTimes: new Set(),
+              eventNames: new Set()
+            };
+          }
+          if (u.time) urlsMap[u.url].distinctTimes.add(u.time);
+          if (u.eventType) urlsMap[u.url].eventNames.add(u.eventType);
         }
       });
       
+      // 반환 형식 구성
       return {
         pagetitle: item._id,
-        urls: Object.keys(urlCounts).map(url => ({
+        urls: Object.keys(urlsMap).map(url => ({
           url,
-          distinctCount: urlCounts[url].size
+          distinctCount: urlsMap[url].distinctTimes.size,
+          eventNames: Array.from(urlsMap[url].eventNames)
         }))
       };
     });
     
     // 전체 페이지 수 계산을 위한 카운트
-    const total = await TaggingMap.aggregate([
+    const countPipeline = [
+      ...(Object.keys(matchCondition).length > 0 ? [{ $match: matchCondition }] : []),
       {
         $group: {
           _id: "$PAGETITLE"
         }
       },
       { $count: "total" }
-    ]);
+    ];
+    
+    const total = await TaggingMap.aggregate(countPipeline);
     
     res.json({
       data: processedData,
@@ -379,7 +405,6 @@ app.get('/api/taggingMaps/summary', async (req, res) => {
     res.status(500).send('Error fetching summary data');
   }
 });
-
 // 3. 모든 나머지 요청은 Vue Router가 처리하도록 설정
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'taggingmap_front/dist/index.html'));
