@@ -52,7 +52,7 @@
         >
           <option value="">타임스탬프 선택</option>
           <option v-for="time in times" :key="time.timestamp" :value="time.timestamp">
-            {{ formatTimestamp(time.timestamp) }} {{ time.hasPopup ? "    (popup 데이터)" : "" }}
+            {{ formatTimestamp(time.timestamp) }} {{ time.hasPopup ? "(popup 포함)" : "" }}
           </option>
         </select>
       </div>
@@ -77,10 +77,22 @@
     <!-- 데이터 표시 -->
     <div v-else class="content-section">
       <div class="image-section">
+        <!-- 원본 이미지 보기 버튼 추가 -->
+        <div class="section-header">
+          <button class="view-full-btn" @click="openImageModal">
+            원본 이미지 창 보기
+          </button>
+        </div>
         <img :src="taggingMaps[0].image" alt="Captured Image" />
       </div>
       
       <div class="data-section">
+        <!-- 전체 표 보기 버튼 추가 -->
+        <div class="section-header">
+          <button class="view-full-btn" @click="openTableModal">
+            전체 표 창 보기
+          </button>
+        </div>
         <table>
           <thead>
             <tr>
@@ -97,6 +109,47 @@
             </tr>
           </tbody>
         </table>
+      </div>
+    </div>
+    
+    <!-- 이미지 모달 -->
+    <div class="modal" v-if="showImageModal" @click.self="closeImageModal">
+      <div class="modal-content image-modal-content">
+        <div class="modal-header">
+          <h2>원본 이미지</h2>
+          <button class="close-btn" @click="closeImageModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <img :src="taggingMaps[0].image" alt="Captured Image" class="modal-image" />
+        </div>
+      </div>
+    </div>
+    
+    <!-- 표 모달 -->
+    <div class="modal" v-if="showTableModal" @click.self="closeTableModal">
+      <div class="modal-content table-modal-content">
+        <div class="modal-header">
+          <h2>전체 데이터 표</h2>
+          <button class="close-btn" @click="closeTableModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <table class="modal-table">
+            <thead>
+              <tr>
+                <th>SHOT_NUMBER</th>
+                <th v-for="column in sortedColumns" :key="column">{{ column }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="data in taggingMaps[0].eventParams" :key="data.SHOT_NUMBER">
+                <td>{{ data.SHOT_NUMBER }}</td>
+                <td v-for="column in sortedColumns" :key="`${data.SHOT_NUMBER}-${column}`">
+                  {{ data[column] || '-' }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
@@ -124,83 +177,39 @@ export default {
       error: null,
       preSelectedUrl: null,
       preSelectedEventType: null, // 변수명 통일
+      
+      // 컬럼 정렬 순서
       columnOrder: [
-      "EVENTNAME",
-      "CATEGORY_DEPTH1",
-      "CATEGORY_DEPTH2",
-      "CATEGORY_DEPTH3",
-      "CATEGORY_DEPTH4",
-      "CATEGORY_DEPTH5",
-      "CATEGORY_DEPTH6",
-      "CATEGORY_DEPTH7",
-      "CATEGORY_DEPTH8",
-      "CATEGORY_DEPTH9",
-      "CATEGORY_DEPTH10",
-      "LABEL_TEXT",
-      "CONTENT_NM",
-      "PAGE_MKT_CONTS_ID",
-      "SUB_CTS_ID1",
-      "SUB_CTS_ID2",
-      "SUB_CTS_ID3",
-      "SUB_CTS_ID4",
-      "SUB_CTS_ID5",
-      "CONTENT_NM1",
-      "CONTENT_NM2",
-      "CONTENT_NM3",
-      "HORIZONTAL_INDEX",
-      "VERTICAL_INDEX",
-      "POPUP_MESSAGE",
-      "POPUP_BUTTON",
-      "POPUP_CLASS",
-      "AUTO_TAG_YN",
-      "PAGETITLE",
-      "PAGETITLE",
-      "ep_cd77_cur_page_title",
-      "PAGEPATH",
-      "CD123_CUR_PAGE_FULLURL",
-      "CTS_GROUP1",
-      "CTS_GROUP2",
-      "CTS_GROUP3",
-      "CTS_GROUP4",
-      "CTS_GROUP5",
-      "CTS_GROUP6",
-      "CTS_GROUP7",
-      "CTS_GROUP8",
-      "CTS_GROUP9",
-      "CTS_GROUP10",
-      "CTS_GROUP11",
-      "CTS_GROUP12",
-      "CTS_GROUP13",
-      "PAGE_DEPTH1",
-      "PAGE_DEPTH2",
-      "PAGE_DEPTH3",
-      "PAGE_DEPTH4",
-      "PAGE_DEPTH5",
-      "SEAK",
-      "SRCH_KEYWORD_TYPE",
-      "SEAK_SUS",
-      "SEAK_TP",
-      "CARD_NAME",
-      "CARD_CODE",
-      "PAGE_CARDAPL_CODE",
-      "PAGE_CARDAPL_KND",
-      "PAGE_FN_PD_NM",
-      "PAGE_FN_LOAN_AMT",
-      "PAGE_RVO_EGM_STT_RT",
-      "PAGE_RVO_EGM_STT_TE",
-      "PAGE_PD_APL_LVL",
-      "item_id",
-      "item_name",
-      "price",
-      "coupon_yn",
-      "discount",
-      "item_brand",
-      "CHANNEL_TYPE",
-      "EVENTCATEGORY",
-      "EVENTACTION",
-      "EVENTLABEL",
-      "CNO",
-      ]
+        "EVENTNAME",
+        "SCREEN_NAME",
+        "CATEGORY_DEPTH1",
+        "CATEGORY_DEPTH2",
+        "CATEGORY_DEPTH3",
+        "CATEGORY_DEPTH4",
+        "CATEGORY_DEPTH5",
+        "CATEGORY_DEPTH6",
+        "CATEGORY_DEPTH7",
+        "CATEGORY_DEPTH8",
+        "CATEGORY_DEPTH9",
+        "CATEGORY_DEPTH10",
+        "LABEL_TEXT",
+        "CONTENT_NM",
+        "PAGE_MKT_CONTS_ID",
+        "SUB_CTS_ID1",
+        "SUB_CTS_ID2",
+        "SUB_CTS_ID3",
+        "SUB_CTS_ID4",
+        "SUB_CTS_ID5",
+        "CONTENT_NM1",
+        "CONTENT_NM2",
+        "CONTENT_NM3",
+        "HORIZONTAL_INDEX",
+        "VERTICAL_INDEX"
+      ],
+      
+      // 모달 관련 상태 추가
+      showImageModal: false,
+      showTableModal: false
     }
   },
   computed: {
@@ -219,7 +228,7 @@ export default {
     formattedPagetitle() {
       return this.pagetitle.replace(/>/g, '>');
     },
-
+    
     // 정렬된 컬럼 목록 계산
     sortedColumns() {
       if (!this.taggingMaps || this.taggingMaps.length === 0 || !this.taggingMaps[0].eventParams) {
@@ -391,7 +400,6 @@ export default {
       }
     },
     
-
     async handleUrlChange() {
       try {
         this.selectedTimestamp = '';
@@ -520,7 +528,7 @@ export default {
         });
         
         this.taggingMaps = filteredResponse.data;
-    
+        
         // 데이터가 로드된 후 콘솔에 사용 가능한 키 출력 (디버깅용)
         if (this.taggingMaps.length > 0 && this.taggingMaps[0].eventParams && this.taggingMaps[0].eventParams.length > 0) {
           console.log('Available columns:', Object.keys(this.taggingMaps[0].eventParams[0]));
@@ -575,6 +583,27 @@ export default {
       // ISO 시간을 사용자 친화적 형식으로 변환 (예: "2025-05-13 20:07:00")
       const date = new Date(isoTime);
       return date.toLocaleString();
+    },
+    
+    // 모달 관련 메소드
+    openImageModal() {
+      this.showImageModal = true;
+      document.body.style.overflow = 'hidden'; // 모달 열릴 때 배경 스크롤 비활성화
+    },
+    
+    closeImageModal() {
+      this.showImageModal = false;
+      document.body.style.overflow = ''; // 모달 닫을 때 배경 스크롤 복원
+    },
+    
+    openTableModal() {
+      this.showTableModal = true;
+      document.body.style.overflow = 'hidden';
+    },
+    
+    closeTableModal() {
+      this.showTableModal = false;
+      document.body.style.overflow = '';
     }
   }
 }
@@ -742,5 +771,121 @@ button {
 
 button:hover {
   opacity: 0.9;
+}
+
+/* 섹션 헤더 스타일 */
+.section-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 10px;
+}
+
+/* 전체 보기 버튼 스타일 */
+.view-full-btn {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 5px 10px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.view-full-btn:hover {
+  background-color: #0056b3;
+}
+
+/* 모달 스타일 */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: white;
+  border-radius: 5px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  max-height: 95vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.image-modal-content {
+  width: 90%;
+  max-width: 1200px;
+}
+
+.table-modal-content {
+  width: 95%;
+  max-width: 1400px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  border-bottom: 1px solid #ddd;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #666;
+}
+
+.close-btn:hover {
+  color: #000;
+}
+
+.modal-body {
+  padding: 20px;
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: calc(95vh - 70px); /* 헤더 높이 제외 */
+}
+
+.modal-image {
+  max-width: 100%;
+  max-height: calc(95vh - 110px); /* 헤더와 패딩 고려 */
+  display: block;
+  margin: 0 auto;
+}
+
+.modal-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.modal-table th,
+.modal-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+
+.modal-table th {
+  background-color: #f2f2f2;
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 </style>
