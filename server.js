@@ -247,27 +247,41 @@ app.get('/api/urls/:pagetitle/:eventtype', async (req, res) => {
       "EVENTTYPE": eventtype
     };
     
-    // 팝업 필터링이 활성화된 경우 추가 조건
-    let additionalMatch = {};
+    // 팝업 필터링 조건 구성 - 중요한 변경점
+    let pipeline = [
+      { $match: matchCondition }
+    ];
+    
+    // 팝업 필터링이 활성화된 경우 추가 필터링 단계 삽입
     if (isPopup) {
-      additionalMatch = {
-        eventParams: {
-          $elemMatch: {
-            "EVENTNAME": { $regex: /popup/ }
-          }
+      // 1. 문서를 언윈드하여 eventParams 배열 항목별로 처리
+      pipeline.push({ $unwind: "$eventParams" });
+      
+      // 2. EVENTNAME에 popup이 포함된 항목만 필터링
+      pipeline.push({
+        $match: {
+          "eventParams.EVENTNAME": { $regex: /popup/ }
         }
-      };
+      });
+      
+      // 3. 다시 원래 문서로 그룹화
+      pipeline.push({
+        $group: {
+          _id: "$URL",
+          doc: { $first: "$$ROOT" }
+        }
+      });
     }
     
-    // MongoDB 쿼리 실행
-    const urls = await TaggingMap.aggregate([
-      { $match: matchCondition },
-      // 팝업 필터링이 활성화된 경우 추가 필터링
-      ...(isPopup ? [{ $match: additionalMatch }] : []),
+    // 최종 그룹화 및 출력 형식 지정
+    pipeline = pipeline.concat([
       { $group: { _id: "$URL" } },
       { $project: { _id: 0, url: "$_id" } },
       { $sort: { url: 1 } }
     ]);
+    
+    // MongoDB 집계 파이프라인 실행
+    const urls = await TaggingMap.aggregate(pipeline);
     
     res.json(urls);
   } catch (error) {
@@ -290,31 +304,47 @@ app.get('/api/times/:pagetitle/:eventtype/:url', async (req, res) => {
       "URL": url
     };
     
-    // 팝업 필터링이 활성화된 경우 추가 조건
-    let additionalMatch = {};
+    // 팝업 필터링 조건 구성 - 중요한 변경점
+    let pipeline = [
+      { $match: matchCondition }
+    ];
+    
+    // 팝업 필터링이 활성화된 경우 추가 필터링 단계 삽입
     if (isPopup) {
-      additionalMatch = {
-        eventParams: {
-          $elemMatch: {
-            "EVENTNAME": { $regex: /popup/ }
-          }
+      // 1. 문서를 언윈드하여 eventParams 배열 항목별로 처리
+      pipeline.push({ $unwind: "$eventParams" });
+      
+      // 2. EVENTNAME에 popup이 포함된 항목만 필터링
+      pipeline.push({
+        $match: {
+          "eventParams.EVENTNAME": { $regex: /popup/ }
         }
-      };
+      });
+      
+      // 3. 다시 원래 문서로 그룹화
+      pipeline.push({
+        $group: {
+          _id: "$TIME",
+          timestamp: { $first: "$timestamp" },
+          time: { $first: "$TIME" }
+        }
+      });
     }
     
-    const times = await TaggingMap.aggregate([
-      { $match: matchCondition },
-      // 팝업 필터링이 활성화된 경우 추가 필터링
-      ...(isPopup ? [{ $match: additionalMatch }] : []),
+    // 최종 프로젝션 및 정렬
+    pipeline = pipeline.concat([
       { 
         $project: { 
           _id: 0, 
-          time: "$TIME",
+          time: "$time",
           timestamp: "$timestamp" 
         } 
       },
       { $sort: { timestamp: -1 } }
     ]);
+    
+    // MongoDB 집계 파이프라인 실행
+    const times = await TaggingMap.aggregate(pipeline);
     
     res.json(times);
   } catch (error) {
@@ -330,70 +360,48 @@ app.get('/api/taggingmaps/filtered', async (req, res) => {
     let url = req.query.url;
     const isPopup = req.query.isPopup === 'true';
     
-    // URL 완전히 디코딩 (이중 인코딩 처리)
-    if (url) {
-      // 최대 2회까지 디코딩을 시도하여 완전히 디코딩된 URL 확보
-      while (url.includes('%')) {
-        let decodedUrl = decodeURIComponent(url);
-        if (decodedUrl === url) break; // 더 이상 변화가 없으면 중단
-        url = decodedUrl;
-        console.log('URL after decoding:', url);
-      }
+    // URL 이중 인코딩 처리
+    if (url && url.includes('%25')) {
+      url = decodeURIComponent(url);
     }
     
-    console.log('Final decoded URL:', url);
-    
-    // 기본 쿼리 조건 구성
+    // 기본 쿼리 조건
     let query = {
       "PAGETITLE": pagetitle,
       "EVENTTYPE": eventtype,
+      "URL": url,
       "TIME": time
     };
     
-    // URL 조건을 두 가지 방식으로 추가 (디코딩된 URL과 원본 URL 모두 확인)
-    if (url) {
-      query["$or"] = [
-        { "URL": url },                   // 완전히 디코딩된 URL
-        { "URL": encodeURIComponent(url) } // 한 번 인코딩된 URL
-      ];
-    }
-    
-    // 팝업 필터링이 활성화된 경우 추가 조건
+    // 팝업 필터링 처리를 위한 집계 파이프라인
     if (isPopup) {
-      query["eventParams"] = {
-        $elemMatch: {
-          "EVENTNAME": { $regex: /popup/ }
-        }
-      };
+      const pipeline = [
+        { $match: query },
+        { $unwind: "$eventParams" },
+        { $match: { "eventParams.EVENTNAME": { $regex: /popup/ } } },
+        { $group: { 
+          _id: "$_id",
+          doc: { $first: "$$ROOT" },
+          popup_params: { $push: "$eventParams" }
+        }},
+        {
+          $addFields: {
+            "doc.filtered_eventParams": "$popup_params"
+          }
+        },
+        { $replaceRoot: { newRoot: "$doc" } }
+      ];
+      
+      const taggingMaps = await TaggingMap.aggregate(pipeline);
+      console.log(`Found ${taggingMaps.length} matching documents with popup events`);
+      res.json(taggingMaps);
+    } else {
+      // 팝업 필터링이 없는 경우 기존 로직 사용
+      const taggingMaps = await TaggingMap.find(query);
+      console.log(`Found ${taggingMaps.length} matching documents with all events`);
+      res.json(taggingMaps);
     }
     
-    // MongoDB 쿼리 실행
-    const taggingMaps = await TaggingMap.find(query);
-    
-    console.log(`Found ${taggingMaps.length} matching documents with${isPopup ? ' popup' : ''} events`);
-    
-    if (taggingMaps.length === 0) {
-      // 결과가 없을 때 디버깅 정보 제공
-      console.log('No results found. Performing diagnostic query...');
-      
-      const urlMatches = await TaggingMap.countDocuments({ "URL": url });
-      console.log(`Documents with matching URL: ${urlMatches}`);
-      
-      const pagetitleMatches = await TaggingMap.countDocuments({ "PAGETITLE": pagetitle });
-      console.log(`Documents with matching PAGETITLE: ${pagetitleMatches}`);
-      
-      const eventtypeMatches = await TaggingMap.countDocuments({ "EVENTTYPE": eventtype });
-      console.log(`Documents with matching EVENTTYPE: ${eventtypeMatches}`);
-      
-      if (isPopup) {
-        const popupMatches = await TaggingMap.countDocuments({ 
-          "eventParams.EVENTNAME": { $regex: /popup/ } 
-        });
-        console.log(`Documents with popup events: ${popupMatches}`);
-      }
-    }
-    
-    res.json(taggingMaps);
   } catch (error) {
     console.error('Error fetching filtered data:', error);
     res.status(500).send('Error fetching filtered data');
