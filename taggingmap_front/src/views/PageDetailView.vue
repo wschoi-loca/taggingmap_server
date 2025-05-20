@@ -25,18 +25,6 @@
         </div>
       </div>
       
-      <!-- 팝업 필터 추가 -->
-      <div class="filter-group checkbox-container">
-        <label class="checkbox-label">
-          <input 
-            type="checkbox" 
-            v-model="isPopupFilter"
-            @change="handlePopupFilterChange"
-          >
-          팝업 포함된 태깅맵만 보기
-        </label>
-      </div>
-      
       <!-- URL 필터 -->
       <div class="filter-group">
         <label for="url-select">URL:</label>
@@ -64,7 +52,7 @@
         >
           <option value="">타임스탬프 선택</option>
           <option v-for="time in times" :key="time.timestamp" :value="time.timestamp">
-            {{ formatTimestamp(time.timestamp) }} {{ time.hasPopup ? "(popup 포함)" : "" }}
+            {{ formatTimestamp(time.timestamp) }} {{ time.hasPopup ? "    (popup 데이터)" : "" }}
           </option>
         </select>
       </div>
@@ -141,7 +129,7 @@ export default {
       selectedEventType: 'visibility', // 기본값을 'visibility'로 설정
       selectedUrl: '',
       selectedTimestamp: '',
-      isPopupFilter: false, // 팝업 필터링 상태
+      isPopupFilter: false, // 팝업 필터링 상태 (UI 요소는 제거했지만 기능은 유지)
       loading: true,
       error: null,
       preSelectedUrl: null,
