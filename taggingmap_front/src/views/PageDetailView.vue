@@ -207,13 +207,6 @@ export default {
       await this.handleEventTypeChange(); // 메서드명 변경
     },
     
-    // 이벤트 타입 선택 핸들러
-    selectEventType(eventType) {
-      if (this.selectedEventType === eventType) return;
-      this.selectedEventType = eventType;
-      this.handleEventTypeChange(); // 메서드명 변경
-    },
-    
     async fetchPageData() {
       try {
         this.loading = true;
@@ -260,9 +253,11 @@ export default {
             }
           }
         );
-        this.urls = urlsResponse.data;
         
-        // URL이 없고, 현재 이벤트 타입이 visibility이며, 자동 전환이 활성화된 경우
+        // null URL 필터링
+        this.urls = urlsResponse.data.filter(url => url.url !== null);
+        
+        // URLs이 없고, 현재 이벤트 타입이 visibility이며, 자동 전환이 활성화된 경우
         if (this.urls.length === 0 && this.selectedEventType === 'visibility' && autoSwitch) {
           console.log('No visibility data found, switching to click events');
           this.selectedEventType = 'click';
@@ -275,9 +270,18 @@ export default {
               }
             }
           );
-          this.urls = clickUrlsResponse.data;
+          
+          // null URL 필터링
+          this.urls = clickUrlsResponse.data.filter(url => url.url !== null);
         }
         
+        // 팝업 필터가 켜져 있고 URL 결과가 없을 경우 사용자에게 알림
+        if (this.urls.length === 0 && this.isPopupFilter) {
+          this.error = '선택한 페이지에 팝업 이벤트가 포함된 태깅맵이 없습니다.';
+          this.loading = false;
+          return;
+        }
+            
         // URL 선택 처리
         if (this.urls.length > 0) {
           if (this.preSelectedUrl && this.urls.find(u => u.url === this.preSelectedUrl)) {
@@ -302,48 +306,6 @@ export default {
       }
     },
     
-    async handleEventTypeChange() { // 메서드명 변경
-      try {
-        this.selectedUrl = '';
-        this.selectedTime = '';
-        this.times = [];
-        this.taggingMaps = [];
-        
-        const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
-        
-        // URL 목록 가져오기 - 팝업 필터링 파라미터 추가
-        const urlsResponse = await axios.get(
-          `${baseUrl}/api/urls/${this.pagetitle}/${this.selectedEventType}`, {
-            params: {
-              isPopup: this.isPopupFilter
-            }
-          }
-        );
-        this.urls = urlsResponse.data;
-        
-        // URL 선택 (쿼리 파라미터에서 전달된 값 우선, 없으면 첫번째)
-        if (this.urls.length > 0) {
-          if (this.preSelectedUrl && this.urls.find(u => u.url === this.preSelectedUrl)) {
-            this.selectedUrl = this.preSelectedUrl;
-          } else {
-            this.selectedUrl = this.urls[0].url;
-          }
-          
-          // 선택된 URL로 시간 목록 가져오기
-          await this.handleUrlChange();
-          
-          // 사전 선택된 URL 처리 후 변수 초기화
-          this.preSelectedUrl = null;
-          this.preSelectedEventType = null; // 변수명 통일
-        } else {
-          this.loading = false;
-        }
-      } catch (error) {
-        console.error('Error fetching URLs:', error);
-        this.error = 'URL 목록을 불러오는데 실패했습니다.';
-        this.loading = false;
-      }
-    },
 
     async handleUrlChange() {
       try {
