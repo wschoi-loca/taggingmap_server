@@ -80,7 +80,7 @@
         <!-- 원본 이미지 보기 버튼 추가 -->
         <div class="section-header">
           <button class="view-full-btn" @click="openImageModal">
-            원본 이미지 창 보기
+            원본 이미지 새 창에서 보기
           </button>
         </div>
         <img :src="taggingMaps[0].image" alt="Captured Image" />
@@ -90,7 +90,7 @@
         <!-- 전체 표 보기 버튼 추가 -->
         <div class="section-header">
           <button class="view-full-btn" @click="openTableModal">
-            전체 표 창 보기
+            전체 표 새 창에서 보기
           </button>
         </div>
         <table>
@@ -109,47 +109,6 @@
             </tr>
           </tbody>
         </table>
-      </div>
-    </div>
-    
-    <!-- 이미지 모달 -->
-    <div class="modal" v-if="showImageModal" @click.self="closeImageModal">
-      <div class="modal-content image-modal-content">
-        <div class="modal-header">
-          <h2>원본 이미지</h2>
-          <button class="close-btn" @click="closeImageModal">&times;</button>
-        </div>
-        <div class="modal-body">
-          <img :src="taggingMaps[0].image" alt="Captured Image" class="modal-image" />
-        </div>
-      </div>
-    </div>
-    
-    <!-- 표 모달 -->
-    <div class="modal" v-if="showTableModal" @click.self="closeTableModal">
-      <div class="modal-content table-modal-content">
-        <div class="modal-header">
-          <h2>전체 데이터 표</h2>
-          <button class="close-btn" @click="closeTableModal">&times;</button>
-        </div>
-        <div class="modal-body">
-          <table class="modal-table">
-            <thead>
-              <tr>
-                <th>SHOT_NUMBER</th>
-                <th v-for="column in sortedColumns" :key="column">{{ column }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="data in taggingMaps[0].eventParams" :key="data.SHOT_NUMBER">
-                <td>{{ data.SHOT_NUMBER }}</td>
-                <td v-for="column in sortedColumns" :key="`${data.SHOT_NUMBER}-${column}`">
-                  {{ data[column] || '-' }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
       </div>
     </div>
   </div>
@@ -205,11 +164,7 @@ export default {
         "CONTENT_NM3",
         "HORIZONTAL_INDEX",
         "VERTICAL_INDEX"
-      ],
-      
-      // 모달 관련 상태 추가
-      showImageModal: false,
-      showTableModal: false
+      ]
     }
   },
   computed: {
@@ -585,25 +540,96 @@ export default {
       return date.toLocaleString();
     },
     
-    // 모달 관련 메소드
+    // 모달 대신 새 창에서 이미지 보기
     openImageModal() {
-      this.showImageModal = true;
-      document.body.style.overflow = 'hidden'; // 모달 열릴 때 배경 스크롤 비활성화
+      if (!this.taggingMaps || this.taggingMaps.length === 0) return;
+      
+      const imageUrl = this.taggingMaps[0].image;
+      if (!imageUrl) return;
+      
+      // 새 창으로 이미지 열기
+      const newWindow = window.open('', '_blank', 'width=1000,height=800');
+      newWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>원본 이미지</title>
+          <style>
+            body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
+            .container { max-width: 100%; text-align: center; }
+            img { max-width: 100%; height: auto; }
+            h1 { margin-bottom: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>원본 이미지</h1>
+            <img src="${imageUrl}" alt="원본 이미지" />
+          </div>
+        </body>
+        </html>
+      `);
+      newWindow.document.close();
     },
     
-    closeImageModal() {
-      this.showImageModal = false;
-      document.body.style.overflow = ''; // 모달 닫을 때 배경 스크롤 복원
-    },
-    
+    // 모달 대신 새 창에서 표 보기
     openTableModal() {
-      this.showTableModal = true;
-      document.body.style.overflow = 'hidden';
-    },
-    
-    closeTableModal() {
-      this.showTableModal = false;
-      document.body.style.overflow = '';
+      if (!this.taggingMaps || this.taggingMaps.length === 0 || !this.sortedColumns) return;
+      
+      // 테이블 HTML 생성
+      let tableHTML = `
+        <table style="width:100%; border-collapse: collapse; margin-top: 20px;">
+          <thead>
+            <tr>
+              <th style="border:1px solid #ddd; padding:8px; background-color:#f2f2f2;">SHOT_NUMBER</th>
+      `;
+      
+      // 테이블 헤더 추가
+      this.sortedColumns.forEach(column => {
+        tableHTML += `<th style="border:1px solid #ddd; padding:8px; background-color:#f2f2f2;">${column}</th>`;
+      });
+      
+      tableHTML += `</tr></thead><tbody>`;
+      
+      // 테이블 본문 추가
+      this.taggingMaps[0].eventParams.forEach(data => {
+        tableHTML += `<tr><td style="border:1px solid #ddd; padding:8px;">${data.SHOT_NUMBER || '-'}</td>`;
+        
+        this.sortedColumns.forEach(column => {
+          tableHTML += `<td style="border:1px solid #ddd; padding:8px;">${data[column] || '-'}</td>`;
+        });
+        
+        tableHTML += `</tr>`;
+      });
+      
+      tableHTML += `</tbody></table>`;
+      
+      // 새 창으로 테이블 열기
+      const newWindow = window.open('', '_blank', 'width=1200,height=800');
+      newWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>전체 데이터 표</title>
+          <style>
+            body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
+            .container { width: 100%; overflow-x: auto; }
+            h1 { margin-bottom: 20px; }
+            table { border-collapse: collapse; width: 100%; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { position: sticky; top: 0; background-color: #f2f2f2; }
+            tr:nth-child(even) { background-color: #f8f9fa; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>전체 데이터 표</h1>
+            ${tableHTML}
+          </div>
+        </body>
+        </html>
+      `);
+      newWindow.document.close();
     }
   }
 }
@@ -796,96 +822,5 @@ button:hover {
 
 .view-full-btn:hover {
   background-color: #0056b3;
-}
-
-/* 모달 스타일 */
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background-color: white;
-  border-radius: 5px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-  max-height: 95vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.image-modal-content {
-  width: 90%;
-  max-width: 1200px;
-}
-
-.table-modal-content {
-  width: 95%;
-  max-width: 1400px;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px 20px;
-  border-bottom: 1px solid #ddd;
-}
-
-.modal-header h2 {
-  margin: 0;
-  font-size: 1.5rem;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  color: #666;
-}
-
-.close-btn:hover {
-  color: #000;
-}
-
-.modal-body {
-  padding: 20px;
-  overflow-x: auto;
-  overflow-y: auto;
-  max-height: calc(95vh - 70px); /* 헤더 높이 제외 */
-}
-
-.modal-image {
-  max-width: 100%;
-  max-height: calc(95vh - 110px); /* 헤더와 패딩 고려 */
-  display: block;
-  margin: 0 auto;
-}
-
-.modal-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.modal-table th,
-.modal-table td {
-  border: 1px solid #ddd;
-  padding: 8px;
-  text-align: left;
-}
-
-.modal-table th {
-  background-color: #f2f2f2;
-  position: sticky;
-  top: 0;
-  z-index: 1;
 }
 </style>
