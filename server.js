@@ -413,10 +413,7 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   console.log(`Cloudinary configured for cloud: ${cloudinary.config().cloud_name}`);
-});// Updated on Tue May 20 16:10:00 KST 2025
+});
 
-// Deployed: 2025-05-20 07:26:12 by wschoi-loca
-
-// Deployed: 2025-05-20 07:28:02 by wschoi-loca
 
 // Deployed: 2025-05-20 07:30:15 by wschoi-loca
