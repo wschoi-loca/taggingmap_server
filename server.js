@@ -409,6 +409,20 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'taggingmap_front/dist/index.html'));
 });
 
+// server.js 파일 하단에 다음 코드 추가
+
+// 헬스 체크 엔드포인트 추가
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    version: '1.0.1',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+console.log(`Server initialized at ${new Date().toISOString()}`);
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
