@@ -337,14 +337,24 @@ app.get('/api/taggingMaps/summary', async (req, res) => {
     
     // 필드별 고급 검색 처리
     const fieldQueries = [];
+
+    // 쿼리 디버깅
+    console.log("쿼리 파라미터:", req.query);
     
     // 요청에서 모든 필드 파라미터 추출
     for (const key in req.query) {
       // _exists 필드는 값의 존재 여부만 확인
       if (key.endsWith('_exists') && req.query[key] === 'true') {
         const fieldName = key.replace('_exists', '');
+        console.log(`필드 존재 쿼리: ${fieldName}`);
+        
+        // 수정된 쿼리 - 배열 내 필드 검색 수정
         const existsQuery = {};
-        existsQuery[`eventParams.${fieldName}`] = { $exists: true, $ne: null, $ne: "" };
+        existsQuery[`eventParams`] = { 
+          $elemMatch: { 
+            [fieldName]: { $exists: true, $ne: null, $ne: "" }
+          }
+        };
         fieldQueries.push(existsQuery);
       } 
       // 일반 필드는 포함 검색
@@ -361,11 +371,12 @@ app.get('/api/taggingMaps/summary', async (req, res) => {
       }
     }
     
-    // eventParams 내 필드 검색 조건이 있으면 $elemMatch로 처리
+    // 로그 추가
+    console.log("필드 쿼리:", JSON.stringify(fieldQueries, null, 2));
+
+    // eventParams 내 필드 검색 조건이 있으면 처리
     if (fieldQueries.length > 0) {
-      matchCondition['$or'] = fieldQueries.map(query => ({ 
-        eventParams: { $elemMatch: query } 
-      }));
+      matchCondition['$or'] = fieldQueries;
     }
     
     // MongoDB 집계 파이프라인 사용
