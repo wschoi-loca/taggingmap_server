@@ -1,41 +1,27 @@
 // src/services/PathMappingService.js
 class PathMappingService {
     constructor() {
-      this.mappings = {};
-      this.loaded = false;
+      // 하드코딩된 매핑 데이터
+      this.mappings = {
+        "front>satellite>main>card": "카드>메인",
+        "app>LPMCDCB_V200.lc": "MY>즉시결제>바로출금",
+        "app>LPMCDCB_V100.lc": "MY>즉시결제",
+        "app>LPMCDCB_V210.lc": "MY>즉시결제>결제방법선택",
+        "app>LPMCDCB_V230.lc": "MY>즉시결제>즉시결제완료",
+        "spa>my>usage-history": "MY>이용내역(매출전표)>이용내역(매출전표)",
+        "spa>my>usage-limit-main": "MY>이용한도메인>이용한도메인",
+        "event>detail": "띵샵>이벤트>상세",
+        "native>main>MA_1_1_1": "메인>간편홈",
+        "main": "띵샵>메인",
+        "금융>일부결제금액이월약정(리볼빙)>일부결제금액이월약정>이용안내":"spa>finance>revolving>revolving-bf-use"
+      };
+      this.loaded = true;
     }
   
     async loadMappings() {
-      if (this.loaded) return this.mappings;
-  
-      try {
-        const response = await fetch('/src/assets/path_only_grouped_ga_data.csv');
-        const csvText = await response.text();
-        
-        // CSV 파싱
-        const rows = csvText.split('\n');
-        rows.forEach((row, index) => {
-          // 헤더 행 건너뛰기
-          if (index === 0) return;
-          
-          const columns = row.split(',');
-          if (columns.length >= 3) {
-            const koreanTitle = columns[1];
-            const englishTitle = columns[2];
-            
-            // 영문 제목을 키로, 한글 제목을 값으로 저장
-            if (englishTitle && koreanTitle) {
-              this.mappings[englishTitle.trim()] = koreanTitle.trim();
-            }
-          }
-        });
-        
-        this.loaded = true;
-        return this.mappings;
-      } catch (error) {
-        console.error('Error loading path mappings:', error);
-        return {};
-      }
+      // 이미 로드된 매핑 데이터를 그대로 반환
+      console.log('Path mappings loaded from hardcoded data:', Object.keys(this.mappings).length);
+      return this.mappings;
     }
   
     getKoreanTitle(englishPath) {

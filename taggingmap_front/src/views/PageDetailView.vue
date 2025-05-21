@@ -381,28 +381,42 @@ export default {
 
     // 사용자 친화적인 한글 제목을 포함하는 형식으로 PAGETITLE 포맷팅
     // 수정된 formattedPagetitle 메서드 - 다양한 형식 고려
+    // 사용자 친화적인 한글 제목을 포함하는 형식으로 PAGETITLE 포맷팅
     formattedPagetitle() {
       const englishTitle = this.pagetitle;
-      let koreanTitle = '';
       
-      // 1. 직접 매치
-      if (this.pathMappings[englishTitle]) {
-        koreanTitle = this.pathMappings[englishTitle];
-      } 
-      // 2. 앞부분 일치 검색
-      else {
-        // 키에서 가장 긴 일치 항목 찾기
-        const matchingKeys = Object.keys(this.pathMappings).filter(key => 
-          englishTitle.startsWith(key) || englishTitle.includes(key)
-        );
+      console.log('현재 pagetitle:', englishTitle);
+      console.log('사용 가능한 매핑 키:', Object.keys(this.pathMappings));
+      
+      // 1. 직접 매치 시도
+      let koreanTitle = this.pathMappings[englishTitle];
+      
+      // 2. 직접 매치가 안되면 부분 경로 매치 시도
+      if (!koreanTitle && englishTitle) {
+        // 경로의 각 부분을 분리
+        const pathParts = englishTitle.split('>');
         
-        if (matchingKeys.length > 0) {
-          // 가장 긴 키 찾기
-          const longestKey = matchingKeys.reduce((a, b) => a.length > b.length ? a : b);
-          koreanTitle = this.pathMappings[longestKey];
+        // 전체 경로에서 점점 짧게 자르면서 매핑 찾기
+        for (let i = 0; i < pathParts.length; i++) {
+          const partialPath = pathParts.slice(i).join('>');
+          if (this.pathMappings[partialPath]) {
+            koreanTitle = this.pathMappings[partialPath];
+            console.log(`부분 경로 매치 성공: ${partialPath} -> ${koreanTitle}`);
+            break;
+          }
+        }
+        
+        // 여전히 못 찾았다면 마지막 부분만 시도
+        if (!koreanTitle && pathParts.length > 0) {
+          const lastPart = pathParts[pathParts.length - 1];
+          if (this.pathMappings[lastPart]) {
+            koreanTitle = this.pathMappings[lastPart];
+            console.log(`마지막 경로 부분 매치 성공: ${lastPart} -> ${koreanTitle}`);
+          }
         }
       }
       
+      // 한글 제목이 있으면 함께 표시, 없으면 영문만
       if (koreanTitle) {
         return `${englishTitle} | ${koreanTitle}`;
       }
@@ -466,36 +480,32 @@ export default {
       // 경로 매핑 데이터 로드
       this.pathMappings = await PathMappingService.loadMappings();
       console.log("경로 매핑 데이터 로드 완료:", Object.keys(this.pathMappings).length);
+      console.log("매핑 데이터 내용:", this.pathMappings);
     } catch (error) {
       console.error('경로 매핑 데이터 로드 실패:', error);
-      // 오류가 발생해도 기본 기능은 계속 작동하도록 함
       this.pathMappings = {};
     }
     
     // URL 쿼리 파라미터 확인
     const urlParam = this.$route.query.url;
-    const eventTypeParam = this.$route.query.eventType; // 파라미터 이름 변경
+    const eventTypeParam = this.$route.query.eventType;
     const isPopupParam = this.$route.query.isPopup;
     
-    // 쿼리 파라미터가 있으면 저장
+    // 나머지 코드는 그대로...
     if (urlParam) {
       this.preSelectedUrl = decodeURIComponent(urlParam);
     }
     
-    // 이벤트 타입 쿼리 파라미터가 view 또는 click인 경우만 적용
     if (eventTypeParam && ['visibility', 'click'].includes(eventTypeParam)) {
       this.preSelectedEventType = eventTypeParam;
       this.selectedEventType = eventTypeParam;
     }
     
-    // 팝업 필터 쿼리 파라미터 확인
     if (isPopupParam === 'true') {
       this.isPopupFilter = true;
     }
     
-    // 고급 검색 필드 초기화
     this.initAdvancedFilters();
-    
     this.fetchPageData();
   },
 
