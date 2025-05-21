@@ -1080,6 +1080,39 @@ h1 {
   padding-bottom: 15px;
 }
 
+/* 헤더 섹션 스타일 */
+.header-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #eaeaea;
+  padding-bottom: 15px;
+}
+
+.header-section h1 {
+  margin: 0;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+/* 삭제 버튼 스타일 */
+.delete-btn {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.delete-btn:hover {
+  background-color: #c82333;
+}
+
+/* 필터 섹션 수정 */
 .filter-section {
   background-color: #f8f9fa;
   border: 1px solid #e9ecef;
@@ -1087,13 +1120,47 @@ h1 {
   padding: 15px;
   margin-bottom: 20px;
   display: flex;
-  flex-wrap: wrap;
+  justify-content: space-between; /* 좌우 정렬 (왼쪽: 필터들, 오른쪽: 고급검색) */
+  align-items: center; /* 수직 중앙 정렬 */
   gap: 20px;
 }
 
+/* 왼쪽 필터 컨테이너 */
+.filters-container {
+  display: flex;
+  flex: 1; /* 남은 공간 모두 사용 */
+  gap: 20px;
+  align-items: flex-start;
+}
+
+/* 고급 검색 컨테이너 */
+.advanced-search-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 20px; /* 좌우 여백 추가 */
+}
+
+/* 이벤트 유형 그룹 */
+.event-type-group {
+  width: 180px; /* 고정 너비 */
+  flex-shrink: 0; /* 너비 축소 방지 */
+}
+
+/* URL 그룹 - 확장 */
+.url-group {
+  flex: 1.4; /* 더 많은 공간 차지 */
+}
+
+/* 타임스탬프 그룹 */
+.timestamp-group {
+  flex: 1; /* URL과 타임스탬프 비율 조정 */
+}
+
 .filter-group {
-  flex: 1;
-  min-width: 250px;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0; /* 하단 여백 제거 */
 }
 
 .checkbox-container {
@@ -1146,6 +1213,87 @@ h1 {
   background-color: #007bff;
   color: white;
   border: 1px solid #0062cc;
+}
+
+/* 고급 검색 버튼 스타일 수정 */
+.advanced-search-btn {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  white-space: nowrap; /* 텍스트 줄바꿈 방지 */
+}
+
+.advanced-search-btn:hover {
+  background-color: #388E3C;
+}
+
+.active-filters-indicator {
+  margin-top: 5px;
+  color: #dc3545;
+  font-style: italic;
+  text-align: center;
+}
+
+/* 적용된 필터 표시 영역 스타일 */
+.active-filters {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  padding: 10px 15px;
+  margin-bottom: 15px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.filter-label {
+  font-weight: bold;
+  margin-right: 5px;
+}
+
+.filter-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.filter-tag {
+  display: inline-flex;
+  align-items: center;
+  background-color: #e9ecef;
+  border-radius: 16px;
+  padding: 5px 10px;
+  font-size: 14px;
+}
+
+.remove-filter {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  margin-left: 5px;
+  padding: 0 5px;
+}
+
+.clear-filters {
+  margin-left: auto;
+  background-color: transparent;
+  color: #dc3545;
+  border: 1px solid #dc3545;
+  border-radius: 4px;
+  padding: 5px 10px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.clear-filters:hover {
+  background-color: #dc3545;
+  color: white;
 }
 
 select {
@@ -1255,38 +1403,6 @@ button:hover {
   background-color: #0056b3;
 }
 
-/* 헤더 섹션 스타일 */
-.header-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  border-bottom: 2px solid #eaeaea;
-  padding-bottom: 15px;
-}
-
-.header-section h1 {
-  margin: 0;
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-/* 삭제 버튼 스타일 */
-.delete-btn {
-  background-color: #dc3545;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 8px 16px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.delete-btn:hover {
-  background-color: #c82333;
-}
-
 /* 모달 오버레이 스타일 */
 .modal-overlay {
   position: fixed;
@@ -1388,90 +1504,6 @@ button:hover {
   cursor: not-allowed;
 }
 
-/* 고급 검색 관련 스타일 */
-.advanced-search-group {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-}
-
-.advanced-search-btn {
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 8px 16px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.advanced-search-btn:hover {
-  background-color: #388E3C;
-}
-
-.active-filters-indicator {
-  margin-top: 5px;
-  color: #dc3545;
-  font-style: italic;
-}
-
-.active-filters {
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 4px;
-  padding: 10px 15px;
-  margin-bottom: 15px;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-}
-
-.filter-label {
-  font-weight: bold;
-  margin-right: 5px;
-}
-
-.filter-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.filter-tag {
-  display: inline-flex;
-  align-items: center;
-  background-color: #e9ecef;
-  border-radius: 16px;
-  padding: 5px 10px;
-  font-size: 14px;
-}
-
-.remove-filter {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 16px;
-  margin-left: 5px;
-  padding: 0 5px;
-}
-
-.clear-filters {
-  margin-left: auto;
-  background-color: transparent;
-  color: #dc3545;
-  border: 1px solid #dc3545;
-  border-radius: 4px;
-  padding: 5px 10px;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.clear-filters:hover {
-  background-color: #dc3545;
-  color: white;
-}
-
 /* 고급 검색 모달 스타일 */
 .advanced-search-modal {
   width: 90%;
@@ -1508,18 +1540,37 @@ button:hover {
   gap: 15px;
 }
 
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  width: 120px;
-  user-select: none;
-}
-
 .field-options input[type="text"] {
   flex: 1;
   padding: 8px;
   border: 1px solid #ddd;
   border-radius: 4px;
+}
+
+/* 적용 및 초기화 버튼 스타일 */
+.reset-button {
+  padding: 8px 16px;
+  background-color: #f8f9fa;
+  color: #6c757d;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.reset-button:hover {
+  background-color: #e9ecef;
+}
+
+.apply-button {
+  padding: 8px 16px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.apply-button:hover {
+  background-color: #388E3C;
 }
 </style>
