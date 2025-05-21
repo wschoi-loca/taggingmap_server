@@ -282,33 +282,71 @@ app.get('/api/times/:pagetitle/:eventtype/:url', async (req, res) => {
   }
 });
 
-// 필터링된 태깅맵 데이터 API
+// server.js의 '/api/taggingmaps/filtered' 엔드포인트 수정
 app.get('/api/taggingmaps/filtered', async (req, res) => {
   try {
-    const { pagetitle, eventtype, timestamp } = req.query; // time 대신 timestamp 사용
-    let url = req.query.url;
+    const { pagetitle, eventtype, url, timestamp, isPopup } = req.query;
     
-    // URL 디코딩 처리
-    if (url && url.includes('%')) {
-      url = decodeURIComponent(url);
+    // 필수 필터 검증
+    if (!pagetitle || !eventtype || !url || !timestamp) {
+      return res.status(400).json({ error: '필수 파라미터가 누락되었습니다.' });
     }
     
-    // 기본 쿼리 조건 - timestamp 사용
-    let query = {
-      "PAGETITLE": pagetitle,
-      "EVENTTYPE": eventtype,
-      "URL": url,
-      "timestamp": timestamp // TIME 대신 timestamp 사용
+    // 기본 검색 조건
+    const query = {
+      PAGETITLE: pagetitle,
+      EVENTTYPE: eventtype,
+      URL: url,
+      TIME: timestamp
     };
     
-    // 팝업 필터링 없이 모든 데이터 가져오기
-    const taggingMaps = await TaggingMap.find(query);
-    console.log(`Found ${taggingMaps.length} matching documents`);
-    res.json(taggingMaps);
+    // 고급 검색 필터 처리
+    const eventParamsFilters = [];
     
+    // 요청에서 모든 필드 파라미터 추출
+    for (const key in req.query) {
+      // 기본 파라미터 제외
+      if (!['pagetitle', 'eventtype', 'url', 'timestamp', 'isPopup'].includes(key)) {
+        // _exists 필드는 값의 존재 여부만 확인
+        if (key.endsWith('_exists') && req.query[key] === 'true') {
+          const fieldName = key.replace('_exists', '');
+          eventParamsFilters.push({
+            [fieldName]: { $exists: true, $ne: null, $ne: "" }
+          });
+        } 
+        // 일반 필드는 포함 검색
+        else if (!key.endsWith('_exists')) {
+          eventParamsFilters.push({
+            [key]: { $regex: `.*${req.query[key]}.*`, $options: 'i' }
+          });
+        }
+      }
+    }
+    
+    // 이벤트 파라미터 필터가 있으면 $elemMatch로 처리
+    if (eventParamsFilters.length > 0) {
+      query.eventParams = {
+        $elemMatch: {
+          $or: eventParamsFilters
+        }
+      };
+    }
+    
+    // 팝업 필터 처리
+    if (isPopup === 'true') {
+      query['eventParams.EVENTNAME'] = { $in: ['popup_view', 'popup_click'] };
+    }
+    
+    const taggingMaps = await TaggingMap.find(query).limit(1);
+    
+    if (taggingMaps.length === 0) {
+      return res.json([]);
+    }
+    
+    res.json(taggingMaps);
   } catch (error) {
-    console.error('Error fetching filtered data:', error);
-    res.status(500).send('Error fetching filtered data');
+    console.error('Error fetching filtered taggingmap data:', error);
+    res.status(500).send({ error: '필터링된 태깅맵 데이터를 가져오는데 실패했습니다.' });
   }
 });
 

@@ -90,7 +90,37 @@
             </option>
           </select>
         </div>
+          <!-- 고급 검색 버튼 추가 -->
+          <div class="filter-group advanced-search-group">
+            <button 
+              class="advanced-search-btn"
+              @click="toggleAdvancedSearch"
+              :disabled="loading"
+            >
+              고급 검색
+            </button>
+            <small v-if="hasActiveAdvancedFilters" class="active-filters-indicator">
+              필터 적용됨
+            </small>
+          </div>
       </div>     
+
+      <!-- 적용된 필터 표시 영역 (필터 섹션 바로 아래) -->
+      <div v-if="hasActiveAdvancedFilters" class="active-filters">
+        <span class="filter-label">적용된 필터:</span>
+        <div class="filter-tags">
+          <div 
+            v-for="(value, key) in displayedAdvancedFilters" 
+            :key="key" 
+            class="filter-tag"
+          >
+            {{ key }}: {{ value.anyValue ? '아무 값' : value.value }}
+            <button @click="removeAdvancedFilter(key)" class="remove-filter">&times;</button>
+          </div>
+        </div>
+        <button class="clear-filters" @click="clearAllAdvancedFilters">모든 필터 지우기</button>
+      </div>
+
       <!-- 로딩 상태 -->
       <div v-if="loading" class="loading">
         <div class="spinner"></div>
@@ -144,6 +174,40 @@
             </tbody>
           </table>
         </div>
+      </div>
+    </div>
+  </div>
+  <!-- 고급 검색 모달 (페이지 컴포넌트 끝부분에 추가) -->
+  <div v-if="showAdvancedSearch" class="modal-overlay" @click.self="toggleAdvancedSearch">
+    <div class="modal-content advanced-search-modal">
+      <div class="modal-header">
+        <h3>고급 검색</h3>
+        <button class="close-button" @click="toggleAdvancedSearch">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="search-fields">
+          <!-- 동적으로 검색 필드 생성 -->
+          <div v-for="field in searchFields" :key="field" class="field-filter">
+            <div class="field-name">{{ field }}:</div>
+            <div class="field-options">
+              <label class="checkbox-label">
+                <input type="checkbox" v-model="advancedFilters.fields[field].anyValue"> 
+                아무값이나
+              </label>
+              <input 
+                type="text" 
+                v-model="advancedFilters.fields[field].value" 
+                :disabled="advancedFilters.fields[field].anyValue"
+                placeholder="포함 조건 입력"
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button class="reset-button" @click="resetAdvancedFilters">초기화</button>
+        <button class="apply-button" @click="applyAdvancedSearch">적용</button>
       </div>
     </div>
   </div>  
@@ -251,7 +315,32 @@ export default {
       ],
       // 삭제 기능 관련 추가
       showDeleteModal: false,
-      isDeleting: false
+      isDeleting: false,
+      // 고급 검색 관련 추가
+      showAdvancedSearch: false,
+      searchFields: [
+        "LABEL_TEXT",
+        "CATEGORY_DEPTH1",
+        "CATEGORY_DEPTH2",
+        "CATEGORY_DEPTH3",
+        "CONTENT_NM",
+        "PAGE_MKT_CONTS_ID",
+        "SUB_CTS_ID1",
+        "EVENTNAME",
+        "HORIZONTAL_INDEX",
+        "VERTICAL_INDEX",
+        "POPUP_MESSAGE",
+        "POPUP_BUTTON",
+        "POPUP_CLASS"
+        // 나머지 필드는 필요에 따라 추가
+      ],
+      advancedFilters: {
+        fields: {}
+      },
+      advancedSearchFilters: {
+        fields: {}
+      },
+      initialAdvancedFilters: {}
     }
   },
   computed: {
@@ -300,6 +389,25 @@ export default {
         // 순서 목록에 있는 키는 해당 순서대로
         return indexA - indexB;
       });
+    },
+    // 고급 검색 관련 computed 추가
+    hasActiveAdvancedFilters() {
+      for (const key in this.advancedSearchFilters.fields) {
+        const filter = this.advancedSearchFilters.fields[key];
+        if (filter.anyValue || filter.value) return true;
+      }
+      return false;
+    },
+    
+    displayedAdvancedFilters() {
+      const filters = {};
+      for (const key in this.advancedSearchFilters.fields) {
+        const filter = this.advancedSearchFilters.fields[key];
+        if (filter.anyValue || filter.value) {
+          filters[key] = filter;
+        }
+      }
+      return filters;
     }
   },
   created() {
@@ -325,6 +433,8 @@ export default {
     }
     
     this.fetchPageData();
+    // 검색 필드 초기화 처리 추가
+    this.initAdvancedFilters();
   },
 
   watch: {
@@ -763,7 +873,137 @@ export default {
         this.isDeleting = false;
         this.showDeleteModal = false;
       }
+    },
+    // 고급 검색 필드 초기화
+    initAdvancedFilters() {
+      const initialFields = {};
+      this.searchFields.forEach(field => {
+        initialFields[field] = { anyValue: false, value: '' };
+      });
+      
+      this.initialAdvancedFilters = JSON.parse(JSON.stringify(initialFields));
+      this.advancedFilters.fields = JSON.parse(JSON.stringify(initialFields));
+      this.advancedSearchFilters.fields = JSON.parse(JSON.stringify(initialFields));
+    },
+    
+    // 고급 검색 모달 토글
+    toggleAdvancedSearch() {
+      this.showAdvancedSearch = !this.showAdvancedSearch;
+      
+      // 모달이 열릴 때 현재 적용된 필터로 초기화
+      if (this.showAdvancedSearch) {
+        // 깊은 복사로 필드 필터 초기화
+        this.advancedFilters.fields = JSON.parse(JSON.stringify(this.initialAdvancedFilters));
+        
+        // 현재 적용된 필터가 있으면 설정
+        for (const field in this.advancedSearchFilters.fields) {
+          if (this.advancedFilters.fields[field]) {
+            this.advancedFilters.fields[field] = { 
+              ...this.advancedSearchFilters.fields[field] 
+            };
+          }
+        }
+      }
+    },
+    
+    // 고급 검색 필터 초기화
+    resetAdvancedFilters() {
+      this.advancedFilters.fields = JSON.parse(JSON.stringify(this.initialAdvancedFilters));
+    },
+    
+    // 고급 검색 적용
+    applyAdvancedSearch() {
+      // 깊은 복사로 현재 필터 상태 저장
+      this.advancedSearchFilters.fields = JSON.parse(JSON.stringify(this.advancedFilters.fields));
+      
+      // 모달 닫기
+      this.showAdvancedSearch = false;
+      
+      // 필터 적용된 데이터 가져오기
+      this.fetchFilteredData();
+    },
+    
+    // 필터 제거
+    removeAdvancedFilter(key) {
+      if (this.advancedSearchFilters.fields[key]) {
+        this.advancedSearchFilters.fields[key] = { anyValue: false, value: '' };
+      }
+      
+      // 필터 변경 후 데이터 다시 가져오기
+      this.fetchFilteredData();
+    },
+    
+    // 모든 필터 초기화
+    clearAllAdvancedFilters() {
+      for (const key in this.advancedSearchFilters.fields) {
+        this.advancedSearchFilters.fields[key] = { anyValue: false, value: '' };
+      }
+      
+      // 필터 초기화 후 데이터 다시 가져오기
+      this.fetchFilteredData();
+    },
+    
+    // fetchFilteredData 메서드 수정
+    async fetchFilteredData() {
+      try {
+        if (!this.selectedEventType || !this.selectedUrl || !this.selectedTimestamp) {
+          this.loading = false;
+          return;
+        }
+        
+        this.loading = true;
+        
+        const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
+        let url = this.selectedUrl;
+        
+        // URL 디코딩 처리
+        while (url.includes('%')) {
+          const decodedUrl = decodeURIComponent(url);
+          if (decodedUrl === url) break;
+          url = decodedUrl;
+        }
+        
+        // 기본 파라미터 설정
+        const params = {
+          pagetitle: this.pagetitle,
+          eventtype: this.selectedEventType,
+          url: url,
+          timestamp: this.selectedTimestamp,
+          isPopup: this.isPopupFilter
+        };
+        
+        // 고급 검색 필터 추가
+        for (const field in this.advancedSearchFilters.fields) {
+          const filter = this.advancedSearchFilters.fields[field];
+          if (filter.anyValue) {
+            params[`${field}_exists`] = 'true';
+          } else if (filter.value) {
+            params[field] = filter.value;
+          }
+        }
+        
+        // 필터링된 데이터 가져오기
+        const filteredResponse = await axios.get(`${baseUrl}/api/taggingmaps/filtered`, {
+          params,
+          timeout: 30000
+        });
+        
+        this.taggingMaps = filteredResponse.data;
+        
+        // 데이터가 로드된 후 콘솔에 사용 가능한 키 출력 (디버깅용)
+        if (this.taggingMaps.length > 0 && this.taggingMaps[0].eventParams && this.taggingMaps[0].eventParams.length > 0) {
+          console.log('Available columns:', Object.keys(this.taggingMaps[0].eventParams[0]));
+        }
+        
+        this.loading = false;
+        
+      } catch (error) {
+        console.error('Error fetching filtered data:', error);
+        this.error = '필터링된 데이터를 불러오는데 실패했습니다.';
+        this.loading = false;
+      }
     }
+
   }
 }
 </script>
@@ -1088,5 +1328,140 @@ button:hover {
 .delete-confirm-button:disabled {
   background-color: #e9a0a8;
   cursor: not-allowed;
+}
+
+/* 고급 검색 관련 스타일 */
+.advanced-search-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.advanced-search-btn {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.advanced-search-btn:hover {
+  background-color: #388E3C;
+}
+
+.active-filters-indicator {
+  margin-top: 5px;
+  color: #dc3545;
+  font-style: italic;
+}
+
+.active-filters {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  padding: 10px 15px;
+  margin-bottom: 15px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.filter-label {
+  font-weight: bold;
+  margin-right: 5px;
+}
+
+.filter-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.filter-tag {
+  display: inline-flex;
+  align-items: center;
+  background-color: #e9ecef;
+  border-radius: 16px;
+  padding: 5px 10px;
+  font-size: 14px;
+}
+
+.remove-filter {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  margin-left: 5px;
+  padding: 0 5px;
+}
+
+.clear-filters {
+  margin-left: auto;
+  background-color: transparent;
+  color: #dc3545;
+  border: 1px solid #dc3545;
+  border-radius: 4px;
+  padding: 5px 10px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.clear-filters:hover {
+  background-color: #dc3545;
+  color: white;
+}
+
+/* 고급 검색 모달 스타일 */
+.advanced-search-modal {
+  width: 90%;
+  max-width: 800px;
+}
+
+.search-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 10px;
+}
+
+.field-filter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed #eee;
+}
+
+.field-name {
+  width: 180px;
+  font-weight: 500;
+  color: #495057;
+}
+
+.field-options {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 120px;
+  user-select: none;
+}
+
+.field-options input[type="text"] {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
 }
 </style>
