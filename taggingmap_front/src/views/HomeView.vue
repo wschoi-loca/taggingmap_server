@@ -196,9 +196,9 @@ export default {
       "CONTENT_NM3",
       "HORIZONTAL_INDEX",
       "VERTICAL_INDEX",
-      "POPUP_MESSAGE",
-      "POPUP_BUTTON",
-      "POPUP_CLASS"
+      "popup_message",
+      "popup_button",
+      "popup_class"
     ];
     
     // 필드별 초기 검색 필터 객체 생성
