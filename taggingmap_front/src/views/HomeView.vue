@@ -9,14 +9,14 @@
         <input 
           type="text" 
           v-model="searchQuery" 
-          placeholder="페이지 타이틀 검색..." 
+          placeholder="페이지 타이틀 필터..." 
           @input="handleSearchInput"
         />
         <button 
           class="advanced-search-btn" 
           @click="toggleAdvancedSearch"
         >
-          컬럼별 검색
+          컬럼별 필터
         </button>
       </div>
     </div>
