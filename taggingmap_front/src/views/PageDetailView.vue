@@ -120,22 +120,6 @@
           </div>
         </div>
         <button class="clear-filters" @click="clearAllAdvancedFilters">모든 필터 지우기</button>
-      </div>   
-
-      <!-- 적용된 필터 표시 영역 (필터 섹션 바로 아래) -->
-      <div v-if="hasActiveAdvancedFilters" class="active-filters">
-        <span class="filter-label">적용된 필터:</span>
-        <div class="filter-tags">
-          <div 
-            v-for="(value, key) in displayedAdvancedFilters" 
-            :key="key" 
-            class="filter-tag"
-          >
-            {{ key }}: {{ value.anyValue ? '아무 값' : value.value }}
-            <button @click="removeAdvancedFilter(key)" class="remove-filter">&times;</button>
-          </div>
-        </div>
-        <button class="clear-filters" @click="clearAllAdvancedFilters">모든 필터 지우기</button>
       </div>
 
       <!-- 로딩 상태 -->
