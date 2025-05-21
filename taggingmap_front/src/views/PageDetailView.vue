@@ -431,10 +431,12 @@ export default {
     if (isPopupParam === 'true') {
       this.isPopupFilter = true;
     }
-    
-    this.fetchPageData();
+
     // 검색 필드 초기화 처리 추가
     this.initAdvancedFilters();
+    
+    this.fetchPageData();
+
   },
 
   watch: {
@@ -646,53 +648,6 @@ export default {
     async handleTimestampChange() {
       if (!this.selectedTimestamp) return;
       await this.fetchFilteredData();
-    },
-    
-    async fetchFilteredData() {
-      try {
-        if (!this.selectedEventType || !this.selectedUrl || !this.selectedTimestamp) {
-          this.loading = false;
-          return;
-        }
-        
-        this.loading = true;
-        
-        const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
-        let url = this.selectedUrl;
-        
-        // URL 디코딩 처리
-        while (url.includes('%')) {
-          const decodedUrl = decodeURIComponent(url);
-          if (decodedUrl === url) break;
-          url = decodedUrl;
-        }
-        
-        // 필터링된 데이터 가져오기 - timestamp 파라미터 사용
-        const filteredResponse = await axios.get(`${baseUrl}/api/taggingmaps/filtered`, {
-          params: {
-            pagetitle: this.pagetitle,
-            eventtype: this.selectedEventType,
-            url: url,
-            timestamp: this.selectedTimestamp, // time 대신 timestamp 사용
-            isPopup: this.isPopupFilter
-          },
-          timeout: 30000
-        });
-        
-        this.taggingMaps = filteredResponse.data;
-        
-        // 데이터가 로드된 후 콘솔에 사용 가능한 키 출력 (디버깅용)
-        if (this.taggingMaps.length > 0 && this.taggingMaps[0].eventParams && this.taggingMaps[0].eventParams.length > 0) {
-          console.log('Available columns:', Object.keys(this.taggingMaps[0].eventParams[0]));
-        }
-        
-        this.loading = false;
-        
-      } catch (error) {
-        console.error('Error fetching filtered data:', error);
-        this.error = '필터링된 데이터를 불러오는데 실패했습니다.';
-        this.loading = false;
-      }
     },
     
     resetFilters() {
