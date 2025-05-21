@@ -98,7 +98,7 @@
             @click="toggleAdvancedSearch"
             :disabled="loading"
           >
-            컬럼별 검색
+            고급 검색
           </button>
           <small v-if="hasActiveAdvancedFilters" class="active-filters-indicator">
             필터 적용됨
@@ -1080,88 +1080,20 @@ h1 {
   padding-bottom: 15px;
 }
 
-/* 헤더 섹션 스타일 */
-.header-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  border-bottom: 2px solid #eaeaea;
-  padding-bottom: 15px;
-}
-
-.header-section h1 {
-  margin: 0;
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-/* 삭제 버튼 스타일 */
-.delete-btn {
-  background-color: #dc3545;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 8px 16px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.delete-btn:hover {
-  background-color: #c82333;
-}
-
-/* 필터 섹션 수정 - 공백 줄임 */
 .filter-section {
   background-color: #f8f9fa;
   border: 1px solid #e9ecef;
   border-radius: 5px;
-  padding: 10px; /* 패딩 축소 */
+  padding: 15px;
   margin-bottom: 20px;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px; /* 간격 축소 */
-}
-
-/* 왼쪽 필터 컨테이너 - 공백 줄임 */
-.filters-container {
-  display: flex;
-  flex: 1;
-  gap: 10px; /* 필터 간 간격 축소 */
-  align-items: flex-start;
-  width: 100%; /* 너비 최대화 */
-}
-
-/* 고급 검색 컨테이너 - 공백 줄임 */
-.advanced-search-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 0 5px; /* 좌우 패딩 축소 */
-}
-
-/* 이벤트 유형 그룹 - 너비 최적화 */
-.event-type-group {
-  width: 160px; /* 너비 축소 최적화 */
-  flex-shrink: 0;
-}
-
-/* URL 그룹 - 확장 */
-.url-group {
-  flex: 1.5; /* 더 많은 비중 */
-}
-
-/* 타임스탬프 그룹 */
-.timestamp-group {
-  flex: 1.2; /* 비중 증가 */
+  flex-wrap: wrap;
+  gap: 20px;
 }
 
 .filter-group {
-  display: flex;
-  flex-direction: column;
-  margin: 0; /* 모든 여백 제거 */
+  flex: 1;
+  min-width: 250px;
 }
 
 .checkbox-container {
@@ -1173,9 +1105,8 @@ h1 {
 
 .filter-group label {
   display: block;
-  margin-bottom: 4px; /* 레이블 아래 여백 축소 */
+  margin-bottom: 8px;
   font-weight: bold;
-  font-size: 14px; /* 폰트 크기 최적화 */
 }
 
 .checkbox-label {
@@ -1190,15 +1121,13 @@ h1 {
   margin-right: 8px;
 }
 
-/* 버튼 그룹 - 공백 최소화 */
 .button-group {
   display: flex;
-  gap: 5px; /* 버튼 간 간격 축소 */
-  width: 100%; /* 너비 최대화 */
+  gap: 10px;
 }
 
 .filter-button {
-  padding: 6px 10px; /* 패딩 축소 */
+  padding: 8px 16px;
   background-color: #f0f0f0;
   color: #333;
   border: 1px solid #ddd;
@@ -1207,7 +1136,6 @@ h1 {
   font-weight: normal;
   flex: 1;
   transition: all 0.2s ease;
-  font-size: 14px; /* 폰트 크기 최적화 */
 }
 
 .filter-button:hover {
@@ -1220,98 +1148,11 @@ h1 {
   border: 1px solid #0062cc;
 }
 
-/* 고급 검색 버튼 스타일 수정 */
-.advanced-search-btn {
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 6px 12px; /* 패딩 축소 */
-  cursor: pointer;
-  transition: background-color 0.2s;
-  white-space: nowrap;
-  font-size: 14px; /* 폰트 크기 최적화 */
-}
-
-.advanced-search-btn:hover {
-  background-color: #388E3C;
-}
-
-.active-filters-indicator {
-  margin-top: 3px; /* 마진 축소 */
-  color: #dc3545;
-  font-style: italic;
-  text-align: center;
-  font-size: 12px; /* 폰트 크기 축소 */
-}
-
-/* 셀렉트 박스 최적화 */
 select {
   width: 100%;
-  padding: 6px; /* 패딩 축소 */
+  padding: 8px;
   border-radius: 4px;
   border: 1px solid #ced4da;
-  font-size: 14px; /* 폰트 크기 최적화 */
-  height: 32px; /* 높이 고정 */
-}
-
-/* 적용된 필터 표시 영역 스타일 - 공백 최소화 */
-.active-filters {
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 4px;
-  padding: 8px 10px; /* 패딩 축소 */
-  margin-bottom: 15px;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px; /* 간격 축소 */
-}
-
-.filter-label {
-  font-weight: bold;
-  margin-right: 5px;
-  font-size: 14px; /* 폰트 크기 최적화 */
-}
-
-.filter-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px; /* 간격 축소 */
-}
-
-.filter-tag {
-  display: inline-flex;
-  align-items: center;
-  background-color: #e9ecef;
-  border-radius: 16px;
-  padding: 3px 8px; /* 패딩 축소 */
-  font-size: 13px; /* 폰트 크기 축소 */
-}
-
-.remove-filter {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 14px; /* 폰트 크기 축소 */
-  margin-left: 3px; /* 마진 축소 */
-  padding: 0 3px; /* 패딩 축소 */
-}
-
-.clear-filters {
-  margin-left: auto;
-  background-color: transparent;
-  color: #dc3545;
-  border: 1px solid #dc3545;
-  border-radius: 4px;
-  padding: 4px 8px; /* 패딩 축소 */
-  font-size: 13px; /* 폰트 크기 축소 */
-  cursor: pointer;
-}
-
-.clear-filters:hover {
-  background-color: #dc3545;
-  color: white;
 }
 
 .content-section {
@@ -1380,7 +1221,7 @@ tr:nth-child(even) {
 }
 
 button {
-  padding: 6px 12px; /* 패딩 축소 */
+  padding: 8px 16px;
   border-radius: 4px;
   cursor: pointer;
 }
@@ -1393,7 +1234,7 @@ button:hover {
 .section-header {
   display: flex;
   justify-content: flex-end;
-  margin-bottom: 8px; /* 마진 축소 */
+  margin-bottom: 10px;
 }
 
 /* 전체 보기 버튼 스타일 */
@@ -1402,19 +1243,51 @@ button:hover {
   color: white;
   border: none;
   border-radius: 4px;
-  padding: 4px 8px; /* 패딩 축소 */
-  font-size: 13px; /* 폰트 크기 축소 */
+  padding: 5px 10px;
+  font-size: 14px;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 4px; /* 간격 축소 */
+  gap: 5px;
 }
 
 .view-full-btn:hover {
   background-color: #0056b3;
 }
 
-/* 모달 스타일은 기존대로 유지 */
+/* 헤더 섹션 스타일 */
+.header-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #eaeaea;
+  padding-bottom: 15px;
+}
+
+.header-section h1 {
+  margin: 0;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+/* 삭제 버튼 스타일 */
+.delete-btn {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.delete-btn:hover {
+  background-color: #c82333;
+}
+
+/* 모달 오버레이 스타일 */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -1437,7 +1310,7 @@ button:hover {
 }
 
 .modal-header {
-  padding: 12px 15px; /* 패딩 축소 */
+  padding: 15px 20px;
   border-bottom: 1px solid #eee;
   display: flex;
   justify-content: space-between;
@@ -1447,16 +1320,14 @@ button:hover {
 .modal-header h3 {
   margin: 0;
   color: #333;
-  font-size: 16px; /* 폰트 크기 최적화 */
 }
 
 .close-button {
   background: none;
   border: none;
-  font-size: 22px; /* 폰트 크기 축소 */
+  font-size: 24px;
   cursor: pointer;
   color: #999;
-  padding: 0; /* 패딩 제거 */
 }
 
 .close-button:hover {
@@ -1464,109 +1335,48 @@ button:hover {
 }
 
 .modal-body {
-  padding: 15px; /* 패딩 축소 */
+  padding: 20px;
 }
 
 .modal-footer {
-  padding: 12px 15px; /* 패딩 축소 */
+  padding: 15px 20px;
   border-top: 1px solid #eee;
   display: flex;
   justify-content: flex-end;
-  gap: 8px; /* 간격 축소 */
-}
-
-/* 고급 검색 모달 스타일 - 공백 최소화 */
-.advanced-search-modal {
-  width: 90%;
-  max-width: 800px;
-}
-
-.search-fields {
-  display: flex;
-  flex-direction: column;
-  gap: 10px; /* 간격 축소 */
-  max-height: 400px;
-  overflow-y: auto;
-  padding-right: 8px; /* 패딩 축소 */
-}
-
-.field-filter {
-  display: flex;
-  align-items: center;
-  gap: 8px; /* 간격 축소 */
-  padding-bottom: 8px; /* 패딩 축소 */
-  border-bottom: 1px dashed #eee;
-}
-
-.field-name {
-  width: 160px; /* 너비 축소 */
-  font-weight: 500;
-  color: #495057;
-  font-size: 14px; /* 폰트 크기 최적화 */
-}
-
-.field-options {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 10px; /* 간격 축소 */
-}
-
-.field-options input[type="text"] {
-  flex: 1;
-  padding: 6px; /* 패딩 축소 */
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px; /* 폰트 크기 최적화 */
+  gap: 10px;
 }
 
 .warning-text {
   color: #dc3545;
   font-weight: bold;
-  margin-bottom: 12px; /* 마진 축소 */
-  font-size: 14px; /* 폰트 크기 최적화 */
+  margin-bottom: 15px;
 }
 
 .delete-info {
-  margin-left: 15px; /* 마진 축소 */
+  margin-left: 20px;
   color: #555;
-  font-size: 14px; /* 폰트 크기 최적화 */
 }
 
-/* 적용 및 초기화, 취소 버튼 스타일 */
-.reset-button, .cancel-button {
-  padding: 6px 12px; /* 패딩 축소 */
+.cancel-button {
+  padding: 8px 16px;
   background-color: #f8f9fa;
   color: #6c757d;
   border: 1px solid #ddd;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 14px; /* 폰트 크기 최적화 */
 }
 
-.reset-button:hover, .cancel-button:hover {
+.cancel-button:hover {
   background-color: #e9ecef;
 }
 
-.apply-button, .delete-confirm-button {
-  padding: 6px 12px; /* 패딩 축소 */
+.delete-confirm-button {
+  padding: 8px 16px;
+  background-color: #dc3545;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 14px; /* 폰트 크기 최적화 */
-}
-
-.apply-button {
-  background-color: #4CAF50;
-}
-
-.apply-button:hover {
-  background-color: #388E3C;
-}
-
-.delete-confirm-button {
-  background-color: #dc3545;
 }
 
 .delete-confirm-button:hover:not(:disabled) {
@@ -1576,5 +1386,140 @@ button:hover {
 .delete-confirm-button:disabled {
   background-color: #e9a0a8;
   cursor: not-allowed;
+}
+
+/* 고급 검색 관련 스타일 */
+.advanced-search-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.advanced-search-btn {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.advanced-search-btn:hover {
+  background-color: #388E3C;
+}
+
+.active-filters-indicator {
+  margin-top: 5px;
+  color: #dc3545;
+  font-style: italic;
+}
+
+.active-filters {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  padding: 10px 15px;
+  margin-bottom: 15px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.filter-label {
+  font-weight: bold;
+  margin-right: 5px;
+}
+
+.filter-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.filter-tag {
+  display: inline-flex;
+  align-items: center;
+  background-color: #e9ecef;
+  border-radius: 16px;
+  padding: 5px 10px;
+  font-size: 14px;
+}
+
+.remove-filter {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  margin-left: 5px;
+  padding: 0 5px;
+}
+
+.clear-filters {
+  margin-left: auto;
+  background-color: transparent;
+  color: #dc3545;
+  border: 1px solid #dc3545;
+  border-radius: 4px;
+  padding: 5px 10px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.clear-filters:hover {
+  background-color: #dc3545;
+  color: white;
+}
+
+/* 고급 검색 모달 스타일 */
+.advanced-search-modal {
+  width: 90%;
+  max-width: 800px;
+}
+
+.search-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 10px;
+}
+
+.field-filter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed #eee;
+}
+
+.field-name {
+  width: 180px;
+  font-weight: 500;
+  color: #495057;
+}
+
+.field-options {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 120px;
+  user-select: none;
+}
+
+.field-options input[type="text"] {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
 }
 </style>
