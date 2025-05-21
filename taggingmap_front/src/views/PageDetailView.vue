@@ -98,7 +98,7 @@
             @click="toggleAdvancedSearch"
             :disabled="loading"
           >
-            고급 검색
+            컬럼별 검색
           </button>
           <small v-if="hasActiveAdvancedFilters" class="active-filters-indicator">
             필터 적용됨
