@@ -1,117 +1,152 @@
 <template>
   <div class="page-detail">
-    <h1>{{ formattedPagetitle }}</h1>
-    
-    <!-- 필터 섹션 -->
-    <div class="filter-section">
-      <!-- 이벤트 유형 필터 -->
-      <div class="filter-group">
-        <label>이벤트 유형:</label>
-        <div class="button-group">
-          <button 
-            :class="['filter-button', selectedEventType === 'visibility' ? 'active' : '']"
-            @click="selectEventType('visibility')"
-            :disabled="loading"
+    <div class="page-detail">
+      <!-- 제목과 삭제 버튼을 함께 배치한 헤더 섹션 -->
+      <div class="header-section">
+        <h1>{{ formattedPagetitle }}</h1>
+        <button v-if="taggingMaps.length > 0" 
+          class="delete-btn" 
+          @click="confirmDelete">
+          태깅맵 삭제
+        </button>
+      </div>
+      
+      <!-- 삭제 확인 모달 -->
+      <div v-if="showDeleteModal" class="modal-overlay">
+        <div class="modal-content delete-modal">
+          <div class="modal-header">
+            <h3>태깅맵 삭제 확인</h3>
+            <button class="close-button" @click="showDeleteModal = false">&times;</button>
+          </div>
+          <div class="modal-body">
+            <p class="warning-text">이 태깅맵 데이터를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.</p>
+            <p>다음 데이터가 함께 삭제됩니다:</p>
+            <ul class="delete-info">
+              <li>MongoDB의 태깅맵 데이터</li>
+              <li>Cloudinary에 저장된 이미지</li>
+            </ul>
+          </div>
+          <div class="modal-footer">
+            <button class="cancel-button" @click="showDeleteModal = false">취소</button>
+            <button class="delete-confirm-button" @click="deleteTaggingMap" :disabled="isDeleting">
+              <span v-if="isDeleting">삭제 중...</span>
+              <span v-else>삭제</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 필터 섹션 -->
+      <div class="filter-section">
+        <!-- 이벤트 유형 필터 -->
+        <div class="filter-group">
+          <label>이벤트 유형:</label>
+          <div class="button-group">
+            <button 
+              :class="['filter-button', selectedEventType === 'visibility' ? 'active' : '']"
+              @click="selectEventType('visibility')"
+              :disabled="loading"
+            >
+              노출
+            </button>
+            <button 
+              :class="['filter-button', selectedEventType === 'click' ? 'active' : '']"
+              @click="selectEventType('click')"
+              :disabled="loading"
+            >
+              클릭
+            </button>
+          </div>
+        </div>
+        
+        <!-- URL 필터 -->
+        <div class="filter-group">
+          <label for="url-select">URL:</label>
+          <select 
+          id="url-select" 
+          v-model="selectedUrl" 
+          @change="handleUrlChange"
+          :disabled="!selectedEventType || urls.length === 0"
           >
-            노출
-          </button>
-          <button 
-            :class="['filter-button', selectedEventType === 'click' ? 'active' : '']"
-            @click="selectEventType('click')"
-            :disabled="loading"
+            <option value="">URL 선택</option>
+            <option v-for="url in urls" :key="url.url" :value="url.url">
+              {{ url.url }}
+            </option>
+          </select>
+        </div>
+        
+        <!-- 타임스탬프 필터 -->
+        <div class="filter-group">
+          <label for="time-select">타임스탬프:</label>
+          <select 
+            id="time-select" 
+            v-model="selectedTimestamp"
+            @change="handleTimestampChange"
+            :disabled="!selectedUrl || times.length === 0"
           >
-            클릭
-          </button>
+            <option value="">타임스탬프 선택</option>
+            <option v-for="time in times" :key="time.timestamp" :value="time.timestamp">
+              {{ formatTimestamp(time.timestamp) }} {{ time.hasPopup ? "(popup 포함)" : "" }}
+            </option>
+          </select>
         </div>
+      </div>     
+      <!-- 로딩 상태 -->
+      <div v-if="loading" class="loading">
+        <div class="spinner"></div>
+        <p>데이터를 불러오는 중입니다...</p>
       </div>
       
-      <!-- URL 필터 -->
-      <div class="filter-group">
-        <label for="url-select">URL:</label>
-        <select 
-        id="url-select" 
-        v-model="selectedUrl" 
-        @change="handleUrlChange"
-        :disabled="!selectedEventType || urls.length === 0"
-        >
-          <option value="">URL 선택</option>
-          <option v-for="url in urls" :key="url.url" :value="url.url">
-            {{ url.url }}
-          </option>
-        </select>
+      <!-- 에러 상태 -->
+      <div v-else-if="error" class="error">
+        <p>{{ error }}</p>
+        <button @click="fetchPageData">다시 시도</button>
       </div>
       
-      <!-- 타임스탬프 필터 -->
-      <div class="filter-group">
-        <label for="time-select">타임스탬프:</label>
-        <select 
-          id="time-select" 
-          v-model="selectedTimestamp"
-          @change="handleTimestampChange"
-          :disabled="!selectedUrl || times.length === 0"
-        >
-          <option value="">타임스탬프 선택</option>
-          <option v-for="time in times" :key="time.timestamp" :value="time.timestamp">
-            {{ formatTimestamp(time.timestamp) }} {{ time.hasPopup ? "(popup 포함)" : "" }}
-          </option>
-        </select>
-      </div>
-    </div>     
-    <!-- 로딩 상태 -->
-    <div v-if="loading" class="loading">
-      <div class="spinner"></div>
-      <p>데이터를 불러오는 중입니다...</p>
-    </div>
-    
-    <!-- 에러 상태 -->
-    <div v-else-if="error" class="error">
-      <p>{{ error }}</p>
-      <button @click="fetchPageData">다시 시도</button>
-    </div>
-    
-    <!-- 데이터 없음 상태 -->
-    <div v-else-if="taggingMaps.length === 0" class="no-data">
-      <p>선택한 조건에 맞는 데이터가 없습니다.</p>
-    </div>
-    
-    <!-- 데이터 표시 -->
-    <div v-else class="content-section">
-      <div class="image-section">
-        <!-- 원본 이미지 보기 버튼 추가 -->
-        <div class="section-header">
-          <button class="view-full-btn" @click="openImageModal">
-            원본 이미지 새 창에서 보기
-          </button>
-        </div>
-        <img :src="taggingMaps[0].image" alt="Captured Image" />
+      <!-- 데이터 없음 상태 -->
+      <div v-else-if="taggingMaps.length === 0" class="no-data">
+        <p>선택한 조건에 맞는 데이터가 없습니다.</p>
       </div>
       
-      <div class="data-section">
-        <!-- 전체 표 보기 버튼 추가 -->
-        <div class="section-header">
-          <button class="view-full-btn" @click="openTableModal">
-            전체 표 새 창에서 보기
-          </button>
+      <!-- 데이터 표시 -->
+      <div v-else class="content-section">
+        <div class="image-section">
+          <!-- 원본 이미지 보기 버튼 추가 -->
+          <div class="section-header">
+            <button class="view-full-btn" @click="openImageModal">
+              원본 이미지 새 창에서 보기
+            </button>
+          </div>
+          <img :src="taggingMaps[0].image" alt="Captured Image" />
         </div>
-        <table>
-          <thead>
-            <tr>
-              <th>SHOT_NUMBER</th>
-              <th v-for="column in sortedColumns" :key="column">{{ column }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="data in taggingMaps[0].eventParams" :key="data.SHOT_NUMBER">
-              <td>{{ data.SHOT_NUMBER }}</td>
-              <td v-for="column in sortedColumns" :key="`${data.SHOT_NUMBER}-${column}`">
-                {{ data[column] || '-' }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        
+        <div class="data-section">
+          <!-- 전체 표 보기 버튼 추가 -->
+          <div class="section-header">
+            <button class="view-full-btn" @click="openTableModal">
+              전체 표 새 창에서 보기
+            </button>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>SHOT_NUMBER</th>
+                <th v-for="column in sortedColumns" :key="column">{{ column }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="data in taggingMaps[0].eventParams" :key="data.SHOT_NUMBER">
+                <td>{{ data.SHOT_NUMBER }}</td>
+                <td v-for="column in sortedColumns" :key="`${data.SHOT_NUMBER}-${column}`">
+                  {{ data[column] || '-' }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
-  </div>
+  </div>  
 </template>
 
 <script>
@@ -213,7 +248,10 @@ export default {
       "EVENTACTION",
       "EVENTLABEL",
       "CNO",
-      ]
+      ],
+      // 삭제 기능 관련 추가
+      showDeleteModal: false,
+      isDeleting: false
     }
   },
   computed: {
@@ -679,6 +717,52 @@ export default {
         </html>
       `);
       newWindow.document.close();
+    },
+
+    // 삭제 확인 모달 표시
+    confirmDelete() {
+      this.showDeleteModal = true;
+    },
+    
+    // 태깅맵 삭제 처리
+    async deleteTaggingMap() {
+      try {
+        if (!this.taggingMaps || this.taggingMaps.length === 0 || !this.taggingMaps[0]._id) {
+          this.showDeleteModal = false;
+          this.$router.push('/');
+          return;
+        }
+        
+        this.isDeleting = true;
+        const taggingMapId = this.taggingMaps[0]._id;
+        const imageUrl = this.taggingMaps[0].image || '';
+        
+        const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
+        const response = await axios.delete(`${baseUrl}/api/taggingmaps/${taggingMapId}`, {
+          data: {
+            imageUrl: imageUrl
+          }
+        });
+        
+        if (response.status === 200) {
+          // 삭제 성공
+          this.showDeleteModal = false;
+          
+          // 성공 메시지 표시 (알림 라이브러리가 있다면 사용)
+          alert('태깅맵이 성공적으로 삭제되었습니다.');
+          
+          // 메인 페이지로 이동
+          this.$router.push('/');
+        } else {
+          throw new Error(`삭제 요청 실패: ${response.status}`);
+        }
+      } catch (error) {
+        console.error('태깅맵 삭제 중 오류 발생:', error);
+        alert(`삭제 실패: ${error.message}`);
+      } finally {
+        this.isDeleting = false;
+        this.showDeleteModal = false;
+      }
     }
   }
 }
@@ -871,5 +955,138 @@ button:hover {
 
 .view-full-btn:hover {
   background-color: #0056b3;
+}
+
+/* 헤더 섹션 스타일 */
+.header-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #eaeaea;
+  padding-bottom: 15px;
+}
+
+.header-section h1 {
+  margin: 0;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+/* 삭제 버튼 스타일 */
+.delete-btn {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.delete-btn:hover {
+  background-color: #c82333;
+}
+
+/* 모달 오버레이 스타일 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  width: 90%;
+  max-width: 500px;
+}
+
+.modal-header {
+  padding: 15px 20px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: #333;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #999;
+}
+
+.close-button:hover {
+  color: #333;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.modal-footer {
+  padding: 15px 20px;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.warning-text {
+  color: #dc3545;
+  font-weight: bold;
+  margin-bottom: 15px;
+}
+
+.delete-info {
+  margin-left: 20px;
+  color: #555;
+}
+
+.cancel-button {
+  padding: 8px 16px;
+  background-color: #f8f9fa;
+  color: #6c757d;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.cancel-button:hover {
+  background-color: #e9ecef;
+}
+
+.delete-confirm-button {
+  padding: 8px 16px;
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.delete-confirm-button:hover:not(:disabled) {
+  background-color: #c82333;
+}
+
+.delete-confirm-button:disabled {
+  background-color: #e9a0a8;
+  cursor: not-allowed;
 }
 </style>

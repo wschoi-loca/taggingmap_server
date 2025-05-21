@@ -457,6 +457,51 @@ app.get('/api/taggingMaps/summary', async (req, res) => {
   }
 });
 
+// 태깅맵 삭제 API
+app.delete('/api/taggingmaps/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { imageUrl } = req.body;
+    
+    console.log(`태깅맵 삭제 요청. ID: ${id}, 이미지 URL: ${imageUrl}`);
+    
+    // MongoDB에서 태깅맵 데이터 삭제
+    const result = await TaggingMap.findByIdAndDelete(id);
+    
+    if (!result) {
+      return res.status(404).send('삭제할 태깅맵을 찾을 수 없습니다.');
+    }
+    
+    // Cloudinary에서 이미지 삭제
+    if (imageUrl && imageUrl.includes('cloudinary.com')) {
+      try {
+        // 이미지 URL에서 public_id 추출
+        // 예: https://res.cloudinary.com/your-cloud-name/image/upload/v1234567890/taggingmap/abcdefg.jpg
+        const urlParts = imageUrl.split('/');
+        const filenameWithExt = urlParts[urlParts.length - 1];
+        const filename = filenameWithExt.split('.')[0];
+        const folder = urlParts[urlParts.length - 2];
+        const public_id = `${folder}/${filename}`;
+        
+        console.log(`Cloudinary 이미지 삭제 시도. Public ID: ${public_id}`);
+        
+        // Cloudinary에서 이미지 삭제
+        await cloudinary.uploader.destroy(public_id);
+        
+        console.log('Cloudinary 이미지 삭제 성공');
+      } catch (cloudinaryError) {
+        console.error('Cloudinary 이미지 삭제 오류:', cloudinaryError);
+        // 이미지 삭제 실패해도 계속 진행 (MongoDB 데이터는 이미 삭제됨)
+      }
+    }
+    
+    res.status(200).send('태깅맵이 성공적으로 삭제되었습니다.');
+  } catch (error) {
+    console.error('태깅맵 삭제 오류:', error);
+    res.status(500).send(`태깅맵 삭제 실패: ${error.message}`);
+  }
+});
+
 // 3. 모든 나머지 요청은 Vue Router가 처리하도록 설정
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'taggingmap_front/dist/index.html'));
