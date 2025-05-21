@@ -13,7 +13,7 @@ class PathMappingService {
         "event>detail": "띵샵>이벤트>상세",
         "native>main>MA_1_1_1": "메인>간편홈",
         "main": "띵샵>메인",
-        "금융>일부결제금액이월약정(리볼빙)>일부결제금액이월약정>이용안내":"spa>finance>revolving>revolving-bf-use"
+        "spa>finance>revolving>revolving-bf-use":"금융>일부결제금액이월약정(리볼빙)>일부결제금액이월약정>이용안내",
       };
       this.loaded = true;
     }
