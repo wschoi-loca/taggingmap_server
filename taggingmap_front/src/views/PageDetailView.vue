@@ -1392,7 +1392,8 @@ button:hover {
 .advanced-search-group {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: flex-end; /* 중앙 정렬에서 오른쪽 정렬로 변경 */
+  padding: 0 5px;
 }
 
 .advanced-search-btn {
@@ -1402,7 +1403,7 @@ button:hover {
   border-radius: 4px;
   padding: 8px 16px;
   cursor: pointer;
-  transition: background-color 0.2s;
+  padding: 0 5px;
 }
 
 .advanced-search-btn:hover {
