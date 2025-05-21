@@ -1092,7 +1092,7 @@ h1 {
 }
 
 .filter-group {
-  flex: 1;
+  flex: 1.5;
   min-width: 250px;
 }
 
