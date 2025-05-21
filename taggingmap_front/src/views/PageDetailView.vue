@@ -380,9 +380,28 @@ export default {
     },
 
     // 사용자 친화적인 한글 제목을 포함하는 형식으로 PAGETITLE 포맷팅
+    // 수정된 formattedPagetitle 메서드 - 다양한 형식 고려
     formattedPagetitle() {
       const englishTitle = this.pagetitle;
-      const koreanTitle = this.pathMappings[englishTitle] || '';
+      let koreanTitle = '';
+      
+      // 1. 직접 매치
+      if (this.pathMappings[englishTitle]) {
+        koreanTitle = this.pathMappings[englishTitle];
+      } 
+      // 2. 앞부분 일치 검색
+      else {
+        // 키에서 가장 긴 일치 항목 찾기
+        const matchingKeys = Object.keys(this.pathMappings).filter(key => 
+          englishTitle.startsWith(key) || englishTitle.includes(key)
+        );
+        
+        if (matchingKeys.length > 0) {
+          // 가장 긴 키 찾기
+          const longestKey = matchingKeys.reduce((a, b) => a.length > b.length ? a : b);
+          koreanTitle = this.pathMappings[longestKey];
+        }
+      }
       
       if (koreanTitle) {
         return `${englishTitle} | ${koreanTitle}`;
