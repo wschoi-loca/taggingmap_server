@@ -16,7 +16,7 @@
           class="advanced-search-btn" 
           @click="toggleAdvancedSearch"
         >
-          고급 검색
+          컬럼별 검색
         </button>
       </div>
     </div>
@@ -203,7 +203,7 @@ export default {
       "popup_message",
       "popup_button",
       "popup_class",
-      "AUTP_TAG_YN",
+      "AUTO_TAG_YN",
       "TIME"
     ];
     
