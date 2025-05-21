@@ -216,69 +216,152 @@ app.get('/api/eventtypes/:pagetitle', async (req, res) => {
 });
 
 // 특정 PAGETITLE 및 EVENTTYPE의 URL 목록을 가져오는 API
+// 필터링된 URL 목록 API 엔드포인트 수정
 app.get('/api/urls/:pagetitle/:eventtype', async (req, res) => {
   try {
     const { pagetitle, eventtype } = req.params;
+    const isPopup = req.query.isPopup === 'true';
     
-    // 기본 매치 조건
-    let matchCondition = {
-      "PAGETITLE": pagetitle,
-      "EVENTTYPE": eventtype
+    if (!pagetitle || !eventtype) {
+      return res.status(400).json({ error: '페이지 제목과 이벤트 유형은 필수입니다.' });
+    }
+
+    // 기본 쿼리 조건
+    const matchCondition = {
+      PAGETITLE: pagetitle,
+      EVENTTYPE: eventtype
     };
     
-    let pipeline = [
-      { $match: matchCondition },
-      { $group: { _id: "$URL" } },
-      // null 값 필터링
-      { $match: { _id: { $ne: null } } },
-      { $project: { _id: 0, url: "$_id" } },
-      { $sort: { url: 1 } }
-    ];
+    // 팝업 필터 조건 처리
+    if (isPopup) {
+      matchCondition['eventParams.EVENTNAME'] = { $in: ['popup_view', 'popup_click'] };
+    }
     
-    // MongoDB 집계 파이프라인 실행
-    const urls = await TaggingMap.aggregate(pipeline);
+    // 고급 검색 필터 처리
+    const fieldQueries = [];
+    
+    // 요청에서 모든 필드 파라미터 추출
+    for (const key in req.query) {
+      // 기본 파라미터 제외
+      if (key !== 'isPopup') {
+        // _exists 필드는 값의 존재 여부만 확인
+        if (key.endsWith('_exists') && req.query[key] === 'true') {
+          const fieldName = key.replace('_exists', '');
+          
+          fieldQueries.push({
+            [`eventParams`]: { 
+              $elemMatch: { 
+                [fieldName]: { $exists: true, $ne: null, $ne: "" }
+              }
+            }
+          });
+        } 
+        // 일반 필드는 포함 검색
+        else if (!key.endsWith('_exists')) {
+          fieldQueries.push({
+            [`eventParams`]: { 
+              $elemMatch: { 
+                [key]: { $regex: `.*${req.query[key]}.*`, $options: 'i' } 
+              }
+            }
+          });
+        }
+      }
+    }
+    
+    // 필드 쿼리 조건이 있으면 $and로 처리
+    if (fieldQueries.length > 0) {
+      matchCondition['$and'] = fieldQueries;
+    }
+    
+    // URL 목록 조회 (중복 제거)
+    const urls = await TaggingMap.aggregate([
+      { $match: matchCondition },
+      { $group: { _id: "$URL", url: { $first: "$URL" } } },
+      { $project: { _id: 0, url: 1 } },
+      { $sort: { url: 1 } }
+    ]);
     
     res.json(urls);
   } catch (error) {
     console.error('Error fetching URLs:', error);
-    res.status(500).send('Error fetching URLs');
+    res.status(500).send({ error: 'URL 목록을 가져오는데 실패했습니다.' });
   }
 });
 
 // 특정 PAGETITLE, EVENTTYPE, URL의 시간 목록을 가져오는 API
+// 필터링된 타임스탬프 목록 API 엔드포인트 수정
 app.get('/api/times/:pagetitle/:eventtype/:url', async (req, res) => {
   try {
-    const { pagetitle, eventtype } = req.params;
-    let url = req.params.url;
+    const { pagetitle, eventtype, url } = req.params;
+    const isPopup = req.query.isPopup === 'true';
+    const decodedUrl = decodeURIComponent(url);
     
-    // URL 디코딩 처리
-    url = decodeURIComponent(url);
+    if (!pagetitle || !eventtype || !url) {
+      return res.status(400).json({ error: '페이지 제목, 이벤트 유형, URL은 필수입니다.' });
+    }
+
+    // 기본 쿼리 조건
+    const matchCondition = {
+      PAGETITLE: pagetitle,
+      EVENTTYPE: eventtype,
+      URL: decodedUrl
+    };
     
-    // 모든 타임스탬프 가져오기
-    const documents = await TaggingMap.find({
-      PAGETITLE: pagetitle, 
-      EVENTTYPE: eventtype, 
-      URL: url
-    }).sort({ TIME: -1 });
+    // 팝업 필터 조건 처리
+    if (isPopup) {
+      matchCondition['eventParams.EVENTNAME'] = { $in: ['popup_view', 'popup_click'] };
+    }
     
-    // 각 타임스탬프에 팝업 정보 추가
-    const timesWithPopupInfo = documents.map(doc => {
-      // eventParams 배열에서 popup_view 또는 popup_click이 있는지 확인
-      const hasPopup = doc.eventParams.some(param => 
-        param.EVENTNAME === 'popup_view' || param.EVENTNAME === 'popup_click'
-      );
-      
-      return {
-        time: doc.TIME,
-        timestamp: doc.timestamp || doc.TIME,
-        hasPopup: hasPopup
-      };
-    });
+    // 고급 검색 필터 처리
+    const fieldQueries = [];
     
-    res.json(timesWithPopupInfo);
+    // 요청에서 모든 필드 파라미터 추출
+    for (const key in req.query) {
+      // 기본 파라미터 제외
+      if (key !== 'isPopup') {
+        // _exists 필드는 값의 존재 여부만 확인
+        if (key.endsWith('_exists') && req.query[key] === 'true') {
+          const fieldName = key.replace('_exists', '');
+          
+          fieldQueries.push({
+            [`eventParams`]: { 
+              $elemMatch: { 
+                [fieldName]: { $exists: true, $ne: null, $ne: "" }
+              }
+            }
+          });
+        } 
+        // 일반 필드는 포함 검색
+        else if (!key.endsWith('_exists')) {
+          fieldQueries.push({
+            [`eventParams`]: { 
+              $elemMatch: { 
+                [key]: { $regex: `.*${req.query[key]}.*`, $options: 'i' } 
+              }
+            }
+          });
+        }
+      }
+    }
+    
+    // 필드 쿼리 조건이 있으면 $and로 처리
+    if (fieldQueries.length > 0) {
+      matchCondition['$and'] = fieldQueries;
+    }
+    
+    // 타임스탬프 목록 조회 (중복 제거, 최신순 정렬)
+    const times = await TaggingMap.aggregate([
+      { $match: matchCondition },
+      { $group: { _id: "$TIME", timestamp: { $first: "$TIME" } } },
+      { $project: { _id: 0, timestamp: 1 } },
+      { $sort: { timestamp: -1 } }
+    ]);
+    
+    res.json(times);
   } catch (error) {
     console.error('Error fetching times:', error);
-    res.status(500).send('Error fetching times');
+    res.status(500).send({ error: '타임스탬프 목록을 가져오는데 실패했습니다.' });
   }
 });
 
