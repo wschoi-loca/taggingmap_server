@@ -168,7 +168,7 @@
 </template>
 
 <script>
-import titleMapping from '@/assets/title_mapping.json'; // 한글 타이틀 매핑 파일 
+import PathMappingService from '@/services/PathMappingService'; // 경로 매핑 서비스 import
 
 export default {
   name: 'HomeView',
@@ -243,9 +243,10 @@ export default {
   },
   
   computed: {
-        // 한글 타이틀 가져오기
+    // PathMappingService를 사용하여 한글 타이틀 가져오기
     koreanTitle() {
-      return titleMapping[this.pageTitle] || ''; // 매핑에 없으면 빈 문자열 반환
+      // PathMappingService에서 영문 타이틀에 해당하는 한글 타이틀 가져오기
+      return PathMappingService.getKoreanTitle(this.pageTitle);
     },
     hasActiveFilters() {
       if (this.advancedSearchFilters.eventType) return true;
