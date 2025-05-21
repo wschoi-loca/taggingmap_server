@@ -1522,4 +1522,49 @@ button:hover {
   border: 1px solid #ddd;
   border-radius: 4px;
 }
+
+/* 적용 및 초기화, 취소 버튼 스타일 */
+.reset-button, .cancel-button {
+  padding: 6px 12px; /* 패딩 축소 */
+  background-color: #f8f9fa;
+  color: #6c757d;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px; /* 폰트 크기 최적화 */
+}
+
+.reset-button:hover, .cancel-button:hover {
+  background-color: #e9ecef;
+}
+
+.apply-button, .delete-confirm-button {
+  padding: 6px 12px; /* 패딩 축소 */
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px; /* 폰트 크기 최적화 */
+}
+
+.apply-button {
+  background-color: #4CAF50;
+}
+
+.apply-button:hover {
+  background-color: #388E3C;
+}
+
+.delete-confirm-button {
+  background-color: #dc3545;
+}
+
+.delete-confirm-button:hover:not(:disabled) {
+  background-color: #c82333;
+}
+
+.delete-confirm-button:disabled {
+  background-color: #e9a0a8;
+  cursor: not-allowed;
+}
 </style>
