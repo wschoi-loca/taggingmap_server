@@ -216,6 +216,8 @@
 
 <script>
 import axios from 'axios';
+// PageDetailView.vue의 data와 created, computed 섹션 수정
+import PathMappingService from '@/services/PathMappingService';
 
 export default {
   name: 'PageDetailView',
@@ -228,6 +230,7 @@ export default {
       taggingMaps: [],
       urls: [],
       times: [],
+      pathMappings: {},
       selectedEventType: 'visibility', // 기본값을 'visibility'로 설정
       selectedUrl: '',
       selectedTimestamp: '',
@@ -364,7 +367,8 @@ export default {
     }
   },
   computed: {
-    // URL 경로에서 PAGETITLE 형식 계산
+    
+    // URL 경로에서 PAGETITLE 형식 계산 (기존 코드)
     pagetitle() {
       let path = this.subdomain || '';
       
@@ -374,12 +378,19 @@ export default {
       
       return path;
     },
-    
-    // 사용자 친화적 형태로 PAGETITLE 포맷팅
+
+    // 사용자 친화적인 한글 제목을 포함하는 형식으로 PAGETITLE 포맷팅
     formattedPagetitle() {
-      return this.pagetitle.replace(/>/g, '>');
+      const englishTitle = this.pagetitle;
+      const koreanTitle = this.pathMappings[englishTitle] || '';
+      
+      if (koreanTitle) {
+        return `${englishTitle} | ${koreanTitle}`;
+      }
+      
+      return englishTitle;
     },
-    
+
     // 정렬된 컬럼 목록 계산
     sortedColumns() {
       if (!this.taggingMaps || this.taggingMaps.length === 0 || !this.taggingMaps[0].eventParams) {
@@ -431,7 +442,17 @@ export default {
       return filters;
     }
   },
-  created() {
+  async created() {
+    try {
+      // 경로 매핑 데이터 로드
+      this.pathMappings = await PathMappingService.loadMappings();
+      console.log("경로 매핑 데이터 로드 완료:", Object.keys(this.pathMappings).length);
+    } catch (error) {
+      console.error('경로 매핑 데이터 로드 실패:', error);
+      // 오류가 발생해도 기본 기능은 계속 작동하도록 함
+      this.pathMappings = {};
+    }
+    
     // URL 쿼리 파라미터 확인
     const urlParam = this.$route.query.url;
     const eventTypeParam = this.$route.query.eventType; // 파라미터 이름 변경

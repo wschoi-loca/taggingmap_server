@@ -26,5 +26,8 @@
     "node": "18.x"
   },
   "author": "wschoi-loca",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "raw-loader": "^4.0.2"
+  }
 }
