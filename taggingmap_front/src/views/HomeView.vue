@@ -68,7 +68,7 @@
             :to="generateDetailRoute(pageTitle)" 
             class="page-link"
           >
-            {{ pageTitle }} {{ koreanTitle ? '| ' + koreanTitle : '' }}
+            {{ pageTitle }} {{ getKoreanTitle(pageTitle) ? '| ' + getKoreanTitle(pageTitle) : '' }}
           </router-link>
         </h3>
 
@@ -243,11 +243,6 @@ export default {
   },
   
   computed: {
-    // PathMappingService를 사용하여 한글 타이틀 가져오기
-    koreanTitle() {
-      // PathMappingService에서 영문 타이틀에 해당하는 한글 타이틀 가져오기
-      return PathMappingService.getKoreanTitle(this.pageTitle);
-    },
     hasActiveFilters() {
       if (this.advancedSearchFilters.eventType) return true;
       
@@ -357,6 +352,11 @@ export default {
       } finally {
         this.loading = false;
       }
+    },
+
+    // 한글 타이틀 가져오기 (computed에서 메서드로 변경)
+    getKoreanTitle(pageTitle) {
+      return PathMappingService.getKoreanTitle(pageTitle);
     },
     
     // 검색 관련 메소드
