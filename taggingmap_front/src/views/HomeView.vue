@@ -173,8 +173,11 @@ export default {
   data() {
     // 검색 가능한 모든 필드 정의
     const fieldsList = [
+      "EVENTNAME",
       "LABEL_TEXT",
       "PAGE_MKT_CONTS_ID",
+      "PAGEPATH",
+      "PAGETITLE",
       "CATEGORY_DEPTH1",
       "CATEGORY_DEPTH2",
       "CATEGORY_DEPTH3",
@@ -200,6 +203,7 @@ export default {
       "popup_message",
       "popup_button",
       "popup_class",
+      "AUTP_TAG_YN",
       "TIME"
     ];
     
