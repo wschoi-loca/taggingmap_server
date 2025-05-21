@@ -290,7 +290,6 @@ app.get('/api/urls/:pagetitle/:eventtype', async (req, res) => {
 });
 
 // 특정 PAGETITLE, EVENTTYPE, URL의 시간 목록을 가져오는 API
-// 필터링된 타임스탬프 목록 API 엔드포인트 수정
 app.get('/api/times/:pagetitle/:eventtype/:url', async (req, res) => {
   try {
     const { pagetitle, eventtype, url } = req.params;
@@ -350,11 +349,28 @@ app.get('/api/times/:pagetitle/:eventtype/:url', async (req, res) => {
       matchCondition['$and'] = fieldQueries;
     }
     
-    // 타임스탬프 목록 조회 (중복 제거, 최신순 정렬)
+    // 수정된 부분: 타임스탬프 목록과 함께 이벤트 이름을 조회하는 집계 파이프라인
     const times = await TaggingMap.aggregate([
       { $match: matchCondition },
-      { $group: { _id: "$TIME", timestamp: { $first: "$TIME" } } },
-      { $project: { _id: 0, timestamp: 1 } },
+      // 각 문서에서 eventParams 배열 풀어내기
+      { $unwind: "$eventParams" },
+      // TIME과 EVENTNAME을 그룹화
+      {
+        $group: {
+          _id: "$TIME",
+          timestamp: { $first: "$TIME" },
+          eventNames: { $addToSet: "$eventParams.EVENTNAME" }
+        }
+      },
+      // 불필요한 필드 제거 및 출력 형식 지정
+      {
+        $project: {
+          _id: 0,
+          timestamp: 1,
+          eventNames: 1
+        }
+      },
+      // 최신순 정렬
       { $sort: { timestamp: -1 } }
     ]);
     

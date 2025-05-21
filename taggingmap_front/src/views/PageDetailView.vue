@@ -86,7 +86,7 @@
           >
             <option value="">타임스탬프 선택</option>
             <option v-for="time in times" :key="time.timestamp" :value="time.timestamp">
-              {{ formatTimestamp(time.timestamp) }} {{ time.hasPopup ? "(popup 포함)" : "" }}
+              {{ formatTimestamp(time.timestamp) }}{{ formatEventNames(time.eventNames) }}
             </option>
           </select>
         </div>
@@ -610,23 +610,18 @@ export default {
             }
           }
           
-          // 시간 목록 가져오기
+          // 시간 목록 가져오기 - 서버가 이제 eventNames를 포함해 반환
           const timesResponse = await axios.get(
             `${baseUrl}/api/times/${this.pagetitle}/${this.selectedEventType}/${encodedUrl}`,
             { params }
           );
           
           // 시간 데이터 처리
-          const timesData = timesResponse.data;
-          
-          // 서버에서 이미 필터링된 결과를 반환하므로 별도의 팝업 필터링 로직 제거
-          
-          // 시간 목록 정렬 (최신순) - 서버에서 정렬되어 있어도 한번 더 클라이언트에서 확인
-          this.times = timesData.sort((a, b) => 
+          this.times = timesResponse.data.sort((a, b) => 
             new Date(b.timestamp) - new Date(a.timestamp)
           );
           
-          console.log('Times loaded:', this.times.length);
+          console.log('Times loaded with event names:', this.times);
           
           // 기본 timestamp 설정 (최신 시간)
           if (this.times.length > 0) {
@@ -710,7 +705,13 @@ export default {
         }
       },
       
-      // 필터 조건이 적용된 타임스탬프 목록 로드 메서드 추가
+      // 이벤트 이름 목록을 포맷팅하는 함수
+      formatEventNames(eventNames) {
+        if (!eventNames || eventNames.length === 0) return '';
+        return ` | ${eventNames.join(' | ')}`;
+      },
+
+      // 필터 조건이 적용된 타임스탬프 목록 로드 메서드
       async handleUrlChangeWithFilters() {
         try {
           this.selectedTimestamp = '';
@@ -735,18 +736,22 @@ export default {
           }
           
           // 필터가 적용된 시간 목록 가져오기
+          // 서버에서 이제 timestamp와 eventNames를 포함하여 반환
           const timesResponse = await axios.get(
             `${baseUrl}/api/times/${this.pagetitle}/${this.selectedEventType}/${encodedUrl}`,
             { params }
           );
           
-          // 시간 데이터 처리
+          // 시간 데이터 처리 - 서버에서 반환된 형태 그대로 사용
+          // (각 항목은 timestamp와 eventNames 배열을 포함)
           const timesData = timesResponse.data;
           
           // 시간 목록 정렬 (최신순)
           this.times = timesData.sort((a, b) => 
             new Date(b.timestamp) - new Date(a.timestamp)
           );
+          
+          console.log('Filtered times loaded with event names:', this.times);
           
           // 기본 timestamp 설정 (최신 시간)
           if (this.times.length > 0) {
