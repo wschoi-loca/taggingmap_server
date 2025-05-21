@@ -186,6 +186,7 @@ export default {
       "CATEGORY_DEPTH9",
       "CATEGORY_DEPTH10",
       "CONTENT_NM",
+      "SUB_CONTENT_ID",
       "SUB_CTS_ID1",
       "SUB_CTS_ID2",
       "SUB_CTS_ID3",
@@ -198,7 +199,8 @@ export default {
       "VERTICAL_INDEX",
       "popup_message",
       "popup_button",
-      "popup_class"
+      "popup_class",
+      "TIME"
     ];
     
     // 필드별 초기 검색 필터 객체 생성
