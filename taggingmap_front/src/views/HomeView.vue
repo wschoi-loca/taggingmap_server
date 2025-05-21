@@ -68,7 +68,7 @@
             :to="generateDetailRoute(pageTitle)" 
             class="page-link"
           >
-            {{ pageTitle }}
+            {{ pageTitle }} {{ koreanTitle ? '| ' + koreanTitle : '' }}
           </router-link>
         </h3>
 
@@ -168,6 +168,8 @@
 </template>
 
 <script>
+import titleMapping from '@/assets/title_mapping.json'; // 한글 타이틀 매핑 파일 
+
 export default {
   name: 'HomeView',
   data() {
@@ -241,6 +243,10 @@ export default {
   },
   
   computed: {
+        // 한글 타이틀 가져오기
+    koreanTitle() {
+      return titleMapping[this.pageTitle] || ''; // 매핑에 없으면 빈 문자열 반환
+    },
     hasActiveFilters() {
       if (this.advancedSearchFilters.eventType) return true;
       
