@@ -86,7 +86,26 @@ export default createStore({
               } else {
                 // vue3-google-oauth2 인스턴스 사용
                 const googleUser = await gAuthInstance.signIn();
-                // 위와 동일한 로직 계속...
+                // googleUser 데이터 활용
+                const idToken = googleUser.getAuthResponse().id_token;
+                
+                // 서버에 인증 요청
+                const response = await fetch('/api/auth/google', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idToken })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('서버 인증 실패: ' + response.status);
+                }
+                
+                const data = await response.json();
+                commit('setToken', data.token);
+                commit('setUser', data.user);
+                commit('setUserChecked', true);
+                commit('setLoading', false);
+                return data.user;
               }
             } catch (error) {
               commit('setLoading', false);
