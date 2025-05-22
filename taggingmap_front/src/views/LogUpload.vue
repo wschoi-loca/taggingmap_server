@@ -412,6 +412,150 @@
         selectedFile: null,
         previewUrl: null,
         
+        // 필드 매핑 규칙
+        fieldMappings: {
+          "ep_category": "EVENTCATEGORY",
+          "ep_action": "EVENTACTION",
+          "ep_label": "EVENTLABEL",
+          "ep_label_text": "LABEL_TEXT",
+          "ep_category_depth1": "CATEGORY_DEPTH1",
+          "ep_category_depth2": "CATEGORY_DEPTH2",
+          "ep_category_depth3": "CATEGORY_DEPTH3",
+          "ep_category_depth4": "CATEGORY_DEPTH4",
+          "ep_category_depth5": "CATEGORY_DEPTH5",
+          "ep_category_depth6": "CATEGORY_DEPTH6",
+          "ep_category_depth7": "CATEGORY_DEPTH7",
+          "ep_category_depth8": "CATEGORY_DEPTH8",
+          "ep_category_depth9": "CATEGORY_DEPTH9",
+          "ep_category_depth10": "CATEGORY_DEPTH10",
+          "ep_cd25_srch_keyword": "SEAK",
+          "ep_srch_keyword_type": "SRCH_KEYWORD_TYPE",
+          "ep_srch_result": "SEAK_SUS",
+          "ep_cd27_srch_res_clk_nm": "SEAK_TP",
+          "ep_cd12_card_name": "CARD_NAME",
+          "ep_cd64_card_apply_code": "CARD_CODE",
+          "ep_cd65_card_apply_kind": "PAGE_CARDAPL_KND",
+          "ep_cd13_fn_pd_nm": "PAGE_FN_PD_NM",
+          "ep_cd17_fn_loan_amt": "PAGE_FN_LOAN_AMT",
+          "ep_cd19_rvo_egm_stt_rt": "PAGE_RVO_EGM_STT_RT",
+          "ep_cd20_rvo_egm_stt_te": "PAGE_RVO_EGM_STT_TE",
+          "ep_cd48_pd_apply_nm": "PAGE_PD_APL_LVL",
+          "ep_cd14_cts_nm": "CONTENT_NM",
+          "ep_content_nm1": "CONTENT_NM1",
+          "ep_content_nm2": "CONTENT_NM2",
+          "ep_content_nm3": "CONTENT_NM3",
+          "ep_cd42_cts_id": "PAGE_MKT_CONTS_ID",
+          "ep_cd79_sub_cts_id": "SUB_CONTENT_ID",
+          "ep_sub_cts_id1": "SUB_CONTENT_ID1",
+          "ep_sub_cts_id2": "SUB_CONTENT_ID2",
+          "ep_sub_cts_id3": "SUB_CONTENT_ID3",
+          "ep_sub_cts_id4": "SUB_CONTENT_ID4",
+          "ep_sub_cts_id5": "SUB_CONTENT_ID5",
+          "ep_horizontal_index": "HORIZONTAL_INDEX",
+          "ep_cd101_cts_group1": "CTS_GROUP1",
+          "ep_cd102_cts_group2": "CTS_GROUP2",
+          "ep_cd103_cts_group3": "CTS_GROUP3",
+          "ep_cd104_cts_group4": "CTS_GROUP4",
+          "ep_cd105_cts_group5": "CTS_GROUP5",
+          "ep_cd106_cts_group6": "CTS_GROUP6",
+          "ep_cd107_cts_group7": "CTS_GROUP7",
+          "ep_cd108_cts_group8": "CTS_GROUP8",
+          "ep_cd109_cts_group9": "CTS_GROUP9",
+          "ep_cd110_cts_group10": "CTS_GROUP10",
+          "ep_cd111_cts_group11": "CTS_GROUP11",
+          "ep_cd112_cts_group12": "CTS_GROUP12",
+          "ep_cd113_cts_group13": "CTS_GROUP13",
+          "ep_popup_class": "popup_class",
+          "ep_popup_message": "popup_message",
+          "ep_popup_button": "popup_button",
+          "ep_auto_tag_yn": "AUTO_TAG_YN",
+          "dl": "PAGEPATH",
+          "dt": "PAGETITLE"
+        },
+        
+        // 컬럼 정렬 순서
+        columnOrder: [
+          "SHOT_NUMBER", // 기본 컬럼을 맨 앞에 추가
+          "TIME", 
+          "EVENTNAME",
+          "CATEGORY_DEPTH1",
+          "CATEGORY_DEPTH2",
+          "CATEGORY_DEPTH3",
+          "CATEGORY_DEPTH4",
+          "CATEGORY_DEPTH5",
+          "CATEGORY_DEPTH6",
+          "CATEGORY_DEPTH7",
+          "CATEGORY_DEPTH8",
+          "CATEGORY_DEPTH9",
+          "CATEGORY_DEPTH10",
+          "LABEL_TEXT",
+          "CONTENT_NM",
+          "PAGE_MKT_CONTS_ID",
+          "SUB_CONTENT_ID1",
+          "SUB_CONTENT_ID2",
+          "SUB_CONTENT_ID3",
+          "SUB_CONTENT_ID4",
+          "SUB_CONTENT_ID5",
+          "CONTENT_NM1",
+          "CONTENT_NM2",
+          "CONTENT_NM3",
+          "HORIZONTAL_INDEX",
+          "VERTICAL_INDEX",
+          "POPUP_MESSAGE",
+          "POPUP_BUTTON",
+          "POPUP_CLASS",
+          "AUTO_TAG_YN",
+          "PAGETITLE",
+          "ep_cd77_cur_page_title",
+          "PAGEPATH",
+          "CD123_CUR_PAGE_FULLURL",
+          "CTS_GROUP1",
+          "CTS_GROUP2",
+          "CTS_GROUP3",
+          "CTS_GROUP4",
+          "CTS_GROUP5",
+          "CTS_GROUP6",
+          "CTS_GROUP7",
+          "CTS_GROUP8",
+          "CTS_GROUP9",
+          "CTS_GROUP10",
+          "CTS_GROUP11",
+          "CTS_GROUP12",
+          "CTS_GROUP13",
+          "PAGE_DEPTH1",
+          "PAGE_DEPTH2",
+          "PAGE_DEPTH3",
+          "PAGE_DEPTH4",
+          "PAGE_DEPTH5",
+          "SEAK",
+          "SRCH_KEYWORD_TYPE",
+          "SEAK_SUS",
+          "SEAK_TP",
+          "CARD_NAME",
+          "CARD_CODE",
+          "PAGE_CARDAPL_CODE",
+          "PAGE_CARDAPL_KND",
+          "PAGE_FN_PD_NM",
+          "PAGE_FN_LOAN_AMT",
+          "PAGE_RVO_EGM_STT_RT",
+          "PAGE_RVO_EGM_STT_TE",
+          "PAGE_PD_APL_LVL",
+          "item_id",
+          "item_name",
+          "price",
+          "coupon_yn",
+          "discount",
+          "item_brand",
+          "CHANNEL_TYPE",
+          "EVENTCATEGORY",
+          "EVENTACTION",
+          "EVENTLABEL",
+          "CNO"
+        ],
+        
+        // 기본 표시 컬럼 (수정)
+        defaultVisibleColumns: ["SHOT_NUMBER", "EVENTNAME", "LABEL_TEXT", "CONTENT_NM", "PAGE_MKT_CONTS_ID", "TIME"],
+        
         // 이벤트 파라미터 편집용
         showParamEditor: false,
         currentEntryIndex: null,
@@ -423,17 +567,22 @@
         
         // 컬럼 관리
         showColumnManagerModal: false,
-        allColumns: ['SHOT_NUMBER', 'EVENTNAME', 'LABEL_TEXT', 'PAGEPATH', 'PAGETITLE', 'TIME', 'CATEGORY_DEPTH1', 'PAGE_MKT_CONTS_ID'],
-        selectedColumns: ['SHOT_NUMBER', 'EVENTNAME', 'LABEL_TEXT', 'TIME'],
+        allColumns: [], // 실제 데이터에서 동적으로 채워질 것임
+        selectedColumns: [], // 기본 컬럼으로 초기화될 것임
         columnDisplayNames: {
           'SHOT_NUMBER': '순번',
           'EVENTNAME': '이벤트명',
           'LABEL_TEXT': '라벨 텍스트',
+          'CONTENT_NM': '컨텐츠명',
+          'PAGE_MKT_CONTS_ID': '컨텐츠 ID',
+          'TIME': '시간',
           'PAGEPATH': '페이지 경로',
           'PAGETITLE': '페이지 타이틀',
-          'TIME': '시간',
-          'CATEGORY_DEPTH1': '카테고리 1',
-          'PAGE_MKT_CONTS_ID': '컨텐츠 ID'
+          'CATEGORY_DEPTH1': '카테고리1',
+          'CATEGORY_DEPTH2': '카테고리2',
+          'CATEGORY_DEPTH3': '카테고리3',
+          'HORIZONTAL_INDEX': '가로 인덱스',
+          'AUTO_TAG_YN': '자동 태깅'
         },
         newColumnName: '',
         managingEntryIndex: null,
@@ -448,9 +597,20 @@
         }
       };
     },
+    created() {
+      // 기본 선택 컬럼 설정
+      this.selectedColumns = [...this.defaultVisibleColumns];
+    },
     computed: {
       visibleColumns() {
-        return this.selectedColumns;
+        // 선택된 컬럼을 정렬 순서에 맞게 반환
+        return this.selectedColumns
+          .slice()
+          .sort((a, b) => {
+            const indexA = this.columnOrder.indexOf(a);
+            const indexB = this.columnOrder.indexOf(b);
+            return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
+          });
       },
       
       eventTypeSummary() {
@@ -505,6 +665,9 @@
           const isoNow = now.toISOString();
           const formattedTime = this.formatTime(isoNow);
           
+          // 모든 필드를 수집하여 allColumns 업데이트
+          const allFields = new Set(['SHOT_NUMBER', 'EVENTNAME', 'LABEL_TEXT', 'PAGEPATH', 'PAGETITLE', 'TIME']);
+          
           this.editableParsedResult.forEach(entry => {
             entry.TIME = isoNow;
             entry.timestamp = isoNow;
@@ -522,6 +685,11 @@
               if (!Object.prototype.hasOwnProperty.call(param, 'LABEL_TEXT')) {
                 param.LABEL_TEXT = '(라벨 없음)';
               }
+              
+              // 모든 필드를 수집
+              Object.keys(param).forEach(key => {
+                allFields.add(key);
+              });
             });
             
             // SHOT_NUMBER 순서대로 정렬
@@ -532,6 +700,14 @@
               param.SHOT_NUMBER = idx;
             });
           });
+          
+          // allColumns 업데이트 (컬럼 정렬 순서 적용)
+          this.allColumns = Array.from(allFields)
+            .sort((a, b) => {
+              const indexA = this.columnOrder.indexOf(a);
+              const indexB = this.columnOrder.indexOf(b);
+              return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
+            });
           
           this.statusMessage = '로그 파싱 완료! 데이터를 확인하고 필요한 경우 수정하세요.';
           this.currentStep = 2;
@@ -592,8 +768,20 @@
             for (const event of logData.log_body) {
               // MongoDB 스키마에 맞게 변환
               const eventType = this.determineEventType(event.en);
-              const pagetitle = logData.dt || logData.screen_name || '';
-              const url = logData.dl || '';
+              let pagetitle = "";
+              let url = "";
+              
+              // dl, dt 필드를 매핑 규칙에 따라 처리
+              if (logData.dt) {
+                pagetitle = logData.dt;
+              } else if (logData.screen_name) {
+                pagetitle = logData.screen_name;
+              }
+              
+              if (logData.dl) {
+                url = logData.dl;
+              }
+              
               const time = logData.timestamp || new Date().toISOString();
               
               // eventParams 배열 생성
@@ -610,14 +798,20 @@
                   TIME: this.formatTime(time)
                 };
                 
-                // 나머지 eventParams 필드 추가
-                for (const [key, value] of Object.entries(event.eventParams)) {
-                  // ep_ 접두어 제거 및 필드 이름 정규화
-                  const fieldName = key.startsWith('ep_') 
-                    ? this.normalizeFieldName(key.substring(3)) 
-                    : this.normalizeFieldName(key);
-                  
-                  mainParam[fieldName] = value;
+                // 나머지 eventParams 필드 추가 (매핑 규칙 적용)
+                this.processEventParams(mainParam, event.eventParams);
+                
+                // 상품 정보 처리 (items 배열이 있는 경우)
+                if (event.eventParams && event.eventParams.items && Array.isArray(event.eventParams.items)) {
+                  for (const item of event.eventParams.items) {
+                    // 상품 정보 필드 추가
+                    if (item.item_id) mainParam.item_id = item.item_id;
+                    if (item.item_name) mainParam.item_name = item.item_name;
+                    if (item.price) mainParam.price = item.price;
+                    if (item.coupon) mainParam.coupon_yn = item.coupon;
+                    if (item.discount) mainParam.discount = item.discount;
+                    if (item.item_brand) mainParam.item_brand = item.item_brand;
+                  }
                 }
                 
                 eventParams.push(mainParam);
@@ -649,6 +843,25 @@
         return logEntries;
       },
       
+      // 이벤트 파라미터 처리 및 매핑
+      processEventParams(mainParam, eventParamsObj) {
+        // eventParams 객체의 각 키-값 쌍을 처리
+        for (const [key, value] of Object.entries(eventParamsObj)) {
+          if (key === 'items' && Array.isArray(value)) {
+            // items 배열은 별도로 처리됨
+            continue;
+          }
+          
+          // 매핑 규칙 적용
+          const normalizedKey = this.normalizeFieldName(key);
+          
+          // 정규화된 키가 유효한 경우에만 추가
+          if (normalizedKey) {
+            mainParam[normalizedKey] = value;
+          }
+        }
+      },
+      
       parseIOSLog(logText) {
         // iOS 로그 파싱 로직
         const logEntries = [];
@@ -666,8 +879,20 @@
             for (const event of logData.log_body) {
               // MongoDB 스키마에 맞게 변환
               const eventType = this.determineEventType(event.en);
-              const pagetitle = logData.dt || logData.screen_name || '';
-              const url = logData.dl || '';
+              let pagetitle = "";
+              let url = "";
+              
+              // dl, dt 필드를 매핑 규칙에 따라 처리
+              if (logData.dt) {
+                pagetitle = logData.dt;
+              } else if (logData.screen_name) {
+                pagetitle = logData.screen_name;
+              }
+              
+              if (logData.dl) {
+                url = logData.dl;
+              }
+              
               const time = logData.timestamp || new Date().toISOString();
               
               // eventParams 배열 생성
@@ -684,31 +909,25 @@
                   TIME: this.formatTime(time)
                 };
                 
-                // 나머지 eventParams 필드 추가
-                for (const [key, value] of Object.entries(event.eventParams)) {
-                  // ep_ 접두어 제거 및 필드 이름 정규화
-                  const fieldName = key.startsWith('ep_') 
-                    ? this.normalizeFieldName(key.substring(3)) 
-                    : this.normalizeFieldName(key);
-                  
-                  // LABEL_TEXT가 없으면 cd14_cts_nm 또는 label 값으로 설정
-                  if (fieldName === 'CD14_CTS_NM' || fieldName === 'LABEL') {
-                    mainParam['LABEL_TEXT'] = mainParam['LABEL_TEXT'] || value;
+                // 나머지 eventParams 필드 추가 (매핑 규칙 적용)
+                this.processEventParams(mainParam, event.eventParams);
+                
+                // 상품 정보 처리 (items 배열이 있는 경우)
+                if (event.eventParams && event.eventParams.items && Array.isArray(event.eventParams.items)) {
+                  for (const item of event.eventParams.items) {
+                    // 상품 정보 필드 추가
+                    if (item.item_id) mainParam.item_id = item.item_id;
+                    if (item.item_name) mainParam.item_name = item.item_name;
+                    if (item.price) mainParam.price = item.price;
+                    if (item.coupon) mainParam.coupon_yn = item.coupon;
+                    if (item.discount) mainParam.discount = item.discount;
+                    if (item.item_brand) mainParam.item_brand = item.item_brand;
                   }
-                  
-                  mainParam[fieldName] = value;
                 }
                 
                 // LABEL_TEXT가 없으면 기본값 설정
                 if (!mainParam['LABEL_TEXT']) {
                   mainParam['LABEL_TEXT'] = '(라벨 없음)';
-                }
-                
-                // 필드 이름에 이미 존재하는 컬럼 추가
-                for (const column of this.allColumns) {
-                  if (!Object.prototype.hasOwnProperty.call(mainParam, column)) {
-                    mainParam[column] = '';
-                  }
                 }
                 
                 eventParams.push(mainParam);
@@ -788,16 +1007,29 @@
         return 'visibility';
       },
       
-      // 필드명 정규화 헬퍼 함수
+      // 필드명 정규화 헬퍼 함수 (매핑 규칙 적용)
       normalizeFieldName(key) {
-        // cd123_user_id2 → USER_ID2
-        // cd4_lgn_yn → LGN_YN
+        // 매핑 규칙이 존재하는 경우
+        if (this.fieldMappings[key]) {
+          return this.fieldMappings[key];
+        }
         
-        // 숫자와 언더스코어 제거
-        const cleanKey = key.replace(/cd\d+_/g, '');
+        // cd123_user_id2 → USER_ID2 형태의 필드 처리
+        if (key.match(/^cd\d+_/)) {
+          // 숫자와 언더스코어 제거
+          const cleanKey = key.replace(/cd\d+_/g, '');
+          // 대문자로 변환
+          return cleanKey.toUpperCase();
+        }
         
-        // 대문자로 변환
-        return cleanKey.toUpperCase();
+        // ep_ 접두어가 있는 필드 처리
+        if (key.startsWith('ep_')) {
+          const cleanKey = key.substring(3);
+          return cleanKey.toUpperCase();
+        }
+        
+        // 그 외에는 그대로 대문자화하여 반환
+        return key.toUpperCase();
       },
       
       // 시간 포맷팅 헬퍼 함수 (YYYYMMDD_HHMMSS 형식)
@@ -844,6 +1076,13 @@
           }
         });
         
+        // 컬럼 정렬 순서 적용
+        this.allColumns.sort((a, b) => {
+          const indexA = this.columnOrder.indexOf(a);
+          const indexB = this.columnOrder.indexOf(b);
+          return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
+        });
+        
         this.showColumnManagerModal = true;
       },
       
@@ -883,13 +1122,20 @@
           });
         }
         
+        // 컬럼 정렬 순서 적용
+        this.allColumns.sort((a, b) => {
+          const indexA = this.columnOrder.indexOf(a);
+          const indexB = this.columnOrder.indexOf(b);
+          return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
+        });
+        
         this.newColumnName = '';
       },
       
       applyColumnChanges() {
         // 선택된 컬럼이 없으면 기본 컬럼 선택
         if (this.selectedColumns.length === 0) {
-          this.selectedColumns = ['SHOT_NUMBER', 'EVENTNAME', 'LABEL_TEXT'];
+          this.selectedColumns = [...this.defaultVisibleColumns];
         }
         
         this.showColumnManagerModal = false;
@@ -981,6 +1227,13 @@
         // allColumns에 없으면 추가
         if (!this.allColumns.includes(fieldName)) {
           this.allColumns.push(fieldName);
+          
+          // 컬럼 정렬 순서 적용
+          this.allColumns.sort((a, b) => {
+            const indexA = this.columnOrder.indexOf(a);
+            const indexB = this.columnOrder.indexOf(b);
+            return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
+          });
         }
         
         // 입력 필드 초기화
