@@ -3,6 +3,7 @@ import App from './App.vue'
 import router from './router'
 import store, { setGoogleAuthInstance } from './store' // 스토어 및 설정 함수 가져오기
 import vue3GoogleOauth from 'vue3-google-oauth2'
+import '@fortawesome/fontawesome-free/css/all.min.css';
 
 const app = createApp(App)
 
