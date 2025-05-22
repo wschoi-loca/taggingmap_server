@@ -2,6 +2,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import PageDetailView from '../views/PageDetailView.vue'
+// 업로드 컴포넌트 임포트
+import LogUpload from '../views/LogUpload.vue';
 
 const routes = [
   {
@@ -12,6 +14,11 @@ const routes = [
   {
     path: '/home',
     redirect: '/'
+  },
+  {
+    path: '/upload',
+    name: 'LogUpload',
+    component: LogUpload
   },
   {
     // 첫번째 경로 세그먼트를 subdomain으로 캡처

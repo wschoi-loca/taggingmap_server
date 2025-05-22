@@ -1,14 +1,25 @@
 <template>
   <div id="app">
-    <header>
-      <h1>태깅맵</h1>
-      <nav>
-        <router-link to="/">홈</router-link>
-      </nav>
+    <header class="app-header">
+      <div class="container">
+        <h1 class="app-title">태깅맵 시스템</h1>
+        <nav class="main-nav">
+          <router-link to="/" class="nav-link">홈</router-link>
+          <span class="nav-separator">|</span>
+          <router-link to="/upload" class="nav-link">태깅맵 업로드</router-link>
+        </nav>
+      </div>
     </header>
     
-    <!-- 라우터에 따라 다른 컴포넌트를 표시하는 영역 -->
-    <router-view />
+    <main class="container">
+      <router-view />
+    </main>
+    
+    <footer class="app-footer">
+      <div class="container">
+        <p>&copy; 2025 태깅맵 시스템</p>
+      </div>
+    </footer>
   </div>
 </template>
 
@@ -19,77 +30,51 @@ export default {
 </script>
 
 <style>
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  color: #2c3e50;
-  max-width: 1600px;
-  margin: 0 auto;
-  padding: 20px;
+.app-header {
+  background-color: #f8f9fa;
+  padding: 1rem 0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  margin-bottom: 2rem;
 }
 
-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 30px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #eaeaea;
+.app-title {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #333;
 }
 
-nav {
-  padding: 10px 0;
+.main-nav {
+  margin-top: 0.5rem;
 }
 
-nav a {
-  margin-right: 10px;
-  color: #2c3e50;
+.nav-link {
   text-decoration: none;
-  padding: 5px 10px;
-  border-radius: 4px;
-  transition: background-color 0.2s;
+  color: #007bff;
+  font-weight: 500;
+  padding: 0.25rem 0;
 }
 
-nav a:hover {
-  background-color: #f5f5f5;
+.nav-link:hover {
+  color: #0056b3;
+  text-decoration: underline;
 }
 
-nav a.router-link-active {
-  color: #42b983;
-  font-weight: bold;
+.nav-separator {
+  color: #ccc;
+  margin: 0 0.75rem;
 }
 
-table {
-  border-collapse: collapse;
-  width: 100%;
-  overflow-x: auto;
-  display: block;
-  margin-bottom: 20px;
+.container {
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 0 15px;
 }
 
-th, td {
-  border: 1px solid #ccc;
-  padding: 8px;
-  text-align: left;
-  font-size: 14px;
-}
-
-th {
-  background-color: #f2f2f2;
-  position: sticky;
-  top: 0;
-}
-
-img {
-  max-width: 100%;
-  height: auto;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-
-.loading, .error {
+.app-footer {
+  margin-top: 2rem;
+  padding: 1rem 0;
+  background-color: #f8f9fa;
+  color: #6c757d;
   text-align: center;
-  padding: 40px 0;
 }
 </style>
