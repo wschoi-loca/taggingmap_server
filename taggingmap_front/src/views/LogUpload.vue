@@ -661,10 +661,11 @@
         const fieldName = this.newFieldName.trim().toUpperCase();
         
         // 이미 존재하는 필드인지 확인
-        if (this.currentParam.hasOwnProperty(fieldName)) {
-          alert(`'${fieldName}' 필드가 이미 존재합니다.`);
-          return;
+        if (Object.prototype.hasOwnProperty.call(this.currentParam, fieldName)) {
+            alert(`'${fieldName}' 필드가 이미 존재합니다.`);
+            return;
         }
+
         
         // 새 필드 추가
         this.$set(this.currentParam, fieldName, this.newFieldValue);
