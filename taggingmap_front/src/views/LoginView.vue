@@ -1,69 +1,52 @@
 <template>
-    <div class="login-page">
-      <div class="login-container">
-        <h1>태깅맵 로그인</h1>
-        <p class="subtitle">Google Workspace 계정으로 로그인하세요</p>
-        
-        <div v-if="error" class="error-message">
-          {{ error }}
-        </div>
-        
-        <button @click="handleLogin" class="google-login-btn">
-          <img src="@/assets/google-icon.svg" alt="Google" />
-          Google Workspace로 로그인
-        </button>
+  <div class="login-page">
+    <div class="login-container">
+      <h1>태깅맵 로그인</h1>
+      <p class="subtitle">Google Workspace 계정으로 로그인하세요</p>
+      
+      <div v-if="error" class="error-message">
+        {{ error }}
       </div>
+      
+      <button @click="handleLogin" class="google-login-btn">
+        <img src="@/assets/google-icon.svg" alt="Google" />
+        Google Workspace로 로그인
+      </button>
     </div>
-  </template>
+  </div>
+</template>
+
   
-  <script>
-  import { mapActions } from 'vuex';
-  
-  export default {
-    name: 'LoginView',
-    data() {
-      return {
-        error: null
-      };
-    },
-    methods: {
-      ...mapActions(['loginWithGoogle']),
-      async handleLogin() {
-        try {
-          this.error = null;
-          
-          // gapi가 초기화되었는지 확인
-          if (!window.gapi || !window.gapi.auth2) {
-            console.error('Google API가 로드되지 않았습니다.');
-            this.error = 'Google 로그인을 초기화하는 중입니다. 잠시 후 다시 시도해주세요.';
-            return;
-          }
-          
-          // auth2가 초기화되었는지 확인
-          if (!window.gapi.auth2.getAuthInstance()) {
-            console.error('Google Auth API가 초기화되지 않았습니다.');
-            this.error = 'Google 로그인을 초기화하는 중입니다. 잠시 후 다시 시도해주세요.';
-            
-            // 재초기화 시도
-            gapi.auth2.init({
-              client_id: '434460786285-svua7r71njstq0rdqmuacth5tlq6d49d.apps.googleusercontent.com'
-            });
-            return;
-          }
-          
-          await this.loginWithGoogle();
-          
-          // 저장된 경로가 있으면 해당 경로로, 없으면 홈으로
-          const redirectPath = this.$store.state.auth.redirectPath || '/';
-          this.$router.push(redirectPath);
-        } catch (error) {
-          console.error('로그인 실패:', error);
-          this.error = '로그인에 실패했습니다. 다시 시도해주세요.';
-        }
+<script>
+import { mapActions } from 'vuex';
+
+export default {
+  name: 'LoginView',
+  data() {
+    return {
+      error: null
+    };
+  },
+  methods: {
+    ...mapActions(['loginWithGoogle']),
+    async handleLogin() {
+      try {
+        this.error = null;
+        
+        // gapi 직접 참조 대신 vue3-google-oauth2 플러그인 사용
+        await this.loginWithGoogle();
+        
+        // 저장된 경로가 있으면 해당 경로로, 없으면 홈으로
+        const redirectPath = this.$store.state.auth.redirectPath || '/';
+        this.$router.push(redirectPath);
+      } catch (error) {
+        console.error('로그인 실패:', error);
+        this.error = '로그인에 실패했습니다. 다시 시도해주세요.';
       }
     }
-  };
-  </script>
+  }
+};
+</script>
   
   <style scoped>
   .login-page {
