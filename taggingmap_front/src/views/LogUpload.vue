@@ -488,7 +488,6 @@
         // 컬럼 정렬 순서
         columnOrder: [
           "SHOT_NUMBER", // 기본 컬럼을 맨 앞에 추가
-          "TIME", 
           "EVENTNAME",
           "CATEGORY_DEPTH1",
           "CATEGORY_DEPTH2",
@@ -562,6 +561,7 @@
           "EVENTCATEGORY",
           "EVENTACTION",
           "EVENTLABEL",
+          "TIME", 
           "CNO"
         ],
         
