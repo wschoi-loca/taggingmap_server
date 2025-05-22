@@ -163,13 +163,13 @@
                             <td class="td-actions">
                                 <div class="action-buttons">
                                     <button @click="editEventParam(entryIndex, paramIndex)" class="btn-icon" title="편집">
-                                    <i class="fas fa-edit"></i>
+                                    <i class="fas fa-edit"></i> 편집
                                     </button>
                                     <button @click="duplicateEventParam(entryIndex, paramIndex)" class="btn-icon" title="복제">
-                                    <i class="fas fa-copy"></i>
+                                    <i class="fas fa-copy"></i> 복제
                                     </button>
                                     <button @click="removeEventParam(entryIndex, paramIndex)" class="btn-icon" title="삭제">
-                                    <i class="fas fa-trash"></i>
+                                    <i class="fas fa-trash"></i> 삭제
                                     </button>
                                 </div>
                             </td>
