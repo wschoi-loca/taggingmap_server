@@ -1,14 +1,21 @@
 <template>
   <div class="page-detail">
     <div class="page-detail">
-      <!-- 제목과 삭제 버튼을 함께 배치한 헤더 섹션 -->
+      <!-- 제목과 수정/삭제 버튼을 함께 배치한 헤더 섹션 -->
       <div class="header-section">
         <h1>{{ formattedPagetitle }}</h1>
-        <button v-if="taggingMaps.length > 0" 
-          class="delete-btn" 
-          @click="confirmDelete">
-          태깅맵 삭제
-        </button>
+        <div class="header-buttons">
+          <button v-if="taggingMaps.length > 0" 
+            class="edit-btn" 
+            @click="startEdit">
+            태깅맵 수정
+          </button>
+          <button v-if="taggingMaps.length > 0" 
+            class="delete-btn" 
+            @click="confirmDelete">
+            태깅맵 삭제
+          </button>
+        </div>
       </div>
       
       <!-- 삭제 확인 모달 -->
@@ -31,6 +38,66 @@
             <button class="delete-confirm-button" @click="deleteTaggingMap" :disabled="isDeleting">
               <span v-if="isDeleting">삭제 중...</span>
               <span v-else>삭제</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 수정 모달 -->
+      <div v-if="isEditing" class="modal-overlay">
+        <div class="modal-content edit-modal">
+          <div class="modal-header">
+            <h3>태깅맵 수정</h3>
+            <button class="close-button" @click="cancelEdit">&times;</button>
+          </div>
+          <div class="modal-body">
+            <!-- 스크린샷 교체 영역 -->
+            <div class="edit-image-section">
+              <h4>스크린샷</h4>
+              <div class="image-preview">
+                <img :src="editImage || taggingMaps[0].image" alt="Screenshot" />
+              </div>
+              <input type="file" ref="imageInput" accept="image/*" @change="handleImageChange" />
+              <button class="change-image-btn" @click="triggerImageSelect">이미지 변경</button>
+            </div>
+            
+            <!-- 데이터 편집 영역 -->
+            <div class="edit-data-section">
+              <h4>데이터 편집</h4>
+              <div class="table-container">
+                <table class="edit-table">
+                  <thead>
+                    <tr>
+                      <th>SHOT_NUMBER</th>
+                      <th v-for="column in editColumns" :key="column">{{ column }}</th>
+                      <th class="column-add-cell">
+                        <button class="add-column-btn" @click="addColumn" title="컬럼 추가">+</button>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(row, index) in editData" :key="index">
+                      <td>{{ row.SHOT_NUMBER }}</td>
+                      <td v-for="column in editColumns" :key="`${index}-${column}`">
+                        <input type="text" v-model="row[column]" class="cell-input" />
+                      </td>
+                      <td class="action-cell">
+                        <button class="remove-row-btn" @click="removeRow(index)" title="로우 삭제">×</button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <div class="add-row-container">
+                  <button class="add-row-btn" @click="addRow">+ 로우 추가</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="cancel-button" @click="cancelEdit">취소</button>
+            <button class="save-button" @click="saveChanges" :disabled="isSaving">
+              <span v-if="isSaving">저장 중...</span>
+              <span v-else>저장</span>
             </button>
           </div>
         </div>
@@ -363,7 +430,14 @@ export default {
       advancedSearchFilters: {
         fields: {}
       },
-      initialAdvancedFilters: {}
+      initialAdvancedFilters: {},
+      // 수정 관련 상태 변수
+      isEditing: false,
+      isSaving: false,
+      editImage: null,
+      editImageFile: null,
+      editColumns: [],
+      editData: []
     }
   },
   computed: {
@@ -1135,6 +1209,180 @@ export default {
           this.error = '필터링된 데이터를 불러오는데 실패했습니다.';
           this.loading = false;
         }
+      },
+      startEdit() {
+        if (!this.taggingMaps || this.taggingMaps.length === 0) return;
+        
+        // 현재 컬럼 목록 복사
+        this.editColumns = [...this.sortedColumns];
+        
+        // 깊은 복사로 데이터 복사
+        this.editData = JSON.parse(JSON.stringify(this.taggingMaps[0].eventParams));
+        
+        // 수정 모드 활성화
+        this.isEditing = true;
+      },
+      
+      // 수정 취소
+      cancelEdit() {
+        if(confirm('수정을 취소하시겠습니까? 변경된 내용은 저장되지 않습니다.')) {
+          this.isEditing = false;
+          this.editImage = null;
+          this.editImageFile = null;
+          this.editColumns = [];
+          this.editData = [];
+        }
+      },
+      
+      // 이미지 선택 창 열기
+      triggerImageSelect() {
+        this.$refs.imageInput.click();
+      },
+      
+      // 이미지 변경 처리
+      handleImageChange(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        this.editImageFile = file;
+        
+        // 이미지 미리보기
+        const reader = new FileReader();
+        reader.onload = e => {
+          this.editImage = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      },
+      
+      // 컬럼 추가
+      addColumn() {
+        const newColumn = prompt('새 컬럼 이름을 입력하세요:');
+        if (!newColumn || newColumn.trim() === '') return;
+        
+        const formattedColumn = newColumn.trim().toUpperCase();
+        
+        // 중복 확인
+        if (this.editColumns.includes(formattedColumn)) {
+          alert(`'${formattedColumn}' 컬럼이 이미 존재합니다.`);
+          return;
+        }
+        
+        // 컬럼 추가
+        this.editColumns.push(formattedColumn);
+        
+        // 모든 로우에 새 컬럼 추가
+        this.editData.forEach(row => {
+          row[formattedColumn] = '';
+        });
+      },
+      
+      // 로우 추가
+      addRow() {
+        if (this.editData.length === 0) {
+          // 데이터가 없는 경우 초기 로우 생성
+          const currentTime = new Date().toISOString();
+          const newRow = {
+            SHOT_NUMBER: 0,
+            EVENTNAME: this.selectedEventType === 'visibility' ? 'cts_view' : 'cts_click',
+            PAGETITLE: this.taggingMaps[0]?.PAGETITLE || '',
+            PAGEPATH: this.taggingMaps[0]?.URL || '',
+            TIME: this.formatTime(currentTime)
+          };
+          
+          // 모든 컬럼 초기화
+          this.editColumns.forEach(column => {
+            if (!['SHOT_NUMBER', 'EVENTNAME', 'PAGETITLE', 'PAGEPATH', 'TIME'].includes(column)) {
+              newRow[column] = '';
+            }
+          });
+          
+          this.editData.push(newRow);
+          return;
+        }
+        
+        // 마지막 로우 가져오기
+        const lastRow = this.editData[this.editData.length - 1];
+        
+        // 새 로우 생성
+        const newRow = {
+          SHOT_NUMBER: parseInt(lastRow.SHOT_NUMBER) + 1,
+          EVENTNAME: lastRow.EVENTNAME || '',
+          PAGETITLE: lastRow.PAGETITLE || '',
+          PAGEPATH: lastRow.PAGEPATH || '',
+          TIME: lastRow.TIME || ''
+        };
+        
+        // 모든 컬럼 초기화
+        this.editColumns.forEach(column => {
+          if (!['SHOT_NUMBER', 'EVENTNAME', 'PAGETITLE', 'PAGEPATH', 'TIME'].includes(column)) {
+            newRow[column] = '';
+          }
+        });
+        
+        // 로우 추가
+        this.editData.push(newRow);
+      },
+      
+      // 로우 삭제
+      removeRow(index) {
+        if (confirm('이 행을 삭제하시겠습니까?')) {
+          this.editData.splice(index, 1);
+          
+          // SHOT_NUMBER 재정렬
+          this.editData.forEach((row, idx) => {
+            row.SHOT_NUMBER = idx;
+          });
+        }
+      },
+      
+      // 변경사항 저장
+      async saveChanges() {
+        try {
+          if (!this.taggingMaps || this.taggingMaps.length === 0) return;
+          
+          this.isSaving = true;
+          const taggingMapId = this.taggingMaps[0]._id;
+          
+          const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
+          const formData = new FormData();
+          
+          // 데이터 추가
+          formData.append('eventParams', JSON.stringify(this.editData));
+          
+          // 이미지가 변경된 경우 추가
+          if (this.editImageFile) {
+            formData.append('image', this.editImageFile);
+          }
+          
+          // 태깅맵 업데이트 요청
+          const response = await axios.put(`${baseUrl}/api/taggingmaps/${taggingMapId}`, formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data'
+            }
+          });
+          
+          if (response.status === 200) {
+            // 수정 성공
+            alert('태깅맵이 성공적으로 수정되었습니다.');
+            this.isEditing = false;
+            
+            // 수정 상태 초기화
+            this.editImage = null;
+            this.editImageFile = null;
+            this.editColumns = [];
+            this.editData = [];
+            
+            // 현재 페이지 리로드
+            this.fetchFilteredData();
+          } else {
+            throw new Error('수정 요청이 실패했습니다.');
+          }
+        } catch (error) {
+          console.error('태깅맵 수정 중 오류:', error);
+          alert(`수정 실패: ${error.message}`);
+        } finally {
+          this.isSaving = false;
+        }
       }
   }
 }
@@ -1339,11 +1587,11 @@ button:hover {
   padding-bottom: 15px;
 }
 
-.header-section h1 {
-  margin: 0;
-  border-bottom: none;
-  padding-bottom: 0;
+.header-buttons {
+  display: flex;
+  gap: 10px;
 }
+
 
 /* 삭제 버튼 스타일 */
 .delete-btn {
@@ -1359,6 +1607,219 @@ button:hover {
 
 .delete-btn:hover {
   background-color: #c82333;
+}
+
+/* 수정 버튼 스타일 */
+.edit-btn {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.edit-btn:hover {
+  background-color: #0056b3;
+}
+
+/* 수정 모달 스타일 */
+.edit-modal {
+  width: 95%;
+  max-width: 1400px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+/* 스크린샷 영역 */
+.edit-image-section {
+  margin-bottom: 20px;
+}
+
+.edit-image-section h4 {
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.image-preview {
+  margin-bottom: 15px;
+  border: 1px solid #ddd;
+  padding: 10px;
+  text-align: center;
+  background-color: #f9f9f9;
+  border-radius: 4px;
+  max-height: 400px;
+  overflow: hidden;
+}
+
+.image-preview img {
+  max-width: 100%;
+  max-height: 350px;
+  object-fit: contain;
+}
+
+input[type="file"] {
+  display: none;
+}
+
+.change-image-btn {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.change-image-btn:hover {
+  background-color: #5a6268;
+}
+
+/* 데이터 편집 영역 */
+.edit-data-section h4 {
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.table-container {
+  overflow-x: auto;
+  margin-bottom: 20px;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.edit-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.edit-table th {
+  background-color: #f2f2f2;
+  border: 1px solid #ddd;
+  padding: 10px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  text-align: left;
+}
+
+.edit-table td {
+  border: 1px solid #ddd;
+  padding: 5px;
+}
+
+.column-add-cell {
+  width: 50px;
+  text-align: center;
+}
+
+.add-column-btn {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.add-column-btn:hover {
+  background-color: #218838;
+}
+
+.cell-input {
+  width: 100%;
+  padding: 6px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: #f8f9fa;
+}
+
+.cell-input:focus {
+  outline: none;
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.action-cell {
+  width: 40px;
+  text-align: center;
+}
+
+.remove-row-btn {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.remove-row-btn:hover {
+  background-color: #c82333;
+}
+
+.add-row-container {
+  text-align: center;
+  margin-top: 15px;
+  margin-bottom: 10px;
+}
+
+.add-row-btn {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 20px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-size: 14px;
+}
+
+.add-row-btn:hover {
+  background-color: #218838;
+  transform: translateY(-1px);
+}
+
+.save-button {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.save-button:hover:not(:disabled) {
+  background-color: #218838;
+}
+
+.save-button:disabled {
+  background-color: #8fd19e;
+  cursor: not-allowed;
 }
 
 /* 모달 오버레이 스타일 */

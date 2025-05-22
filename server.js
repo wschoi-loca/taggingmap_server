@@ -639,6 +639,47 @@ app.delete('/api/taggingmaps/:id', async (req, res) => {
   }
 });
 
+// PUT /api/taggingmaps/:id
+app.put('/api/taggingmaps/:id', upload.single('image'), async (req, res) => {
+  try {
+    const taggingMapId = req.params.id;
+    
+    // 기존 태깅맵 조회
+    const taggingMap = await TaggingMap.findById(taggingMapId);
+    if (!taggingMap) {
+      return res.status(404).json({ message: '태깅맵을 찾을 수 없습니다.' });
+    }
+    
+    // eventParams 업데이트
+    if (req.body.eventParams) {
+      taggingMap.eventParams = JSON.parse(req.body.eventParams);
+    }
+    
+    // 이미지 업데이트 (있는 경우)
+    if (req.file) {
+      // Cloudinary에 이미지 업로드
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        public_id: taggingMap.image.split('/').pop().split('.')[0], // 기존 이미지와 동일한 이름 사용
+        overwrite: true // 기존 이미지 덮어쓰기
+      });
+      
+      // 임시 파일 삭제
+      fs.unlinkSync(req.file.path);
+      
+      // 이미지 URL 업데이트
+      taggingMap.image = result.secure_url;
+    }
+    
+    // 태깅맵 저장
+    await taggingMap.save();
+    
+    return res.status(200).json({ message: '태깅맵이 성공적으로 업데이트되었습니다.', taggingMap });
+  } catch (error) {
+    console.error('태깅맵 업데이트 오류:', error);
+    return res.status(500).json({ message: '서버 오류가 발생했습니다.', error: error.message });
+  }
+});
+
 // 3. 모든 나머지 요청은 Vue Router가 처리하도록 설정
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'taggingmap_front/dist/index.html'));
