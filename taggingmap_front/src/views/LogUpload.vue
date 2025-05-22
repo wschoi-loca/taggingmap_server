@@ -64,91 +64,138 @@
         </div>
       </div>
       
-      <!-- 2단계: 파싱 결과 편집 -->
+      <!-- 2단계: 파싱 결과 편집 - 양쪽 분할 레이아웃 -->
       <div v-if="currentStep === 2" class="step-container">
-        <div class="alert" :class="{'alert-success': !hasError, 'alert-danger': hasError}">
+        <div class="alert" :class="{'alert-success': !hasError, 'alert-danger': hasError}" v-if="statusMessage">
           {{ statusMessage }}
         </div>
         
-        <div v-if="!hasError && editableParsedResult.length > 0" class="parsed-data-editor">
-          <div v-for="(entry, entryIndex) in editableParsedResult" :key="`entry-${entryIndex}`" class="data-card">
-            <div class="card-header">
-              <h3>태깅맵 데이터 #{{ entryIndex + 1 }}</h3>
-              <div class="card-actions">
-                <button @click="duplicateEntry(entryIndex)" class="btn-icon" title="복제">
-                  <i class="fa fa-copy"></i>
-                </button>
-                <button @click="removeEntry(entryIndex)" class="btn-icon" title="삭제">
-                  <i class="fa fa-trash"></i>
-                </button>
+        <div v-if="!hasError && editableParsedResult.length > 0" class="split-layout">
+          <!-- 왼쪽: 스크린샷 미리보기 -->
+          <div class="left-panel">
+            <div class="screenshot-container">
+              <h3>스크린샷 미리보기</h3>
+              <div v-if="previewUrl" class="screenshot-preview">
+                <img :src="previewUrl" alt="Screenshot preview">
+              </div>
+              <div v-else class="no-screenshot">
+                <i class="fas fa-image"></i>
+                <p>스크린샷이 첨부되지 않았습니다</p>
+                <div class="mt-3">
+                  <input type="file" @change="handleFileUpload" accept="image/*" class="form-control-file">
+                </div>
               </div>
             </div>
-            
-            <div class="form-row">
-              <div class="form-group col-md-4">
-                <label>이벤트 타입:</label>
-                <select v-model="entry.EVENTTYPE" class="form-control">
-                  <option value="visibility">visibility</option>
-                  <option value="click">click</option>
-                </select>
-              </div>
-              
-              <div class="form-group col-md-4">
-                <label>페이지 타이틀:</label>
-                <input type="text" v-model="entry.PAGETITLE" class="form-control" placeholder="페이지 타이틀">
-              </div>
-              
-              <div class="form-group col-md-4">
-                <label>URL:</label>
-                <input type="text" v-model="entry.URL" class="form-control" placeholder="페이지 URL">
+          </div>
+          
+          <!-- 오른쪽: 데이터 편집 패널 -->
+          <div class="right-panel">
+            <div class="data-editor">
+              <div v-for="(entry, entryIndex) in editableParsedResult" :key="`entry-${entryIndex}`" class="data-card">
+                <div class="card-header">
+                  <h3>태깅맵 데이터 #{{ entryIndex + 1 }}</h3>
+                  <div class="card-actions">
+                    <button @click="duplicateEntry(entryIndex)" class="btn-icon" title="복제">
+                      <i class="fas fa-copy"></i>
+                    </button>
+                    <button @click="removeEntry(entryIndex)" class="btn-icon" title="삭제">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </div>
+                
+                <div class="form-row">
+                  <div class="form-group col-md-4">
+                    <label>이벤트 타입:</label>
+                    <select v-model="entry.EVENTTYPE" class="form-control">
+                      <option value="visibility">visibility</option>
+                      <option value="click">click</option>
+                      <option value="popup_click">popup_click</option>
+                    </select>
+                  </div>
+                  
+                  <div class="form-group col-md-4">
+                    <label>페이지 타이틀:</label>
+                    <input type="text" v-model="entry.PAGETITLE" class="form-control" placeholder="페이지 타이틀">
+                  </div>
+                  
+                  <div class="form-group col-md-4">
+                    <label>URL:</label>
+                    <input type="text" v-model="entry.URL" class="form-control" placeholder="페이지 URL">
+                  </div>
+                </div>
+                
+                <!-- 이벤트 파라미터 테이블 관련 컨트롤 -->
+                <div class="table-controls">
+                  <div class="left-controls">
+                    <h4>이벤트 파라미터</h4>
+                  </div>
+                  <div class="right-controls">
+                    <button @click="showColumnManager(entryIndex)" class="btn btn-sm btn-outline-secondary">
+                      <i class="fas fa-columns"></i> 컬럼 관리
+                    </button>
+                    <button @click="addEventParam(entryIndex)" class="btn btn-sm btn-outline-primary">
+                      <i class="fas fa-plus"></i> 파라미터 추가
+                    </button>
+                  </div>
+                </div>
+                
+                <!-- 향상된 이벤트 파라미터 테이블 -->
+                <div class="event-params-table">
+                  <div class="table-responsive">
+                    <table class="table table-bordered table-hover">
+                      <thead>
+                        <tr>
+                          <th class="th-actions">작업</th>
+                          <th v-for="column in visibleColumns" :key="column" :class="['th-' + column.toLowerCase()]">
+                            {{ getColumnDisplayName(column) }}
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="(param, paramIndex) in entry.eventParams" :key="`param-${entryIndex}-${paramIndex}`">
+                          <td class="td-actions">
+                            <div class="action-buttons">
+                              <button @click="editEventParam(entryIndex, paramIndex)" class="btn-icon" title="편집">
+                                <i class="fas fa-edit"></i>
+                              </button>
+                              <button @click="duplicateEventParam(entryIndex, paramIndex)" class="btn-icon" title="복제">
+                                <i class="fas fa-copy"></i>
+                              </button>
+                              <button @click="removeEventParam(entryIndex, paramIndex)" class="btn-icon" title="삭제">
+                                <i class="fas fa-trash"></i>
+                              </button>
+                            </div>
+                          </td>
+                          <td v-for="column in visibleColumns" :key="`${paramIndex}-${column}`">
+                            <template v-if="isEditingCell && editingCell.entryIndex === entryIndex && editingCell.paramIndex === paramIndex && editingCell.column === column">
+                              <input 
+                                v-model="param[column]" 
+                                class="form-control form-control-sm"
+                                @blur="isEditingCell = false" 
+                                @keyup.enter="isEditingCell = false"
+                                v-focus
+                              >
+                            </template>
+                            <template v-else>
+                              <div 
+                                class="editable-cell" 
+                                @click="startEditingCell(entryIndex, paramIndex, column, param[column])"
+                              >
+                                {{ param[column] || '-' }}
+                              </div>
+                            </template>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                
+                <!-- 구분선 -->
+                <hr v-if="entryIndex < editableParsedResult.length - 1">
               </div>
             </div>
-            
-            <div class="section-title">
-              <h4>이벤트 파라미터</h4>
-              <button @click="addEventParam(entryIndex)" class="btn btn-sm btn-outline-primary">
-                파라미터 추가 +
-              </button>
-            </div>
-            
-            <div class="event-params-table">
-              <table class="table">
-                <thead>
-                  <tr>
-                    <th width="80">순번</th>
-                    <th width="140">이벤트명</th>
-                    <th>라벨 텍스트</th>
-                    <th width="100">작업</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(param, paramIndex) in entry.eventParams" :key="`param-${entryIndex}-${paramIndex}`">
-                    <td>
-                      <input type="number" v-model.number="param.SHOT_NUMBER" class="form-control form-control-sm" min="0">
-                    </td>
-                    <td>
-                      <input type="text" v-model="param.EVENTNAME" class="form-control form-control-sm">
-                    </td>
-                    <td>
-                      <input type="text" v-model="param.LABEL_TEXT" class="form-control form-control-sm">
-                    </td>
-                    <td>
-                      <div class="btn-group">
-                        <button @click="editEventParam(entryIndex, paramIndex)" class="btn btn-sm btn-info">
-                          상세
-                        </button>
-                        <button @click="removeEventParam(entryIndex, paramIndex)" class="btn btn-sm btn-danger">
-                          삭제
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            
-            <!-- 구분선 -->
-            <hr v-if="entryIndex < editableParsedResult.length - 1">
           </div>
         </div>
         
@@ -202,7 +249,7 @@
       <div v-if="currentStep === 4" class="step-container">
         <div class="upload-result">
           <div class="success-icon">
-            <i class="fa fa-check-circle"></i>
+            <i class="fas fa-check-circle"></i>
           </div>
           <h3>업로드 완료!</h3>
           <p>{{ statusMessage }}</p>
@@ -221,20 +268,45 @@
             <button @click="closeParamEditor" class="close-btn">&times;</button>
           </div>
           <div class="modal-body">
-            <div class="form-group">
-              <label>SHOT_NUMBER:</label>
-              <input type="number" v-model.number="currentParam.SHOT_NUMBER" class="form-control" min="0">
+            <div class="form-row">
+              <div class="form-group col-md-6">
+                <label>SHOT_NUMBER:</label>
+                <input type="number" v-model.number="currentParam.SHOT_NUMBER" class="form-control" min="0">
+              </div>
+              <div class="form-group col-md-6">
+                <label>EVENTNAME:</label>
+                <select v-model="currentParam.EVENTNAME" class="form-control">
+                  <option value="cts_click">cts_click</option>
+                  <option value="cts_view">cts_view</option>
+                  <option value="popup_click">popup_click</option>
+                </select>
+              </div>
             </div>
             
-            <div class="form-group">
-              <label>EVENTNAME:</label>
-              <input type="text" v-model="currentParam.EVENTNAME" class="form-control">
+            <div class="form-row">
+              <div class="form-group col-md-6">
+                <label>LABEL_TEXT:</label>
+                <input type="text" v-model="currentParam.LABEL_TEXT" class="form-control">
+              </div>
+              <div class="form-group col-md-6">
+                <label>PAGEPATH:</label>
+                <input type="text" v-model="currentParam.PAGEPATH" class="form-control">
+              </div>
             </div>
             
-            <div class="form-group">
-              <label>LABEL_TEXT:</label>
-              <input type="text" v-model="currentParam.LABEL_TEXT" class="form-control">
+            <div class="form-row">
+              <div class="form-group col-md-6">
+                <label>PAGETITLE:</label>
+                <input type="text" v-model="currentParam.PAGETITLE" class="form-control">
+              </div>
+              <div class="form-group col-md-6">
+                <label>TIME:</label>
+                <input type="text" v-model="currentParam.TIME" class="form-control">
+              </div>
             </div>
+            
+            <hr>
+            <h5>추가 필드</h5>
             
             <!-- 동적 필드 추가 -->
             <div class="param-fields">
@@ -244,7 +316,7 @@
                   <div class="field-with-actions">
                     <input type="text" v-model="currentParam[key]" class="form-control">
                     <button @click="removeField(key)" class="btn-icon" title="필드 삭제">
-                      <i class="fa fa-times"></i>
+                      <i class="fas fa-times"></i>
                     </button>
                   </div>
                 </template>
@@ -272,6 +344,44 @@
           </div>
         </div>
       </div>
+      
+      <!-- 컬럼 관리 모달 -->
+      <div v-if="showColumnManagerModal" class="modal-overlay">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h4>컬럼 관리</h4>
+            <button @click="closeColumnManager" class="close-btn">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div class="column-list">
+              <div v-for="column in allColumns" :key="column" class="column-item">
+                <label>
+                  <input type="checkbox" v-model="selectedColumns" :value="column">
+                  {{ getColumnDisplayName(column) }}
+                </label>
+              </div>
+            </div>
+            
+            <hr>
+            
+            <!-- 새 컬럼 추가 -->
+            <div class="form-row">
+              <div class="form-group col-md-9">
+                <input type="text" v-model="newColumnName" class="form-control" placeholder="새 컬럼 이름">
+              </div>
+              <div class="form-group col-md-3">
+                <button @click="addNewColumn" class="btn btn-primary btn-block" :disabled="!newColumnName.trim()">
+                  컬럼 추가
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button @click="applyColumnChanges" class="btn btn-primary">적용</button>
+            <button @click="closeColumnManager" class="btn btn-secondary">취소</button>
+          </div>
+        </div>
+      </div>
     </div>
   </template>
   
@@ -280,6 +390,13 @@
   
   export default {
     name: 'LogUpload',
+    directives: {
+      focus: {
+        inserted(el) {
+          el.focus();
+        }
+      }
+    },
     data() {
       return {
         currentStep: 1,
@@ -302,12 +419,42 @@
         currentParam: {},
         paramBackup: {},
         newFieldName: '',
-        newFieldValue: ''
+        newFieldValue: '',
+        
+        // 컬럼 관리
+        showColumnManagerModal: false,
+        allColumns: ['SHOT_NUMBER', 'EVENTNAME', 'LABEL_TEXT', 'PAGEPATH', 'PAGETITLE', 'TIME', 'CATEGORY_DEPTH1', 'PAGE_MKT_CONTS_ID'],
+        selectedColumns: ['SHOT_NUMBER', 'EVENTNAME', 'LABEL_TEXT', 'TIME'],
+        columnDisplayNames: {
+          'SHOT_NUMBER': '순번',
+          'EVENTNAME': '이벤트명',
+          'LABEL_TEXT': '라벨 텍스트',
+          'PAGEPATH': '페이지 경로',
+          'PAGETITLE': '페이지 타이틀',
+          'TIME': '시간',
+          'CATEGORY_DEPTH1': '카테고리 1',
+          'PAGE_MKT_CONTS_ID': '컨텐츠 ID'
+        },
+        newColumnName: '',
+        managingEntryIndex: null,
+        
+        // 셀 편집
+        isEditingCell: false,
+        editingCell: {
+          entryIndex: null,
+          paramIndex: null,
+          column: null,
+          originalValue: null
+        }
       };
     },
     computed: {
+      visibleColumns() {
+        return this.selectedColumns;
+      },
+      
       eventTypeSummary() {
-        const counts = { visibility: 0, click: 0 };
+        const counts = { visibility: 0, click: 0, popup_click: 0 };
         this.editableParsedResult.forEach(entry => {
           counts[entry.EVENTTYPE] = (counts[entry.EVENTTYPE] || 0) + 1;
         });
@@ -315,6 +462,7 @@
         const summary = [];
         if (counts.visibility) summary.push(`visibility (${counts.visibility}개)`);
         if (counts.click) summary.push(`click (${counts.click}개)`);
+        if (counts.popup_click) summary.push(`popup_click (${counts.popup_click}개)`);
         
         return summary.join(', ');
       },
@@ -339,14 +487,18 @@
         
         try {
           // 플랫폼에 따라 다른 파싱 로직 적용
+          let parsedLogs = [];
           if (this.platform === 'android') {
-            this.parsedResult = this.parseAndroidLog(this.logInput);
+            parsedLogs = this.parseAndroidLog(this.logInput);
           } else {
-            this.parsedResult = this.parseIOSLog(this.logInput);
+            parsedLogs = this.parseIOSLog(this.logInput);
           }
           
+          // 동일한 URL을 가진 로그 항목을 그룹화
+          const groupedLogs = this.groupLogsByUrl(parsedLogs);
+          
           // 깊은 복사를 통해 편집 가능한 결과 생성
-          this.editableParsedResult = JSON.parse(JSON.stringify(this.parsedResult));
+          this.editableParsedResult = JSON.parse(JSON.stringify(groupedLogs));
           
           // 현재 시간으로 TIME 및 timestamp 업데이트
           const now = new Date();
@@ -359,6 +511,25 @@
             
             entry.eventParams.forEach(param => {
               param.TIME = formattedTime;
+              
+              // 필수 필드가 없는 경우 기본값 설정
+              if (!param.hasOwnProperty('SHOT_NUMBER')) {
+                param.SHOT_NUMBER = 0;
+              }
+              if (!param.hasOwnProperty('EVENTNAME')) {
+                param.EVENTNAME = 'cts_click';
+              }
+              if (!param.hasOwnProperty('LABEL_TEXT')) {
+                param.LABEL_TEXT = '(라벨 없음)';
+              }
+            });
+            
+            // SHOT_NUMBER 순서대로 정렬
+            entry.eventParams.sort((a, b) => a.SHOT_NUMBER - b.SHOT_NUMBER);
+            
+            // SHOT_NUMBER 재설정
+            entry.eventParams.forEach((param, idx) => {
+              param.SHOT_NUMBER = idx;
             });
           });
           
@@ -372,6 +543,33 @@
         } finally {
           this.isProcessing = false;
         }
+      },
+      
+      // 동일한 URL을 가진 로그 항목 그룹화
+      groupLogsByUrl(logs) {
+        const urlGroups = {};
+        
+        for (const log of logs) {
+          const url = log.URL;
+          
+          if (!urlGroups[url]) {
+            // 새 URL 그룹 생성
+            urlGroups[url] = {
+              TIME: log.TIME,
+              EVENTTYPE: log.EVENTTYPE,
+              PAGETITLE: log.PAGETITLE,
+              URL: log.URL,
+              eventParams: [],
+              timestamp: log.timestamp
+            };
+          }
+          
+          // 이벤트 파라미터 합치기
+          urlGroups[url].eventParams = [...urlGroups[url].eventParams, ...log.eventParams];
+        }
+        
+        // 객체를 배열로 변환
+        return Object.values(urlGroups);
       },
       
       parseAndroidLog(logText) {
@@ -506,6 +704,13 @@
                   mainParam['LABEL_TEXT'] = '(라벨 없음)';
                 }
                 
+                // 필드 이름에 이미 존재하는 컬럼 추가
+                for (const column of this.allColumns) {
+                  if (!mainParam.hasOwnProperty(column)) {
+                    mainParam[column] = '';
+                  }
+                }
+                
                 eventParams.push(mainParam);
               }
               
@@ -577,6 +782,7 @@
         
         if (eventName.includes('click')) return 'click';
         if (eventName.includes('view')) return 'visibility';
+        if (eventName.includes('popup')) return 'popup_click';
         
         // 기본값은 'visibility'로 설정
         return 'visibility';
@@ -611,20 +817,111 @@
         }
       },
       
+      // 컬럼 표시 이름 가져오기
+      getColumnDisplayName(column) {
+        return this.columnDisplayNames[column] || column;
+      },
+      
+      // 컬럼 관리 모달 관련
+      showColumnManager(entryIndex) {
+        this.managingEntryIndex = entryIndex;
+        
+        // 현재 항목의 모든 필드를 allColumns에 추가
+        const entry = this.editableParsedResult[entryIndex];
+        const paramFields = new Set();
+        
+        // 모든 이벤트 파라미터의 모든 필드 수집
+        entry.eventParams.forEach(param => {
+          Object.keys(param).forEach(key => {
+            paramFields.add(key);
+          });
+        });
+        
+        // 기존 컬럼에 없는 필드 추가
+        paramFields.forEach(field => {
+          if (!this.allColumns.includes(field)) {
+            this.allColumns.push(field);
+          }
+        });
+        
+        this.showColumnManagerModal = true;
+      },
+      
+      closeColumnManager() {
+        this.showColumnManagerModal = false;
+        this.managingEntryIndex = null;
+        this.newColumnName = '';
+      },
+      
+      addNewColumn() {
+        const columnName = this.newColumnName.trim().toUpperCase();
+        
+        if (!columnName) return;
+        
+        // 이미 존재하는 컬럼인지 확인
+        if (this.allColumns.includes(columnName)) {
+          alert(`'${columnName}' 컬럼이 이미 존재합니다.`);
+          return;
+        }
+        
+        // 새 컬럼 추가
+        this.allColumns.push(columnName);
+        this.selectedColumns.push(columnName);
+        
+        // 표시 이름 설정
+        if (!this.columnDisplayNames[columnName]) {
+          this.columnDisplayNames[columnName] = columnName;
+        }
+        
+        // 모든 파라미터에 새 컬럼 필드 추가
+        if (this.managingEntryIndex !== null) {
+          const entry = this.editableParsedResult[this.managingEntryIndex];
+          entry.eventParams.forEach(param => {
+            if (!Object.prototype.hasOwnProperty.call(param, columnName)) {
+              param[columnName] = '';
+            }
+          });
+        }
+        
+        this.newColumnName = '';
+      },
+      
+      applyColumnChanges() {
+        // 선택된 컬럼이 없으면 기본 컬럼 선택
+        if (this.selectedColumns.length === 0) {
+          this.selectedColumns = ['SHOT_NUMBER', 'EVENTNAME', 'LABEL_TEXT'];
+        }
+        
+        this.showColumnManagerModal = false;
+        this.managingEntryIndex = null;
+      },
+      
       // 이벤트 파라미터 관리 함수들
       addEventParam(entryIndex) {
         const now = new Date();
         const formattedTime = this.formatTime(now.toISOString());
         const entry = this.editableParsedResult[entryIndex];
         
+        // 새 SHOT_NUMBER 계산 (최대값 + 1)
+        const maxShotNumber = entry.eventParams.length > 0 
+          ? Math.max(...entry.eventParams.map(p => p.SHOT_NUMBER)) 
+          : -1;
+        
         const newParam = {
-          SHOT_NUMBER: entry.eventParams.length,
+          SHOT_NUMBER: maxShotNumber + 1,
           EVENTNAME: entry.eventParams[0]?.EVENTNAME || 'cts_click',
           PAGEPATH: entry.URL,
           PAGETITLE: entry.PAGETITLE,
           TIME: formattedTime,
           LABEL_TEXT: '(새 항목)'
         };
+        
+        // 모든 표시 중인 컬럼에 대해 빈 값 추가
+        this.allColumns.forEach(column => {
+          if (!Object.prototype.hasOwnProperty.call(newParam, column)) {
+            newParam[column] = '';
+          }
+        });
         
         entry.eventParams.push(newParam);
       },
@@ -635,6 +932,18 @@
         this.currentParam = JSON.parse(JSON.stringify(this.editableParsedResult[entryIndex].eventParams[paramIndex]));
         this.paramBackup = JSON.parse(JSON.stringify(this.currentParam));
         this.showParamEditor = true;
+      },
+      
+      duplicateEventParam(entryIndex, paramIndex) {
+        const entry = this.editableParsedResult[entryIndex];
+        const param = entry.eventParams[paramIndex];
+        const newParam = JSON.parse(JSON.stringify(param));
+        
+        // 새 SHOT_NUMBER 계산 (최대값 + 1)
+        const maxShotNumber = Math.max(...entry.eventParams.map(p => p.SHOT_NUMBER));
+        newParam.SHOT_NUMBER = maxShotNumber + 1;
+        
+        entry.eventParams.push(newParam);
       },
       
       saveParamChanges() {
@@ -662,13 +971,17 @@
         
         // 이미 존재하는 필드인지 확인
         if (Object.prototype.hasOwnProperty.call(this.currentParam, fieldName)) {
-            alert(`'${fieldName}' 필드가 이미 존재합니다.`);
-            return;
+          alert(`'${fieldName}' 필드가 이미 존재합니다.`);
+          return;
         }
-
         
         // 새 필드 추가
         this.$set(this.currentParam, fieldName, this.newFieldValue);
+        
+        // allColumns에 없으면 추가
+        if (!this.allColumns.includes(fieldName)) {
+          this.allColumns.push(fieldName);
+        }
         
         // 입력 필드 초기화
         this.newFieldName = '';
@@ -726,6 +1039,17 @@
         reader.readAsDataURL(file);
       },
       
+      // 셀 편집 시작
+      startEditingCell(entryIndex, paramIndex, column, value) {
+        this.isEditingCell = true;
+        this.editingCell = {
+          entryIndex,
+          paramIndex,
+          column,
+          originalValue: value
+        };
+      },
+      
       // 태깅맵 업로드 메서드
       async uploadData() {
         if (!this.editableParsedResult || this.editableParsedResult.length === 0) {
@@ -739,7 +1063,7 @@
         
         try {
           // 각 항목별로 업로드
-          const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
+          const baseUrl = '';
           const uploadPromises = [];
           
           for (const entry of this.editableParsedResult) {
@@ -770,8 +1094,18 @@
               formData.append('image', this.selectedFile);
             }
             
+            console.log('Uploading data:', {
+              url: `${baseUrl}/api/taggingMaps`,
+              eventParams: entry.eventParams.length
+            });
+            
             // 업로드 요청
-            const uploadPromise = axios.post(`${baseUrl}/api/taggingMaps`, formData);
+            const uploadPromise = axios.post(`${baseUrl}/api/taggingMaps`, formData, {
+              headers: {
+                'Content-Type': 'multipart/form-data'
+              }
+            });
+            
             uploadPromises.push(uploadPromise);
           }
           
@@ -811,7 +1145,7 @@
   
   <style scoped>
   .log-upload {
-    max-width: 1100px;
+    max-width: 1200px;
     margin: 0 auto;
     padding: 20px;
     font-family: Arial, sans-serif;
@@ -989,6 +1323,17 @@
     color: white;
   }
   
+  .btn-outline-secondary {
+    color: #6c757d;
+    background-color: transparent;
+    border: 1px solid #6c757d;
+  }
+  
+  .btn-outline-secondary:hover {
+    background-color: #6c757d;
+    color: white;
+  }
+  
   .btn-icon {
     background: none;
     border: none;
@@ -1036,16 +1381,69 @@
     color: #721c24;
   }
   
-  .img-preview {
+  /* 분할 레이아웃 */
+  .split-layout {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  
+  .left-panel {
+    flex: 0 0 300px;
+  }
+  
+  .right-panel {
+    flex: 1;
+    min-width: 0; /* 내용이 넘치는 것을 방지 */
+  }
+  
+  /* 스크린샷 컨테이너 */
+  .screenshot-container {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #eee;
+    padding: 15px;
+    height: 100%;
+  }
+  
+  .screenshot-container h3 {
+    font-size: 18px;
+    margin-bottom: 15px;
+    color: #333;
+    text-align: center;
+  }
+  
+  .screenshot-preview {
+    display: flex;
+    justify-content: center;
+  }
+  
+  .screenshot-preview img {
     max-width: 100%;
-    max-height: 200px;
+    max-height: 600px;
+    border-radius: 4px;
     border: 1px solid #ddd;
+  }
+  
+  .no-screenshot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 300px;
+    color: #6c757d;
+    border: 2px dashed #ddd;
     border-radius: 4px;
   }
   
-  /* 데이터 편집 UI 스타일 */
-  .parsed-data-editor {
-    margin-top: 20px;
+  .no-screenshot i {
+    font-size: 40px;
+    margin-bottom: 10px;
+  }
+  
+  /* 데이터 편집 UI */
+  .data-editor {
+    width: 100%;
   }
   
   .data-card {
@@ -1096,49 +1494,100 @@
     max-width: 41.666667%;
   }
   
+  .col-md-6 {
+    flex: 0 0 50%;
+    max-width: 50%;
+  }
+  
+  .col-md-3 {
+    flex: 0 0 25%;
+    max-width: 25%;
+  }
+  
+  .col-md-9 {
+    flex: 0 0 75%;
+    max-width: 75%;
+  }
+  
   .col-md-2 {
     flex: 0 0 16.666667%;
     max-width: 16.666667%;
   }
   
-  .section-title {
+  /* 테이블 컨트롤 */
+  .table-controls {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: 25px;
-    margin-bottom: 15px;
+    margin: 20px 0 10px;
   }
   
-  .section-title h4 {
+  .table-controls h4 {
     margin: 0;
     font-size: 16px;
     color: #333;
   }
   
+  .right-controls {
+    display: flex;
+    gap: 10px;
+  }
+  
+  /* 테이블 스타일 개선 */
   .event-params-table {
     margin-top: 10px;
+    overflow-x: auto;
+  }
+  
+  .table-responsive {
     overflow-x: auto;
   }
   
   .table {
     width: 100%;
     border-collapse: collapse;
+    border: 1px solid #dee2e6;
+    font-size: 14px;
   }
   
   .table th, .table td {
     padding: 8px 12px;
     text-align: left;
-    border-bottom: 1px solid #dee2e6;
+    border: 1px solid #dee2e6;
   }
   
   .table th {
     background-color: #f8f9fa;
     font-weight: 600;
+    position: sticky;
+    top: 0;
   }
   
-  .btn-group {
+  .th-shot_number, .td-shot_number {
+    width: 60px;
+  }
+  
+  .th-actions, .td-actions {
+    width: 100px;
+  }
+  
+  .action-buttons {
     display: flex;
-    gap: 5px;
+    justify-content: space-around;
+  }
+  
+  .table-hover tbody tr:hover {
+    background-color: #f1f9ff;
+  }
+  
+  .editable-cell {
+    cursor: pointer;
+    padding: 3px;
+  }
+  
+  .editable-cell:hover {
+    background-color: #e9ecef;
+    border-radius: 4px;
   }
   
   hr {
@@ -1162,114 +1611,300 @@
   }
   
   .modal-content {
-    background-color: #fff;
-    border-radius: 8px;
-    width: 90%;
-    max-width: 600px;
-    max-height: 90vh;
-    overflow-y: auto;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  background-color: #fff;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 700px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+  padding: 15px 20px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #f8f9fa;
+}
+
+.modal-header h4 {
+  margin: 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #6c757d;
+}
+
+.close-btn:hover {
+  color: #333;
+}
+
+.modal-body {
+  padding: 20px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.modal-footer {
+  padding: 15px 20px;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  background-color: #f8f9fa;
+}
+
+/* 컬럼 관리 스타일 */
+.column-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.column-item {
+  padding: 8px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.column-item:hover {
+  background-color: #f0f0f0;
+}
+
+.column-item label {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0;
+  cursor: pointer;
+}
+
+.column-item input[type="checkbox"] {
+  margin-right: 8px;
+}
+
+/* 필드 관리 스타일 */
+.field-with-actions {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.field-with-actions .form-control {
+  flex: 1;
+  margin-right: 10px;
+}
+
+.param-fields {
+  margin: 15px 0;
+  padding: 10px;
+  background-color: #f9f9f9;
+  border-radius: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.add-field-form {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  border: 1px dashed #ddd;
+}
+
+/* 업로드 요약 및 결과 스타일 */
+.upload-summary {
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.summary-item {
+  margin-bottom: 10px;
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.summary-item:last-child {
+  border-bottom: none;
+}
+
+.summary-item strong {
+  display: inline-block;
+  min-width: 150px;
+}
+
+.upload-result {
+  text-align: center;
+  padding: 30px;
+}
+
+.success-icon {
+  font-size: 60px;
+  color: #28a745;
+  margin-bottom: 20px;
+}
+
+.upload-result h3 {
+  font-size: 24px;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.upload-result p {
+  font-size: 16px;
+  margin-bottom: 30px;
+  color: #555;
+}
+
+/* 이미지 스타일 */
+.img-preview {
+  max-width: 100%;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  max-height: 300px;
+}
+
+/* 반응형 스타일 */
+@media (max-width: 992px) {
+  .split-layout {
+    flex-direction: column;
   }
   
-  .modal-header {
-    padding: 15px 20px;
-    border-bottom: 1px solid #eee;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  
-  .modal-header h4 {
-    margin: 0;
-    font-size: 18px;
-  }
-  
-  .close-btn {
-    background: none;
-    border: none;
-    font-size: 24px;
-    cursor: pointer;
-    color: #6c757d;
-  }
-  
-  .modal-body {
-    padding: 20px;
-  }
-  
-  .modal-footer {
-    padding: 15px 20px;
-    border-top: 1px solid #eee;
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-  }
-  
-  .field-with-actions {
-    display: flex;
-    align-items: center;
-  }
-  
-  .field-with-actions .form-control {
-    flex: 1;
-    margin-right: 10px;
-  }
-  
-  .add-field-form {
-    margin-top: 20px;
-    padding: 15px;
-    background-color: #f8f9fa;
-    border-radius: 4px;
-  }
-  
-  /* 업로드 요약 및 결과 스타일 */
-  .upload-summary, .upload-result {
-    padding: 20px;
-    background-color: #f8f9fa;
-    border-radius: 8px;
-  }
-  
-  .summary-item {
-    margin-bottom: 10px;
-  }
-  
-  .success-icon {
-    font-size: 60px;
-    color: #28a745;
-    text-align: center;
+  .left-panel {
+    flex: 0 0 100%;
     margin-bottom: 20px;
   }
   
-  .upload-result {
-    text-align: center;
+  .right-panel {
+    flex: 0 0 100%;
   }
   
-  .upload-result h3 {
-    margin-bottom: 20px;
+  .form-row > .form-group {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .table th, .table td {
+    padding: 6px 8px;
+    font-size: 13px;
   }
   
-  /* 폰트어썸 아이콘 스타일 */
-  .fa {
-    display: inline-block;
-    font: normal normal normal 14px/1 FontAwesome;
-    font-size: inherit;
-    text-rendering: auto;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+  .event-params-table {
+    font-size: 13px;
   }
   
-  .fa-copy:before {
-    content: "\f0c5";
+  .btn {
+    padding: 8px 12px;
+    font-size: 14px;
   }
   
-  .fa-trash:before {
-    content: "\f1f8";
+  .modal-content {
+    width: 95%;
   }
   
-  .fa-times:before {
-    content: "\f00d";
+  .column-list {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   }
-  
-  .fa-check-circle:before {
-    content: "\f058";
-  }
-  </style>
+}
+
+/* 유틸리티 클래스 */
+.text-center {
+  text-align: center;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.text-muted {
+  color: #6c757d;
+}
+
+.text-danger {
+  color: #dc3545;
+}
+
+.text-success {
+  color: #28a745;
+}
+
+.border-top {
+  border-top: 1px solid #dee2e6;
+}
+
+.border-bottom {
+  border-bottom: 1px solid #dee2e6;
+}
+
+/* 애니메이션 효과 */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-overlay {
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.alert {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* 테이블 셀 상태 스타일 */
+.table td.has-error {
+  background-color: #fff3f3;
+}
+
+.table td.has-warning {
+  background-color: #fff9e6;
+}
+
+.table td.is-required {
+  font-weight: bold;
+}
+
+.table td.empty-cell {
+  color: #aaa;
+  font-style: italic;
+}
+
+/* 토스트 메시지 스타일 */
+.toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 15px 20px;
+  border-radius: 4px;
+  background-color: #333;
+  color: white;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+  z-index: 1100;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.toast-success {
+  background-color: #28a745;
+}
+
+.toast-error {
+  background-color: #dc3545;
+}
+
+.toast-warning {
+  background-color: #ffc107;
+  color: #333;
+}
+</style>
