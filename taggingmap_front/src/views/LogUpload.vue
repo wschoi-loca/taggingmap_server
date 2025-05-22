@@ -1,21 +1,20 @@
-<!-- src/views/LogUpload.vue -->
 <template>
     <div class="log-upload">
       <h1 class="page-title">태깅맵 로그 업로드</h1>
       
-      <!-- 단계 진행바 -->
+      <!-- 단계 진행바 - 클릭 가능하도록 수정 -->
       <div class="progress-steps">
-        <div class="step" :class="{ active: currentStep >= 1, completed: currentStep > 1 }">
+        <div class="step" :class="{ active: currentStep >= 1, completed: currentStep > 1 }" @click="goToStep(1)">
           <div class="step-number">1</div>
           <div class="step-title">로그 입력</div>
         </div>
         <div class="step-connector"></div>
-        <div class="step" :class="{ active: currentStep >= 2, completed: currentStep > 2 }">
+        <div class="step" :class="{ active: currentStep >= 2, completed: currentStep > 2, disabled: !canGoToStep(2) }" @click="canGoToStep(2) && goToStep(2)">
           <div class="step-number">2</div>
           <div class="step-title">데이터 편집</div>
         </div>
         <div class="step-connector"></div>
-        <div class="step" :class="{ active: currentStep >= 3, completed: currentStep > 3 }">
+        <div class="step" :class="{ active: currentStep >= 3, completed: currentStep > 3, disabled: !canGoToStep(3) }" @click="canGoToStep(3) && goToStep(3)">
           <div class="step-number">3</div>
           <div class="step-title">업로드</div>
         </div>
@@ -70,6 +69,13 @@
           {{ statusMessage }}
         </div>
         
+        <!-- 태깅맵 데이터 개수 경고 표시 -->
+        <div class="alert alert-warning" v-if="editableParsedResult.length > 1">
+          <strong>주의!</strong> 태깅맵 데이터는 1개만 업로드 가능합니다. 
+          현재 {{ editableParsedResult.length }}개의 데이터가 있습니다. 
+          업로드할 데이터를 제외한 나머지는 삭제해주세요.
+        </div>
+        
         <div v-if="!hasError && editableParsedResult.length > 0" class="split-layout">
           <!-- 왼쪽: 스크린샷 미리보기 -->
           <div class="left-panel">
@@ -98,7 +104,7 @@
                     <button @click="duplicateEntry(entryIndex)" class="btn-icon" title="복제">
                       <i class="fas fa-copy"></i>
                     </button>
-                    <button @click="removeEntry(entryIndex)" class="btn-icon" title="삭제">
+                    <button @click="removeEntry(entryIndex)" class="btn-icon btn-danger-icon" title="삭제">
                       <i class="fas fa-trash"></i>
                     </button>
                   </div>
@@ -200,10 +206,16 @@
         </div>
         
         <div class="button-group mt-4">
-          <button @click="currentStep = 1" class="btn btn-secondary">이전</button>
-          <button @click="prepareForUpload" class="btn btn-primary ml-2" :disabled="editableParsedResult.length === 0">
+          <button @click="goToStep(1)" class="btn btn-secondary">이전</button>
+          <button @click="prepareForUpload" class="btn btn-primary ml-2" 
+            :disabled="editableParsedResult.length === 0 || editableParsedResult.length > 1">
             다음
           </button>
+        </div>
+        
+        <!-- 태깅맵 데이터 개수 안내 메시지 -->
+        <div v-if="editableParsedResult.length > 1" class="alert alert-info mt-3">
+          <p><strong>알림:</strong> 여러 태깅맵 데이터를 하나로 병합하려면 동일한 이벤트 타입, URL, 페이지 타이틀을 가진 데이터로 수정해주세요.</p>
         </div>
       </div>
       
@@ -238,7 +250,7 @@
         </div>
         
         <div class="button-group mt-4">
-          <button @click="currentStep = 2" class="btn btn-secondary">수정</button>
+          <button @click="goToStep(2)" class="btn btn-secondary">수정</button>
           <button @click="uploadData" class="btn btn-success ml-2" :disabled="isUploading">
             {{ isUploading ? '업로드 중...' : '태깅맵 업로드' }}
           </button>
@@ -621,6 +633,21 @@
       }
     },
     methods: {
+      // 단계 이동 관련 메소드
+      goToStep(step) {
+        if (this.canGoToStep(step)) {
+          this.currentStep = step;
+        }
+      },
+      
+      canGoToStep(step) {
+        if (step === 1) return true;
+        if (step === 2) return this.editableParsedResult.length > 0;
+        if (step === 3) return this.editableParsedResult.length === 1; // 태깅맵이 1개일 때만 업로드 단계로 이동 가능
+        if (step === 4) return false; // 업로드 완료 단계는 이동 불가능
+        return false;
+      },
+      
       async parseLog() {
         if (!this.logInput.trim()) {
           this.hasError = true;
@@ -641,8 +668,8 @@
             parsedLogs = this.parseIOSLog(this.logInput);
           }
           
-          // 동일한 URL을 가진 로그 항목을 그룹화
-          const groupedLogs = this.groupLogsByUrl(parsedLogs);
+          // 동일한 이벤트명, 페이지 경로, 페이지 타이틀을 갖는 로그 항목을 그룹화
+          const groupedLogs = this.groupLogsByEventAndPath(parsedLogs);
           
           // 깊은 복사를 통해 편집 가능한 결과 생성
           this.editableParsedResult = JSON.parse(JSON.stringify(groupedLogs));
@@ -696,7 +723,13 @@
               return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
             });
           
-          this.statusMessage = '로그 파싱 완료! 데이터를 확인하고 필요한 경우 수정하세요.';
+          // 결과 메시지에 데이터 개수 관련 안내 추가
+          let resultMessage = '로그 파싱 완료! 데이터를 확인하고 필요한 경우 수정하세요.';
+          if (this.editableParsedResult.length > 1) {
+            resultMessage += ' 태깅맵 데이터는 1개만 업로드 가능합니다. 필요없는 데이터는 삭제해주세요.';
+          }
+          
+          this.statusMessage = resultMessage;
           this.currentStep = 2;
         } catch (error) {
           console.error('로그 파싱 중 오류 발생:', error);
@@ -708,16 +741,17 @@
         }
       },
       
-      // 동일한 URL을 가진 로그 항목 그룹화
-      groupLogsByUrl(logs) {
-        const urlGroups = {};
+      // 동일한 이벤트명(en), 페이지 경로(dl), 페이지 타이틀(dt)를 가진 로그 항목 그룹화
+      groupLogsByEventAndPath(logs) {
+        const eventGroups = {};
         
         for (const log of logs) {
-          const url = log.URL;
+          // 그룹화 키 생성: "이벤트타입_URL_페이지타이틀"
+          const groupKey = `${log.EVENTTYPE}_${log.URL}_${log.PAGETITLE}`;
           
-          if (!urlGroups[url]) {
-            // 새 URL 그룹 생성
-            urlGroups[url] = {
+          if (!eventGroups[groupKey]) {
+            // 새 그룹 생성
+            eventGroups[groupKey] = {
               TIME: log.TIME,
               EVENTTYPE: log.EVENTTYPE,
               PAGETITLE: log.PAGETITLE,
@@ -728,11 +762,11 @@
           }
           
           // 이벤트 파라미터 합치기
-          urlGroups[url].eventParams = [...urlGroups[url].eventParams, ...log.eventParams];
+          eventGroups[groupKey].eventParams = [...eventGroups[groupKey].eventParams, ...log.eventParams];
         }
         
         // 객체를 배열로 변환
-        return Object.values(urlGroups);
+        return Object.values(eventGroups);
       },
       
       parseAndroidLog(logText) {
@@ -1258,599 +1292,655 @@
         }
       },
       
-      // 업로드 준비
-      prepareForUpload() {
-        // 업로드 전 마지막 확인 단계로 이동
-        this.currentStep = 3;
-      },
+    // 업로드 준비
+    prepareForUpload() {
+      // 데이터 개수 확인
+      if (this.editableParsedResult.length > 1) {
+        alert("태깅맵 데이터는 1개만 업로드 가능합니다. 필요없는 데이터는 삭제해주세요.");
+        return;
+      }
       
-      // 파일 업로드 핸들러
-      handleFileUpload(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        
-        this.selectedFile = file;
-        
-        // 이미지 미리보기
-        const reader = new FileReader();
-        reader.onload = e => {
-          this.previewUrl = e.target.result;
-        };
-        reader.readAsDataURL(file);
-      },
+      // 업로드 전 마지막 확인 단계로 이동
+      this.currentStep = 3;
+    },
+    
+    // 파일 업로드 핸들러
+    handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
       
-      // 셀 편집 시작
-      startEditingCell(entryIndex, paramIndex, column, value) {
-        this.isEditingCell = true;
-        this.editingCell = {
-          entryIndex,
-          paramIndex,
-          column,
-          originalValue: value
-        };
-      },
+      this.selectedFile = file;
       
-      // 태깅맵 업로드 메서드
-      async uploadData() {
-        if (!this.editableParsedResult || this.editableParsedResult.length === 0) {
-          this.hasError = true;
-          this.statusMessage = '업로드할 데이터가 없습니다.';
-          return;
-        }
+      // 이미지 미리보기
+      const reader = new FileReader();
+      reader.onload = e => {
+        this.previewUrl = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    },
+    
+    // 셀 편집 시작
+    startEditingCell(entryIndex, paramIndex, column, value) {
+      this.isEditingCell = true;
+      this.editingCell = {
+        entryIndex,
+        paramIndex,
+        column,
+        originalValue: value
+      };
+    },
+    
+    // 태깅맵 업로드 메서드
+    async uploadData() {
+      if (!this.editableParsedResult || this.editableParsedResult.length === 0) {
+        this.hasError = true;
+        this.statusMessage = '업로드할 데이터가 없습니다.';
+        return;
+      }
+      
+      // 데이터 개수 확인
+      if (this.editableParsedResult.length > 1) {
+        this.hasError = true;
+        this.statusMessage = '태깅맵 데이터는 1개만 업로드 가능합니다. 필요없는 데이터는 삭제해주세요.';
+        return;
+      }
+      
+      this.isUploading = true;
+      this.statusMessage = '태깅맵 데이터 업로드 중...';
+      
+      try {
+        // 각 항목별로 업로드
+        const baseUrl = '';
+        const uploadPromises = [];
         
-        this.isUploading = true;
-        this.statusMessage = '태깅맵 데이터 업로드 중...';
-        
-        try {
-          // 각 항목별로 업로드
-          const baseUrl = '';
-          const uploadPromises = [];
+        for (const entry of this.editableParsedResult) {
+          // 현재 시간으로 TIME 및 timestamp 업데이트
+          const now = new Date();
+          const isoNow = now.toISOString();
+          const formattedTime = this.formatTime(isoNow);
           
-          for (const entry of this.editableParsedResult) {
-            // 현재 시간으로 TIME 및 timestamp 업데이트
-            const now = new Date();
-            const isoNow = now.toISOString();
-            const formattedTime = this.formatTime(isoNow);
-            
-            entry.TIME = isoNow;
-            entry.timestamp = isoNow;
-            
-            entry.eventParams.forEach(param => {
-              param.TIME = formattedTime;
-            });
-            
-            const formData = new FormData();
-            
-            // 기본 필드 추가
-            formData.append('TIME', entry.TIME);
-            formData.append('EVENTTYPE', entry.EVENTTYPE);
-            formData.append('PAGETITLE', entry.PAGETITLE);
-            formData.append('URL', entry.URL);
-            formData.append('timestamp', entry.timestamp);
-            formData.append('eventParams', JSON.stringify(entry.eventParams));
-            
-            // 스크린샷 첨부 (첫 번째 항목에만 첨부)
-            if (this.selectedFile && uploadPromises.length === 0) {
-              formData.append('image', this.selectedFile);
-            }
-            
-            console.log('Uploading data:', {
-              url: `${baseUrl}/api/taggingMaps`,
-              eventParams: entry.eventParams.length
-            });
-            
-            // 업로드 요청
-            const uploadPromise = axios.post(`${baseUrl}/api/taggingMaps`, formData, {
-              headers: {
-                'Content-Type': 'multipart/form-data'
-              }
-            });
-            
-            uploadPromises.push(uploadPromise);
+          entry.TIME = isoNow;
+          entry.timestamp = isoNow;
+          
+          entry.eventParams.forEach(param => {
+            param.TIME = formattedTime;
+          });
+          
+          const formData = new FormData();
+          
+          // 기본 필드 추가
+          formData.append('TIME', entry.TIME);
+          formData.append('EVENTTYPE', entry.EVENTTYPE);
+          formData.append('PAGETITLE', entry.PAGETITLE);
+          formData.append('URL', entry.URL);
+          formData.append('timestamp', entry.timestamp);
+          formData.append('eventParams', JSON.stringify(entry.eventParams));
+          
+          // 스크린샷 첨부
+          if (this.selectedFile) {
+            formData.append('image', this.selectedFile);
           }
           
-          // 모든 업로드 완료 대기
-          await Promise.all(uploadPromises);
+          console.log('Uploading data:', {
+            url: `${baseUrl}/api/taggingMaps`,
+            eventParams: entry.eventParams.length
+          });
           
-          this.statusMessage = `${this.editableParsedResult.length}개의 태깅맵 항목이 성공적으로 업로드되었습니다!`;
-          this.currentStep = 4;
-        } catch (error) {
-          console.error('태깅맵 업로드 중 오류:', error);
-          this.hasError = true;
-          this.statusMessage = `업로드 실패: ${error.response?.data || error.message}`;
-        } finally {
-          this.isUploading = false;
+          // 업로드 요청
+          const uploadPromise = axios.post(`${baseUrl}/api/taggingMaps`, formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data'
+            }
+          });
+          
+          uploadPromises.push(uploadPromise);
         }
-      },
-      
-      // 입력 초기화
-      clearInput() {
-        this.logInput = '';
-        this.parsedResult = null;
-        this.editableParsedResult = [];
-        this.statusMessage = '';
-        this.hasError = false;
-        this.selectedFile = null;
-        this.previewUrl = null;
-      },
-      
-      // 폼 완전 리셋
-      resetForm() {
-        this.clearInput();
-        this.currentStep = 1;
+        
+        // 모든 업로드 완료 대기
+        await Promise.all(uploadPromises);
+        
+        this.statusMessage = `${this.editableParsedResult.length}개의 태깅맵 항목이 성공적으로 업로드되었습니다!`;
+        this.currentStep = 4;
+      } catch (error) {
+        console.error('태깅맵 업로드 중 오류:', error);
+        this.hasError = true;
+        this.statusMessage = `업로드 실패: ${error.response?.data || error.message}`;
+      } finally {
+        this.isUploading = false;
       }
+    },
+    
+    // 입력 초기화
+    clearInput() {
+      this.logInput = '';
+      this.parsedResult = null;
+      this.editableParsedResult = [];
+      this.statusMessage = '';
+      this.hasError = false;
+      this.selectedFile = null;
+      this.previewUrl = null;
+    },
+    
+    // 폼 완전 리셋
+    resetForm() {
+      this.clearInput();
+      this.currentStep = 1;
     }
-  };
-  </script>
-  
-  <style scoped>
-  .log-upload {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
-    font-family: Arial, sans-serif;
-  }
-  
-  .page-title {
-    text-align: center;
-    margin-bottom: 30px;
-    color: #333;
-  }
-  
-  /* 단계 진행바 스타일 */
-  .progress-steps {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 40px;
-    position: relative;
-  }
-  
-  .step {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    z-index: 1;
-  }
-  
-  .step-number {
-    width: 40px;
-    height: 40px;
-    background-color: #ddd;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    margin-bottom: 10px;
-  }
-  
-  .step-connector {
-    flex: 1;
-    height: 3px;
-    background-color: #ddd;
-    margin: 0 10px;
-  }
-  
-  .step.active .step-number {
-    background-color: #007bff;
-    color: white;
-  }
-  
-  .step.completed .step-number {
-    background-color: #28a745;
-    color: white;
-  }
-  
-  .step-container {
-    background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    padding: 25px;
-  }
-  
-  .form-group {
-    margin-bottom: 20px;
-  }
-  
-  label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 600;
-    color: #333;
-  }
-  
-  .form-control {
-    display: block;
-    width: 100%;
-    padding: 10px;
-    font-size: 16px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    transition: border-color 0.2s;
-  }
-  
-  .form-control:focus {
-    border-color: #007bff;
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
-  }
-  
-  .form-control-sm {
-    padding: 6px;
-    font-size: 14px;
-  }
-  
-  .log-textarea {
-    min-height: 250px;
-    font-family: monospace;
-    white-space: pre;
-    resize: vertical;
-  }
-  
-  .button-group {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 20px;
-  }
-  
-  .btn {
-    display: inline-block;
-    padding: 10px 20px;
-    font-size: 16px;
-    font-weight: 500;
-    cursor: pointer;
-    border: none;
-    border-radius: 4px;
-    transition: all 0.2s;
-  }
-  
-  .btn-sm {
-    padding: 5px 10px;
-    font-size: 14px;
-  }
-  
-  .btn-primary {
-    background-color: #007bff;
-    color: white;
-  }
-  
-  .btn-primary:hover {
-    background-color: #0069d9;
-  }
-  
-  .btn-primary:disabled {
-    background-color: #6c757d;
-    cursor: not-allowed;
-  }
-  
-  .btn-secondary {
-    background-color: #6c757d;
-    color: white;
-  }
-  
-  .btn-secondary:hover {
-    background-color: #5a6268;
-  }
-  
-  .btn-success {
-    background-color: #28a745;
-    color: white;
-  }
-  
-  .btn-success:hover {
-    background-color: #218838;
-  }
-  
-  .btn-info {
-    background-color: #17a2b8;
-    color: white;
-  }
-  
-  .btn-danger {
-    background-color: #dc3545;
-    color: white;
-  }
-  
-  .btn-outline-primary {
-    color: #007bff;
-    background-color: transparent;
-    border: 1px solid #007bff;
-  }
-  
-  .btn-outline-primary:hover {
-    background-color: #007bff;
-    color: white;
-  }
-  
-  .btn-outline-secondary {
-    color: #6c757d;
-    background-color: transparent;
-    border: 1px solid #6c757d;
-  }
-  
-  .btn-outline-secondary:hover {
-    background-color: #6c757d;
-    color: white;
-  }
-  
-  .btn-icon {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: #6c757d;
-    font-size: 16px;
-    padding: 5px;
-  }
-  
-  .btn-icon:hover {
-    color: #000;
-  }
-  
-  .ml-2 {
-    margin-left: 10px;
-  }
-  
-  .mt-2 {
-    margin-top: 10px;
-  }
-  
-  .mt-3 {
-    margin-top: 15px;
-  }
-  
-  .mt-4 {
-    margin-top: 20px;
-  }
-  
-  .alert {
-    padding: 15px;
-    border-radius: 4px;
-    margin-bottom: 20px;
-  }
-  
-  .alert-success {
-    background-color: #d4edda;
-    border: 1px solid #c3e6cb;
-    color: #155724;
-  }
-  
-  .alert-danger {
-    background-color: #f8d7da;
-    border: 1px solid #f5c6cb;
-    color: #721c24;
-  }
-  
-  /* 분할 레이아웃 */
-  .split-layout {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
-  }
-  
-  .left-panel {
-    flex: 0 0 300px;
-  }
-  
-  .right-panel {
-    flex: 1;
-    min-width: 0; /* 내용이 넘치는 것을 방지 */
-  }
-  
-  /* 스크린샷 컨테이너 */
-  .screenshot-container {
-    background-color: #f8f9fa;
-    border-radius: 8px;
-    border: 1px solid #eee;
-    padding: 15px;
-    height: 100%;
-  }
-  
-  .screenshot-container h3 {
-    font-size: 18px;
-    margin-bottom: 15px;
-    color: #333;
-    text-align: center;
-  }
-  
-  .screenshot-preview {
-    display: flex;
-    justify-content: center;
-  }
-  
-  .screenshot-preview img {
-    max-width: 100%;
-    max-height: 600px;
-    border-radius: 4px;
-    border: 1px solid #ddd;
-  }
-  
-  .no-screenshot {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 300px;
-    color: #6c757d;
-    border: 2px dashed #ddd;
-    border-radius: 4px;
-  }
-  
-  .no-screenshot i {
-    font-size: 40px;
-    margin-bottom: 10px;
-  }
-  
-  /* 데이터 편집 UI */
-  .data-editor {
-    width: 100%;
-  }
-  
-  .data-card {
-    margin-bottom: 30px;
-    background: #fff;
-    border-radius: 8px;
-  }
-  
-  .card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #eee;
-  }
-  
-  .card-header h3 {
-    margin: 0;
-    font-size: 18px;
-    color: #333;
-  }
-  
-  .card-actions {
-    display: flex;
-    gap: 10px;
-  }
-  
-  .form-row {
-    display: flex;
-    flex-wrap: wrap;
-    margin-right: -10px;
-    margin-left: -10px;
-  }
-  
-  .form-row > .form-group {
-    padding-right: 10px;
-    padding-left: 10px;
-  }
-  
-  .col-md-4 {
-    flex: 0 0 33.333333%;
-    max-width: 33.333333%;
-  }
-  
-  .col-md-5 {
-    flex: 0 0 41.666667%;
-    max-width: 41.666667%;
-  }
-  
-  .col-md-6 {
-    flex: 0 0 50%;
-    max-width: 50%;
   }
-  
-  .col-md-3 {
-    flex: 0 0 25%;
-    max-width: 25%;
-  }
-  
-  .col-md-9 {
-    flex: 0 0 75%;
-    max-width: 75%;
-  }
-  
-  .col-md-2 {
-    flex: 0 0 16.666667%;
-    max-width: 16.666667%;
-  }
-  
-  /* 테이블 컨트롤 */
-  .table-controls {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin: 20px 0 10px;
-  }
-  
-  .table-controls h4 {
-    margin: 0;
-    font-size: 16px;
-    color: #333;
-  }
-  
-  .right-controls {
-    display: flex;
-    gap: 10px;
-  }
-  
-  /* 테이블 스타일 개선 */
-  .event-params-table {
-    margin-top: 10px;
-    overflow-x: auto;
-  }
-  
-  .table-responsive {
-    overflow-x: auto;
-  }
-  
-  .table {
-    width: 100%;
-    border-collapse: collapse;
-    border: 1px solid #dee2e6;
-    font-size: 14px;
-  }
-  
-  .table th, .table td {
-    padding: 8px 12px;
-    text-align: left;
-    border: 1px solid #dee2e6;
-  }
-  
-  .table th {
-    background-color: #f8f9fa;
-    font-weight: 600;
-    position: sticky;
-    top: 0;
-  }
-  
-  .th-shot_number, .td-shot_number {
-    width: 60px;
-  }
-  
-  .th-actions, .td-actions {
-    width: 100px;
-  }
-  
-  .action-buttons {
-    display: flex;
-    justify-content: space-around;
-  }
-  
-  .table-hover tbody tr:hover {
-    background-color: #f1f9ff;
-  }
-  
-  .editable-cell {
-    cursor: pointer;
-    padding: 3px;
-  }
-  
-  .editable-cell:hover {
-    background-color: #e9ecef;
-    border-radius: 4px;
-  }
-  
-  hr {
-    margin: 25px 0;
-    border: 0;
-    border-top: 1px dashed #ddd;
-  }
-  
-  /* 모달 스타일 */
-  .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-  }
-  
-  .modal-content {
+};
+</script>
+
+  
+<style scoped>
+.log-upload {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+}
+
+.page-title {
+  text-align: center;
+  margin-bottom: 30px;
+  color: #333;
+}
+
+/* 단계 진행바 스타일 */
+.progress-steps {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 40px;
+  position: relative;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 1;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.step:hover:not(.disabled) .step-number {
+  background-color: #0056b3;
+  transform: scale(1.05);
+}
+
+.step.disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.step-number {
+  width: 40px;
+  height: 40px;
+  background-color: #ddd;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  margin-bottom: 10px;
+  transition: all 0.2s;
+}
+
+.step-connector {
+  flex: 1;
+  height: 3px;
+  background-color: #ddd;
+  margin: 0 10px;
+}
+
+.step.active .step-number {
+  background-color: #007bff;
+  color: white;
+}
+
+.step.completed .step-number {
+  background-color: #28a745;
+  color: white;
+}
+
+.step-container {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 25px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #333;
+}
+
+.form-control {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  transition: border-color 0.2s;
+}
+
+.form-control:focus {
+  border-color: #007bff;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+}
+
+.form-control-sm {
+  padding: 6px;
+  font-size: 14px;
+}
+
+.log-textarea {
+  min-height: 250px;
+  font-family: monospace;
+  white-space: pre;
+  resize: vertical;
+}
+
+.button-group {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.btn {
+  display: inline-block;
+  padding: 10px 20px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.btn-sm {
+  padding: 5px 10px;
+  font-size: 14px;
+}
+
+.btn-primary {
+  background-color: #007bff;
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #0069d9;
+}
+
+.btn-primary:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background-color: #6c757d;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background-color: #5a6268;
+}
+
+.btn-success {
+  background-color: #28a745;
+  color: white;
+}
+
+.btn-success:hover {
+  background-color: #218838;
+}
+
+.btn-info {
+  background-color: #17a2b8;
+  color: white;
+}
+
+.btn-danger {
+  background-color: #dc3545;
+  color: white;
+}
+
+.btn-outline-primary {
+  color: #007bff;
+  background-color: transparent;
+  border: 1px solid #007bff;
+}
+
+.btn-outline-primary:hover {
+  background-color: #007bff;
+  color: white;
+}
+
+.btn-outline-secondary {
+  color: #6c757d;
+  background-color: transparent;
+  border: 1px solid #6c757d;
+}
+
+.btn-outline-secondary:hover {
+  background-color: #6c757d;
+  color: white;
+}
+
+.btn-icon {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6c757d;
+  font-size: 16px;
+  padding: 5px;
+  transition: color 0.2s, transform 0.2s;
+}
+
+.btn-icon:hover {
+  color: #000;
+  transform: scale(1.1);
+}
+
+.btn-danger-icon {
+  color: #dc3545;
+}
+
+.btn-danger-icon:hover {
+  color: #bd2130;
+}
+
+.ml-2 {
+  margin-left: 10px;
+}
+
+.mt-2 {
+  margin-top: 10px;
+}
+
+.mt-3 {
+  margin-top: 15px;
+}
+
+.mt-4 {
+  margin-top: 20px;
+}
+
+.alert {
+  padding: 15px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+
+.alert-success {
+  background-color: #d4edda;
+  border: 1px solid #c3e6cb;
+  color: #155724;
+}
+
+.alert-danger {
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  color: #721c24;
+}
+
+.alert-warning {
+  background-color: #fff3cd;
+  border: 1px solid #ffeeba;
+  color: #856404;
+}
+
+.alert-info {
+  background-color: #d1ecf1;
+  border: 1px solid #bee5eb;
+  color: #0c5460;
+}
+
+/* 분할 레이아웃 */
+.split-layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.left-panel {
+  flex: 0 0 300px;
+}
+
+.right-panel {
+  flex: 1;
+  min-width: 0; /* 내용이 넘치는 것을 방지 */
+}
+
+/* 스크린샷 컨테이너 */
+.screenshot-container {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #eee;
+  padding: 15px;
+  height: 100%;
+  position: sticky;
+  top: 20px;
+}
+
+.screenshot-container h3 {
+  font-size: 18px;
+  margin-bottom: 15px;
+  color: #333;
+  text-align: center;
+}
+
+.screenshot-preview {
+  display: flex;
+  justify-content: center;
+}
+
+.screenshot-preview img {
+  max-width: 100%;
+  max-height: 600px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+}
+
+.no-screenshot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  color: #6c757d;
+  border: 2px dashed #ddd;
+  border-radius: 4px;
+}
+
+.no-screenshot i {
+  font-size: 40px;
+  margin-bottom: 10px;
+}
+
+/* 데이터 편집 UI */
+.data-editor {
+  width: 100%;
+}
+
+.data-card {
+  margin-bottom: 30px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  padding: 15px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.card-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.card-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.form-row {
+  display: flex;
+  flex-wrap: wrap;
+  margin-right: -10px;
+  margin-left: -10px;
+}
+
+.form-row > .form-group {
+  padding-right: 10px;
+  padding-left: 10px;
+}
+
+.col-md-4 {
+  flex: 0 0 33.333333%;
+  max-width: 33.333333%;
+}
+
+.col-md-5 {
+  flex: 0 0 41.666667%;
+  max-width: 41.666667%;
+}
+
+.col-md-6 {
+  flex: 0 0 50%;
+  max-width: 50%;
+}
+
+.col-md-3 {
+  flex: 0 0 25%;
+  max-width: 25%;
+}
+
+.col-md-9 {
+  flex: 0 0 75%;
+  max-width: 75%;
+}
+
+.col-md-2 {
+  flex: 0 0 16.666667%;
+  max-width: 16.666667%;
+}
+
+/* 테이블 컨트롤 */
+.table-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 20px 0 10px;
+}
+
+.table-controls h4 {
+  margin: 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.right-controls {
+  display: flex;
+  gap: 10px;
+}
+
+/* 테이블 스타일 개선 */
+.event-params-table {
+  margin-top: 10px;
+  overflow-x: auto;
+}
+
+.table-responsive {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #dee2e6;
+  font-size: 14px;
+}
+
+.table th, .table td {
+  padding: 8px 12px;
+  text-align: left;
+  border: 1px solid #dee2e6;
+}
+
+.table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.th-shot_number, .td-shot_number {
+  width: 60px;
+}
+
+.th-actions, .td-actions {
+  width: 110px;
+  text-align: center;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: space-around;
+}
+
+.table-hover tbody tr:hover {
+  background-color: #f1f9ff;
+}
+
+.editable-cell {
+  cursor: pointer;
+  padding: 3px;
+  min-height: 24px;
+}
+
+.editable-cell:hover {
+  background-color: #e9ecef;
+  border-radius: 4px;
+}
+
+hr {
+  margin: 25px 0;
+  border: 0;
+  border-top: 1px dashed #ddd;
+}
+
+/* 모달 스타일 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
   background-color: #fff;
   border-radius: 8px;
   width: 90%;
