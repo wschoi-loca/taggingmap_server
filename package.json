@@ -23,7 +23,9 @@
     "multer-storage-cloudinary": "^4.0.0",
     "uuid": "^11.1.0",
     "vue-cli-service": "^5.0.0",
-    "vue-google-oauth2": "^1.5.10"
+    "vue-google-oauth2": "^1.5.10",
+    "vue3-google-oauth2": "^1.0.7",
+    "vuex": "^4.1.0"
   },
   "engines": {
     "node": "18.x"
