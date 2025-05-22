@@ -160,19 +160,19 @@
                       </thead>
                       <tbody>
                         <tr v-for="(param, paramIndex) in entry.eventParams" :key="`param-${entryIndex}-${paramIndex}`">
-                          <td class="td-actions">
-                            <div class="action-buttons">
-                              <button @click="editEventParam(entryIndex, paramIndex)" class="btn-icon" title="편집">
-                                <i class="fas fa-edit"></i>
-                              </button>
-                              <button @click="duplicateEventParam(entryIndex, paramIndex)" class="btn-icon" title="복제">
-                                <i class="fas fa-copy"></i>
-                              </button>
-                              <button @click="removeEventParam(entryIndex, paramIndex)" class="btn-icon" title="삭제">
-                                <i class="fas fa-trash"></i>
-                              </button>
-                            </div>
-                          </td>
+                            <td class="td-actions">
+                                <div class="action-buttons">
+                                    <button @click="editEventParam(entryIndex, paramIndex)" class="btn-icon" title="편집">
+                                    <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button @click="duplicateEventParam(entryIndex, paramIndex)" class="btn-icon" title="복제">
+                                    <i class="fas fa-copy"></i>
+                                    </button>
+                                    <button @click="removeEventParam(entryIndex, paramIndex)" class="btn-icon" title="삭제">
+                                    <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
                           <td v-for="column in visibleColumns" :key="`${paramIndex}-${column}`">
                             <template v-if="isEditingCell && editingCell.entryIndex === entryIndex && editingCell.paramIndex === paramIndex && editingCell.column === column">
                               <input 
@@ -1648,25 +1648,28 @@ label {
 }
 
 .btn-icon {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #6c757d;
-  font-size: 18px; /* 크기 증가 */
-  padding: 8px;
-  transition: color 0.2s, transform 0.2s;
-  display: inline-flex; /* 아이콘 중앙 정렬 */
-  align-items: center;
-  justify-content: center;
-  width: 35px;
-  height: 35px;
-  border-radius: 4px;
+  background: #f5f5f5 !important;
+  border: 1px solid #ddd !important;
+  cursor: pointer !important;
+  color: #333 !important;
+  font-size: 16px !important;
+  width: 36px !important;
+  height: 36px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 4px !important;
+  margin: 0 2px !important;
+  padding: 0 !important;
 }
 
 .btn-icon:hover {
-  color: #000;
-  transform: scale(1.1);
-  background-color: #f1f1f1;
+  background-color: #e9e9e9 !important;
+  transform: scale(1.05) !important;
+}
+
+.btn-icon i {
+  font-size: 14px !important;
 }
 
 .btn-danger-icon {
@@ -1938,14 +1941,16 @@ label {
 }
 
 .th-actions, .td-actions {
-  width: 120px; /* 너비 증가 - 작업 버튼 공간 확보 */
-  text-align: center;
+  width: 140px !important;
+  min-width: 140px !important;
+  white-space: nowrap !important;
 }
 
 .action-buttons {
-  display: flex;
-  justify-content: space-around;
-  gap: 5px;
+  display: flex !important;
+  justify-content: space-around !important;
+  gap: 5px !important;
+  visibility: visible !important;
 }
 
 .table-hover tbody tr:hover {
