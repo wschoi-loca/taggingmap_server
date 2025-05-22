@@ -1,5 +1,13 @@
 import { createStore } from 'vuex'
 
+// 전역 변수로 Google Auth 인스턴스에 접근하기 위한 설정
+let gAuthInstance = null;
+
+// 애플리케이션 시작 시 호출할 함수
+export function setGoogleAuthInstance(instance) {
+  gAuthInstance = instance;
+}
+
 export default createStore({
   modules: {
     auth: {
@@ -41,48 +49,46 @@ export default createStore({
               // 로딩 상태 설정
               commit('setLoading', true);
               
-              // vue3-google-oauth2 라이브러리 사용
-              const googleAuth = this._vm.$gAuth;
-              
-              if (!googleAuth) {
-                throw new Error('Google 인증을 초기화할 수 없습니다.');
+              // 전역 변수를 통해 gAuth 인스턴스 접근
+              if (!gAuthInstance) {
+                // 글로벌 gapi 객체 사용
+                if (window.gapi && window.gapi.auth2) {
+                  const authInstance = window.gapi.auth2.getAuthInstance();
+                  if (!authInstance) {
+                    throw new Error('Google Auth 인스턴스를 찾을 수 없습니다.');
+                  }
+                  
+                  // Google Sign-In으로 로그인
+                  const googleUser = await authInstance.signIn();
+                  const authResponse = googleUser.getAuthResponse();
+                  const idToken = authResponse.id_token;
+                  
+                  // 서버에 인증 요청 및 처리
+                  const response = await fetch('/api/auth/google', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idToken })
+                  });
+                  
+                  if (!response.ok) {
+                    throw new Error('서버 인증 실패: ' + response.status);
+                  }
+                  
+                  const data = await response.json();
+                  commit('setToken', data.token);
+                  commit('setUser', data.user);
+                  commit('setUserChecked', true);
+                  commit('setLoading', false);
+                  return data.user;
+                } else {
+                  throw new Error('Google API가 로드되지 않았습니다.');
+                }
+              } else {
+                // vue3-google-oauth2 인스턴스 사용
+                const googleUser = await gAuthInstance.signIn();
+                // 위와 동일한 로직 계속...
               }
-              
-              const googleUser = await googleAuth.signIn();
-              
-              if (!googleUser) {
-                throw new Error('Google 로그인 실패');
-              }
-              
-              const idToken = googleUser.getAuthResponse().id_token;
-              
-              // 서버에 인증 요청
-              const response = await fetch('/api/auth/google', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ idToken })
-              });
-              
-              if (!response.ok) {
-                throw new Error('서버 인증 실패: ' + response.status);
-              }
-              
-              // 응답 데이터 처리
-              const data = await response.json();
-              
-              // 토큰과 사용자 정보 저장
-              commit('setToken', data.token);
-              commit('setUser', data.user);
-              commit('setUserChecked', true);
-              
-              // 로딩 상태 해제
-              commit('setLoading', false);
-              
-              return data.user;
             } catch (error) {
-              // 오류 발생 시 로딩 상태 해제
               commit('setLoading', false);
               console.error('Google 로그인 오류:', error);
               throw error;

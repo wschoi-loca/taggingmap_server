@@ -1,10 +1,7 @@
-// main.js (Vue 3 방식)
 import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
-import store from './store' // Vuex 스토어 추가
-
-// vue3-google-oauth2 사용 (Vue 3 호환 라이브러리)
+import store, { setGoogleAuthInstance } from './store' // 스토어 및 설정 함수 가져오기
 import vue3GoogleOauth from 'vue3-google-oauth2'
 
 const app = createApp(App)
@@ -20,5 +17,11 @@ const gauthOption = {
 app.use(router)
 app.use(store)
 app.use(vue3GoogleOauth, gauthOption)
+
+// Google 인증 인스턴스를 스토어에서 사용할 수 있도록 설정
+const gAuth = app.config.globalProperties.$gAuth
+if (gAuth) {
+  setGoogleAuthInstance(gAuth)
+}
 
 app.mount('#app')
