@@ -36,6 +36,18 @@ const cloudinaryStorage = new CloudinaryStorage({
   }
 });
 
+app.use((req, res, next) => {
+  // 기존 CSP 헤더 제거 (이미 설정된 경우)
+  res.removeHeader('Content-Security-Policy');
+  
+  // 새 CSP 헤더 설정
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com; img-src 'self' https://*.googleapis.com https://*.gstatic.com; connect-src 'self' https://*.googleapis.com"
+  );
+  next();
+});
+
 // Middleware
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
