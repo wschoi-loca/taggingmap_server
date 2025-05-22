@@ -5,6 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <link rel="icon" href="<%= BASE_URL %>favicon.ico">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <title>태깅맵</title>
   </head>
   <body>
@@ -13,5 +14,22 @@
     </noscript>
     <div id="app"></div>
     <!-- built files will be auto injected -->
+    
+    <!-- Google API 스크립트 추가 -->
+    <script src="https://apis.google.com/js/platform.js" async defer></script>
+    <script>
+      function gapiLoaded() {
+        gapi.load('auth2', function() {
+          gapi.auth2.init({
+            client_id: '434460786285-svua7r71njstq0rdqmuacth5tlq6d49d.apps.googleusercontent.com'  // 실제 클라이언트 ID로 교체 필요
+          }).then(function() {
+            console.log('Google API 초기화 완료');
+          }, function(error) {
+            console.error('Google API 초기화 실패:', error);
+          });
+        });
+      }
+    </script>
+    <script src="https://apis.google.com/js/api.js?onload=gapiLoaded"></script>
   </body>
 </html>

@@ -31,6 +31,26 @@
       async handleLogin() {
         try {
           this.error = null;
+          
+          // gapi가 초기화되었는지 확인
+          if (!window.gapi || !window.gapi.auth2) {
+            console.error('Google API가 로드되지 않았습니다.');
+            this.error = 'Google 로그인을 초기화하는 중입니다. 잠시 후 다시 시도해주세요.';
+            return;
+          }
+          
+          // auth2가 초기화되었는지 확인
+          if (!window.gapi.auth2.getAuthInstance()) {
+            console.error('Google Auth API가 초기화되지 않았습니다.');
+            this.error = 'Google 로그인을 초기화하는 중입니다. 잠시 후 다시 시도해주세요.';
+            
+            // 재초기화 시도
+            gapi.auth2.init({
+              client_id: '434460786285-svua7r71njstq0rdqmuacth5tlq6d49d.apps.googleusercontent.com'
+            });
+            return;
+          }
+          
           await this.loginWithGoogle();
           
           // 저장된 경로가 있으면 해당 경로로, 없으면 홈으로

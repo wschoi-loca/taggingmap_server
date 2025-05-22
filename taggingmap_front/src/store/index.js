@@ -37,40 +37,52 @@ export default createStore({
       },
       actions: {
         async loginWithGoogle({ commit }) {
-          try {
-            // GoogleAuth 라이브러리를 사용하여 로그인
-            const googleUser = await window.gapi.auth2.getAuthInstance().signIn()
-            
-            // ID 토큰 가져오기
-            const idToken = googleUser.getAuthResponse().id_token
-            
-            // 서버에 인증 요청
-            const response = await fetch('/api/auth/google', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({ idToken })
-            })
-            
-            if (!response.ok) {
-              throw new Error('로그인 실패')
+            try {
+              // vue3-google-oauth2는 gapi.auth2가 아닌 플러그인 인스턴스를 통해 접근해야 합니다
+              const googleAuth = this._vm.$gAuth || this.$gAuth;
+              
+              if (!googleAuth) {
+                console.error('Google Auth 인스턴스를 찾을 수 없습니다.');
+                throw new Error('Google 인증을 초기화할 수 없습니다.');
+              }
+              
+              // 로그인 시도
+              const googleUser = await googleAuth.signIn();
+              
+              if (!googleUser) {
+                throw new Error('Google 로그인 실패');
+              }
+              
+              // 인증 데이터 가져오기
+              const idToken = googleUser.getAuthResponse().id_token;
+              
+              // 서버에 인증 요청
+              const response = await fetch('/api/auth/google', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ idToken })
+              });
+              
+              if (!response.ok) {
+                throw new Error('서버 인증 실패');
+              }
+              
+              const data = await response.json();
+              
+              // 토큰과 사용자 정보 저장
+              commit('setToken', data.token);
+              commit('setUser', data.user);
+              commit('setUserChecked', true);
+              
+              return data.user;
+            } catch (error) {
+              console.error('Google 로그인 오류:', error);
+              throw error;
             }
-            
-            const data = await response.json()
-            
-            // 토큰과 사용자 정보 저장
-            commit('setToken', data.token)
-            commit('setUser', data.user)
-            commit('setUserChecked', true)
-            
-            return data.user
-          } catch (error) {
-            console.error('Google 로그인 오류:', error)
-            throw error
-          }
         },
-        
+
         async checkAuth({ commit, state }) {
           try {
             // 토큰이 없으면 처리하지 않음

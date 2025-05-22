@@ -11,7 +11,7 @@ const app = createApp(App)
 
 // 구글 OAuth 설정
 const gauthOption = {
-  clientId: 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com',
+  clientId: '434460786285-svua7r71njstq0rdqmuacth5tlq6d49d.apps.googleusercontent.com',
   scope: 'profile email',
   prompt: 'select_account'
 }
