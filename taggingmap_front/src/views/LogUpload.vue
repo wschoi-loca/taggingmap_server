@@ -570,19 +570,6 @@
         allColumns: [], // 실제 데이터에서 동적으로 채워질 것임
         selectedColumns: [], // 기본 컬럼으로 초기화될 것임
         columnDisplayNames: {
-          'SHOT_NUMBER': '순번',
-          'EVENTNAME': '이벤트명',
-          'LABEL_TEXT': '라벨 텍스트',
-          'CONTENT_NM': '컨텐츠명',
-          'PAGE_MKT_CONTS_ID': '컨텐츠 ID',
-          'TIME': '시간',
-          'PAGEPATH': '페이지 경로',
-          'PAGETITLE': '페이지 타이틀',
-          'CATEGORY_DEPTH1': '카테고리1',
-          'CATEGORY_DEPTH2': '카테고리2',
-          'CATEGORY_DEPTH3': '카테고리3',
-          'HORIZONTAL_INDEX': '가로 인덱스',
-          'AUTO_TAG_YN': '자동 태깅'
         },
         newColumnName: '',
         managingEntryIndex: null,
