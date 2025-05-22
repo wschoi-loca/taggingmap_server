@@ -38,6 +38,9 @@ export default createStore({
       actions: {
         async loginWithGoogle({ commit }) {
             try {
+              // 로딩 상태 설정
+              commit('setLoading', true);
+              
               // vue3-google-oauth2 라이브러리 사용
               const googleAuth = this._vm.$gAuth;
               
@@ -62,8 +65,25 @@ export default createStore({
                 body: JSON.stringify({ idToken })
               });
               
-              // 나머지 코드는 동일하게 유지
+              if (!response.ok) {
+                throw new Error('서버 인증 실패: ' + response.status);
+              }
+              
+              // 응답 데이터 처리
+              const data = await response.json();
+              
+              // 토큰과 사용자 정보 저장
+              commit('setToken', data.token);
+              commit('setUser', data.user);
+              commit('setUserChecked', true);
+              
+              // 로딩 상태 해제
+              commit('setLoading', false);
+              
+              return data.user;
             } catch (error) {
+              // 오류 발생 시 로딩 상태 해제
+              commit('setLoading', false);
               console.error('Google 로그인 오류:', error);
               throw error;
             }
@@ -118,7 +138,8 @@ export default createStore({
             console.error('로그아웃 오류:', error)
             throw error
           }
-        }
+        },
+        
       },
       getters: {
         isAuthenticated: state => !!state.token,
