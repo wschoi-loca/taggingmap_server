@@ -513,13 +513,13 @@
               param.TIME = formattedTime;
               
               // 필수 필드가 없는 경우 기본값 설정
-              if (!param.hasOwnProperty('SHOT_NUMBER')) {
+              if (!Object.prototype.hasOwnProperty.call(param, 'SHOT_NUMBER')) {
                 param.SHOT_NUMBER = 0;
               }
-              if (!param.hasOwnProperty('EVENTNAME')) {
+              if (!Object.prototype.hasOwnProperty.call(param, 'EVENTNAME')) {
                 param.EVENTNAME = 'cts_click';
               }
-              if (!param.hasOwnProperty('LABEL_TEXT')) {
+              if (!Object.prototype.hasOwnProperty.call(param, 'LABEL_TEXT')) {
                 param.LABEL_TEXT = '(라벨 없음)';
               }
             });
@@ -706,7 +706,7 @@
                 
                 // 필드 이름에 이미 존재하는 컬럼 추가
                 for (const column of this.allColumns) {
-                  if (!mainParam.hasOwnProperty(column)) {
+                  if (!Object.prototype.hasOwnProperty.call(mainParam, column)) {
                     mainParam[column] = '';
                   }
                 }
