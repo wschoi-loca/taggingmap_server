@@ -1625,11 +1625,11 @@ button:hover {
   background-color: #0056b3;
 }
 
-/* 수정 모달 스타일 */
+/* 수정 모달 스타일 - PC 화면에 최적화 */
 .edit-modal {
-  width: 95%;
-  max-width: 1400px;
-  max-height: 90vh;
+  width: 98%; /* 95%에서 98%로 증가 */
+  max-width: 1800px; /* 1400px에서 1800px로 증가 */
+  max-height: 95vh; /* 90vh에서 95vh로 증가 */
   overflow-y: auto;
 }
 
@@ -1650,19 +1650,19 @@ button:hover {
 }
 
 .image-preview {
-  margin-bottom: 15px;
+  margin-bottom: 20px;
   border: 1px solid #ddd;
-  padding: 10px;
+  padding: 15px; /* 패딩 증가 */
   text-align: center;
-  background-color: #f9f9f9;
-  border-radius: 4px;
-  max-height: 400px;
+  background-color: #f9f9fa;
+  border-radius: 8px; /* 모서리 둥글게 */
+  max-height: 500px; /* 400px에서 500px로 증가 */
   overflow: hidden;
 }
 
 .image-preview img {
   max-width: 100%;
-  max-height: 350px;
+  max-height: 450px; /* 350px에서 450px로 증가 */
   object-fit: contain;
 }
 
@@ -1692,9 +1692,11 @@ input[type="file"] {
 
 .table-container {
   overflow-x: auto;
-  margin-bottom: 20px;
-  max-height: 500px;
+  margin-bottom: 25px;
+  max-height: 600px; /* 500px에서 600px로 증가 */
   overflow-y: auto;
+  border: 1px solid #eee; /* 테두리 추가 */
+  border-radius: 8px; /* 둥근 모서리 추가 */
 }
 
 .edit-table {
@@ -1845,16 +1847,18 @@ input[type="file"] {
 }
 
 .modal-header {
-  padding: 15px 20px;
-  border-bottom: 1px solid #eee;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  padding: 20px 25px; /* 패딩 증가 */
+  border-bottom: 2px solid #eee; /* 테두리 두께 증가 */
 }
 
 .modal-header h3 {
   margin: 0;
   color: #333;
+  font-size: 24px; /* 폰트 크기 증가 */
+}
+
+.modal-body {
+  padding: 25px; /* 패딩 증가 */
 }
 
 .close-button {
@@ -2101,5 +2105,40 @@ input[type="file"] {
 .delete-confirm-button:disabled {
   background-color: #e9a0a8;
   cursor: not-allowed;
+}
+
+/* 테이블 끝에 추가 */
+@media screen and (min-width: 1920px) {
+  .edit-modal {
+    max-width: 1900px;
+  }
+  
+  .table-container {
+    max-height: 700px;
+  }
+  
+  .image-preview {
+    max-height: 600px;
+  }
+  
+  .image-preview img {
+    max-height: 550px;
+  }
+}
+
+.add-column-btn, .remove-row-btn {
+  width: 30px; /* 24px에서 30px로 증가 */
+  height: 30px; /* 24px에서 30px로 증가 */
+  font-size: 18px; /* 폰트 크기 증가 */
+}
+
+.add-row-btn {
+  padding: 12px 30px; /* 패딩 증가 */
+  font-size: 16px; /* 폰트 크기 증가 */
+}
+
+.save-button, .cancel-button {
+  padding: 12px 25px; /* 패딩 증가 */
+  font-size: 16px; /* 폰트 크기 증가 */
 }
 </style>
