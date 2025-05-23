@@ -47,17 +47,10 @@ export default {
         this.error = null;
         this.loading = true;
         
-        if (!this.gapiLoaded && window.gapi) {
-          // gapi는 로드됐지만 auth2는 초기화되지 않은 경우
-          await this.loadGapiAuth2();
-        } else if (!window.gapi) {
-          throw new Error("Google API를 로드할 수 없습니다");
-        }
-        
-        // Google 인증 인스턴스 가져오기
-        const auth2 = this.getGoogleAuthInstance();
+        // Google 인증 인스턴스 가져오기 (최대 10회 시도)
+        const auth2 = await this.waitForGoogleAuth(10);
         if (!auth2) {
-          throw new Error("Google 인증을 초기화할 수 없습니다");
+          throw new Error("Google 인증 초기화 실패");
         }
         
         // Google 로그인 실행
@@ -65,20 +58,17 @@ export default {
         const profile = googleUser.getBasicProfile();
         const id_token = googleUser.getAuthResponse().id_token;
         
-        // 유저 정보 구성
-        const user = {
+        // Vuex에 저장
+        this.setUser({
           id: profile.getId(),
           name: profile.getName(),
           email: profile.getEmail(),
           imageUrl: profile.getImageUrl()
-        };
-        
-        // Vuex에 유저 정보와 토큰 저장
-        this.setUser(user);
+        });
         this.setToken(id_token);
         
-        // 저장된 경로가 있으면 해당 경로로, 없으면 홈으로
-        const redirectPath = this.$store.state.auth.redirectPath || '/';
+        // 리다이렉트
+        const redirectPath = this.$store.state.auth?.redirectPath || '/';
         this.$router.push(redirectPath);
       } catch (error) {
         console.error('로그인 실패:', error);
@@ -87,6 +77,37 @@ export default {
         this.loading = false;
       }
     },
+  
+  waitForGoogleAuth(maxAttempts = 10) {
+    return new Promise((resolve) => {
+      let attempts = 0;
+      
+      const checkAuth = () => {
+        attempts++;
+        console.log(`Google Auth 확인 시도 ${attempts}/${maxAttempts}`);
+        
+        // window 전역 함수로 인스턴스 확인
+        const authInstance = window.getGoogleAuthInstance ? 
+          window.getGoogleAuthInstance() : null;
+          
+        if (authInstance) {
+          resolve(authInstance);
+          return;
+        }
+        
+        if (attempts >= maxAttempts) {
+          resolve(null);
+          return;
+        }
+        
+        // 0.5초 후 다시 시도
+        setTimeout(checkAuth, 500);
+      };
+      
+      // 첫 시도 실행
+      checkAuth();
+    });
+  }
     
     getGoogleAuthInstance() {
       // 전역 함수 사용 시도
