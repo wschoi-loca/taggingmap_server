@@ -55,8 +55,6 @@ const router = createRouter({
   routes
 })
 
-// 세션 체크 약속 - 한 번만 실행되도록
-let authCheckPromise = null;
 
 // 네비게이션 가드 수정
 router.beforeEach(async (to, from, next) => {
