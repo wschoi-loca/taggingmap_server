@@ -714,61 +714,87 @@ app.post('/csp-report', (req, res) => {
 // server.js - 콜백 엔드포인트
 app.get('/auth/google/callback', async (req, res) => {
   try {
-    console.log('[OAuth] 콜백 요청 받음');
+    console.log('[디버그] OAuth 콜백 호출됨');
     const code = req.query.code;
     
     if (!code) {
-      console.error('[OAuth] 인증 코드 없음');
+      console.error('[디버그] 인증 코드 없음');
       return res.redirect('/login?login_failed=true&reason=no_code');
     }
     
+    console.log('[디버그] 인증 코드 수신 완료');
+    
+    // 환경 변수 확인
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+      console.error('[디버그] 환경 변수 누락:', { 
+        clientId: !!process.env.GOOGLE_CLIENT_ID, 
+        clientSecret: !!process.env.GOOGLE_CLIENT_SECRET 
+      });
+      return res.redirect('/login?login_failed=true&reason=env_vars_missing');
+    }
+    
     try {
+      console.log('[디버그] 토큰 교환 시도');
+      const redirectUri = `${req.protocol}://${req.get('host')}/auth/google/callback`;
+      
       const tokenResponse = await axios.post('https://oauth2.googleapis.com/token', {
         code,
         client_id: process.env.GOOGLE_CLIENT_ID,
         client_secret: process.env.GOOGLE_CLIENT_SECRET,
-        redirect_uri: `${req.protocol}://${req.get('host')}/auth/google/callback`,
+        redirect_uri: redirectUri,
         grant_type: 'authorization_code'
       });
       
+      console.log('[디버그] 토큰 교환 성공');
       const { access_token, id_token } = tokenResponse.data;
-      console.log('[OAuth] 토큰 교환 성공');
       
+      // 사용자 정보 조회
+      console.log('[디버그] 사용자 정보 요청');
       const userInfoResponse = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
         headers: { Authorization: `Bearer ${access_token}` }
       });
       
       const userData = userInfoResponse.data;
+      console.log('[디버그] 사용자 정보 응답:', JSON.stringify(userData, null, 2));
       
-      // 전체 사용자 정보 로깅 (디버깅용)
-      console.log('[OAuth] 사용자 정보 전체:', JSON.stringify(userData));
-      console.log('[OAuth] hd 필드:', userData.hd);
-      console.log('[OAuth] 이메일:', userData.email);
+      // lottecard.co.kr 도메인 검증
+      const email = userData.email || '';
+      const hd = userData.hd;  // Google Workspace 도메인
       
-      // 인증 조건 완화 (임시)
-      const isAuthorized = userData.email.endsWith('@lottecard.co.kr');
+      console.log('[디버그] 이메일:', email);
+      console.log('[디버그] 호스트 도메인(hd):', hd);
       
-      if (isAuthorized) {
-        console.log('[OAuth] 인증 성공');
+      // 정확한 도메인 검증
+      if (hd === 'lottecard.co.kr' || email.endsWith('@lottecard.co.kr')) {
+        console.log('[디버그] lottecard.co.kr 도메인 확인됨');
         
         // 쿠키 설정
         res.cookie('auth_token', id_token, {
           httpOnly: false,
           secure: process.env.NODE_ENV === 'production',
-          maxAge: 24 * 60 * 60 * 1000
+          maxAge: 24 * 60 * 60 * 1000,
+          sameSite: 'Lax'  // 쿠키 정책 완화
         });
         
+        console.log('[디버그] 인증 토큰 쿠키 설정 완료');
         return res.redirect('/auth/success');
       } else {
-        console.log('[OAuth] 인증 실패');
-        return res.redirect('/login?login_failed=true&reason=not_authorized');
+        console.log('[디버그] lottecard.co.kr 도메인이 아님:', email);
+        return res.redirect('/login?login_failed=true&reason=domain');
       }
     } catch (error) {
-      console.error('[OAuth] 처리 오류:', error.message);
-      return res.redirect('/login?login_failed=true&reason=process_error');
+      console.error('[디버그] OAuth 처리 오류:', error.message);
+      
+      // 상세 오류 정보 로깅
+      if (error.response) {
+        console.error('[디버그] 응답 상태:', error.response.status);
+        console.error('[디버그] 응답 데이터:', JSON.stringify(error.response.data, null, 2));
+      }
+      
+      return res.redirect(`/login?login_failed=true&reason=process_error&details=${encodeURIComponent(error.message)}`);
     }
   } catch (error) {
-    console.error('[OAuth] 예외 발생:', error);
+    console.error('[디버그] 전체 예외:', error);
     return res.redirect('/login?login_failed=true&reason=exception');
   }
 });
