@@ -1,13 +1,5 @@
 import { createStore } from 'vuex'
 
-// 전역 변수로 Google Auth 인스턴스에 접근하기 위한 설정
-let gAuthInstance = null;
-
-// 애플리케이션 시작 시 호출할 함수
-export function setGoogleAuthInstance(instance) {
-  gAuthInstance = instance;
-}
-
 export default createStore({
   modules: {
     auth: {
