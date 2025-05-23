@@ -1843,7 +1843,6 @@ input[type="file"] {
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   width: 90%;
-  max-width: 500px;
 }
 
 .modal-header {

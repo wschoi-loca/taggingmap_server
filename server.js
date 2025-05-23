@@ -957,7 +957,7 @@ app.get('/auth/success', (req, res) => {
       <div class="success-container">
         <div class="loader"></div>
         <h2>로그인 성공!</h2>
-        <p class="message"><span id="userName">사용자</span>님, 환영합니다.<br>잠시 후 메인 페이지로 이동합니다.</p>
+        <p class="message"><br>잠시 후 메인 페이지로 이동합니다.</p>
         <div class="progress">
           <div class="progress-bar"></div>
         </div>
