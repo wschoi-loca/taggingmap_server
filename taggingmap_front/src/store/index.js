@@ -1,118 +1,158 @@
-// store/index.js
+import { createStore } from 'vuex'
+
 const store = createStore({
-    state: {
-      token: localStorage.getItem('auth_token') || null,
-      user: JSON.parse(localStorage.getItem('user') || 'null'),
-      userChecked: false,
-      loading: false,
-      redirectPath: '/'
-    },
-    
-    getters: {
-      isAuthenticated: state => !!state.token && !!state.user,
-      isAuthorized: state => state.user && state.user.role === 'admin',
-      currentUser: state => state.user,
-      isLoading: state => state.loading,
-      redirectPath: state => state.redirectPath
-    },
-    
-    mutations: {
-      SET_TOKEN(state, token) {
-        state.token = token;
-        if (token) {
-          localStorage.setItem('auth_token', token);
-        } else {
-          localStorage.removeItem('auth_token');
-        }
-      },
-      SET_USER(state, user) {
-        state.user = user;
-        if (user) {
-          localStorage.setItem('user', JSON.stringify(user));
-        } else {
-          localStorage.removeItem('user');
-        }
-      },
-      SET_USER_CHECKED(state, checked) {
-        state.userChecked = checked;
-      },
-      SET_LOADING(state, loading) {
-        state.loading = loading;
-      },
-      SET_REDIRECT_PATH(state, path) {
-        state.redirectPath = path;
-      },
-      CLEAR_AUTH(state) {
-        state.token = null;
-        state.user = null;
+  state: {
+    token: localStorage.getItem('auth_token') || null,
+    user: JSON.parse(localStorage.getItem('user') || 'null'),
+    userChecked: false,
+    loading: false,
+    redirectPath: '/'
+  },
+  
+  getters: {
+    isAuthenticated: state => !!state.token && !!state.user,
+    isAuthorized: state => state.user && state.user.role === 'admin',
+    currentUser: state => state.user,
+    isLoading: state => state.loading,
+    redirectPath: state => state.redirectPath
+  },
+  
+  mutations: {
+    SET_TOKEN(state, token) {
+      state.token = token;
+      if (token) {
+        localStorage.setItem('auth_token', token);
+      } else {
         localStorage.removeItem('auth_token');
+      }
+    },
+    SET_USER(state, user) {
+      state.user = user;
+      if (user) {
+        localStorage.setItem('user', JSON.stringify(user));
+      } else {
         localStorage.removeItem('user');
       }
     },
-    
-    actions: {
-      // 인증 상태 확인 (페이지 로드마다 호출)
-      async checkAuth({ commit, state }) {
-        try {
-          if (state.userChecked && state.user) {
-            return state.user;
-          }
+    SET_USER_CHECKED(state, checked) {
+      state.userChecked = checked;
+    },
+    SET_LOADING(state, loading) {
+      state.loading = loading;
+    },
+    SET_REDIRECT_PATH(state, path) {
+      state.redirectPath = path;
+    },
+    CLEAR_AUTH(state) {
+      state.token = null;
+      state.user = null;
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user');
+    }
+  },
   
-          const token = localStorage.getItem('auth_token');
-          
-          if (!token) {
-            commit('CLEAR_AUTH');
-            commit('SET_USER_CHECKED', true);
-            return null;
-          }
-          
-          // JWT 토큰 검증
-          try {
-            const base64Url = token.split('.')[1];
-            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-            const payload = JSON.parse(atob(base64));
-            
-            // 토큰 만료 확인
-            const now = Math.floor(Date.now() / 1000);
-            if (payload.exp && payload.exp < now) {
-              throw new Error('토큰이 만료되었습니다');
-            }
-            
-            // ★ 중요: GWS 도메인 확인 (hd 필드)
-            const isGwsUser = payload.hd === 'lottecard.co.kr' || (payload.email && payload.email.endsWith('@loca.kr'));
-            
-            if (!isGwsUser) {
-              console.warn('GWS 사용자가 아닙니다:', payload);
-              throw new Error('GWS 사용자가 아닙니다');
-            }
-            
-            // 사용자 정보 및 권한 설정
-            const user = {
-              id: payload.sub,
-              email: payload.email,
-              name: payload.name || payload.email.split('@')[0],
-              picture: payload.picture,
-              role: isGwsUser ? 'admin' : 'user'
-            };
-            
-            // 상태 업데이트
-            commit('SET_TOKEN', token);
-            commit('SET_USER', user);
-            commit('SET_USER_CHECKED', true);
-            
-            return user;
-          } catch (error) {
-            console.error('토큰 검증 오류:', error);
-            commit('CLEAR_AUTH');
-            commit('SET_USER_CHECKED', true);
-            return null;
-          }
-        } catch (error) {
-          console.error('인증 확인 오류:', error);
+  actions: {
+    setRedirectPath({ commit }, path) {
+      commit('SET_REDIRECT_PATH', path);
+    },
+    
+    async checkAuth({ commit, state }) {
+      try {
+        // 이미 확인됐으면 현재 상태 반환
+        if (state.userChecked && state.user) {
+          console.log('[Auth] 사용자 확인됨:', state.user.email);
+          return state.user;
+        }
+
+        const token = localStorage.getItem('auth_token');
+        
+        // 토큰이 없으면 인증되지 않음
+        if (!token) {
+          console.log('[Auth] 토큰 없음');
           commit('CLEAR_AUTH');
           commit('SET_USER_CHECKED', true);
           return null;
         }
+        
+        // 토큰 디코딩 및 검증
+        try {
+          console.log('[Auth] 토큰 검증 시작');
+          const base64Url = token.split('.')[1];
+          const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+          const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+          }).join(''));
+          
+          const payload = JSON.parse(jsonPayload);
+          console.log('[Auth] 토큰 페이로드 확인:', { email: payload.email });
+          
+          // 현재 시간과 만료 시간 비교
+          const now = Math.floor(Date.now() / 1000);
+          if (payload.exp && payload.exp < now) {
+            console.log('[Auth] 토큰 만료됨');
+            throw new Error('토큰이 만료되었습니다');
+          }
+
+          // 이메일 기반으로 권한 설정
+          const email = payload.email || '';
+          console.log('[Auth] 이메일 확인:', email);
+          
+          // @lottecard.co.kr 도메인 사용자는 관리자 권한
+          const isAdmin = email.endsWith('@lottecard.co.kr') || email.includes('wschoi-loca');
+          console.log('[Auth] 관리자 여부:', isAdmin);
+          
+          const user = {
+            id: payload.sub,
+            email: email,
+            name: payload.name || email.split('@')[0],
+            picture: payload.picture || null,
+            role: isAdmin ? 'admin' : 'user'
+          };
+          
+          console.log('[Auth] 사용자 정보 설정:', user);
+          
+          // 상태 업데이트
+          commit('SET_TOKEN', token);
+          commit('SET_USER', user);
+          commit('SET_USER_CHECKED', true);
+          
+          return user;
+        } catch (error) {
+          console.error('[Auth] 토큰 검증 오류:', error);
+          commit('CLEAR_AUTH');
+          commit('SET_USER_CHECKED', true);
+          return null;
+        }
+      } catch (error) {
+        console.error('[Auth] 인증 확인 오류:', error);
+        commit('CLEAR_AUTH');
+        commit('SET_USER_CHECKED', true);
+        return null;
+      }
+    },
+    
+    async logout({ commit }) {
+      try {
+        // Google 로그인 상태 제거
+        if (window.google && window.google.accounts) {
+          window.google.accounts.id.disableAutoSelect();
+        }
+        
+        // 로컬 상태 초기화
+        commit('CLEAR_AUTH');
+        commit('SET_USER_CHECKED', true);
+        
+        // Google 계정에서도 완전히 로그아웃
+        const redirectUrl = encodeURIComponent(window.location.origin);
+        window.location.href = `https://www.google.com/accounts/Logout?continue=https://appengine.google.com/_ah/logout?continue=${redirectUrl}/login`;
+      } catch (error) {
+        console.error('로그아웃 오류:', error);
+        commit('CLEAR_AUTH');
+        commit('SET_USER_CHECKED', true);
+        window.location.href = '/login';
       }
     }
-  });
+  }
+})
+
+export default store
