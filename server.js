@@ -20,17 +20,18 @@ app.use((req, res, next) => {
   res.setHeader(
     'Content-Security-Policy',
     "default-src 'self'; " +
-    "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; " +
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com; " +
+    "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; " +
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://*.gstatic.com; " +
     "img-src 'self' https://*.googleapis.com https://*.gstatic.com https://res.cloudinary.com data:; " +
     "connect-src 'self' https://*.googleapis.com https://accounts.google.com https://apis.google.com; " +
-    "font-src 'self' https://cdnjs.cloudflare.com data:; " +
+    "font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com data:; " +
     "frame-src https://accounts.google.com https://content.googleapis.com; " +
-    "frame-ancestors 'self'; " +
-    "report-uri /csp-report"
+    "object-src 'none'"
   );
   next();
 });
+
+// Helmet 설정은 그대로 유지 (contentSecurityPolicy: false)
 
 // Helmet 설정 - CSP는 비활성화
 app.use(helmet({
@@ -63,7 +64,17 @@ const cloudinaryStorage = new CloudinaryStorage({
 // Middleware
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
-app.use(cors());
+// CORS 설정 확장
+app.use(cors({
+  origin: [
+    'https://taggingmap-server.herokuapp.com',
+    'https://taggingmap-server-bd06b783e6ac.herokuapp.com',
+    'https://accounts.google.com',
+    'https://apis.google.com'
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: true
+}));
 
 
 
