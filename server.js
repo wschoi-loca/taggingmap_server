@@ -737,28 +737,29 @@ app.get('/auth/google/callback', async (req, res) => {
     });
     
     const userData = userInfoResponse.data;
-    console.log('Google에서 받은 사용자 정보:', userData);
     
-    // ★ 중요: GWS 소속 확인
-    // 1. hd(hosted domain) 필드 확인 - 이것이 GWS에 속한 사용자임을 나타내는 핵심 필드
-    const isGwsUser = userData.hd === 'lottecard.co.kr' || userData.email.endsWith('@loca.kr');
+    // hd 필드로 Google Workspace 계정 확인 (핵심)
+    const isLotteCardGWS = userData.hd === 'lottecard.co.kr';
     
-    if (isGwsUser) {
-      // 인증 성공 - 토큰 생성 및 저장
+    console.log('[Auth] 사용자 정보:', {
+      email: userData.email,
+      hostedDomain: userData.hd || '없음'
+    });
+    
+    if (isLotteCardGWS) {
+      // 인증 성공
       res.cookie('auth_token', id_token, {
         httpOnly: false,
         secure: process.env.NODE_ENV === 'production',
         maxAge: 24 * 60 * 60 * 1000
       });
-      
-      // 로그인 성공 페이지로 리디렉션
       res.redirect('/auth/success');
     } else {
-      // Google Workspace 사용자가 아님
-      res.redirect('/login?login_failed=true&reason=not_gws_user');
+      console.log('[Auth] GWS 계정 아님:', userData.email);
+      res.redirect('/login?login_failed=true&reason=not_gws');
     }
   } catch (error) {
-    console.error('Google 인증 처리 오류:', error);
+    console.error('[Auth] 오류:', error);
     res.redirect('/login?login_failed=true');
   }
 });

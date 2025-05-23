@@ -20,7 +20,7 @@ const routes = [
     path: '/upload',
     name: 'LogUpload',
     component: LogUpload,
-    meta: { requiresAuth: true, requiresAdmin: true }
+    meta: { requiresAuth: true }
   },
   {
     path: '/:subdomain/:pathMatch(.*)*',

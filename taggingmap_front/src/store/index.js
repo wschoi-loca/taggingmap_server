@@ -84,7 +84,10 @@ const store = createStore({
           }).join(''));
           
           const payload = JSON.parse(jsonPayload);
-          console.log('[Auth] 토큰 페이로드 확인:', { email: payload.email });
+          console.log('[Auth] 토큰 페이로드 확인:', { 
+            email: payload.email, 
+            hd: payload.hd || '없음'
+          });
           
           // 현재 시간과 만료 시간 비교
           const now = Math.floor(Date.now() / 1000);
@@ -93,20 +96,33 @@ const store = createStore({
             throw new Error('토큰이 만료되었습니다');
           }
 
-          // 이메일 기반으로 권한 설정
+          // GWS 계정 확인 (hd 필드 사용)
+          const isLotteCardGWS = payload.hd === 'lottecard.co.kr';
           const email = payload.email || '';
-          console.log('[Auth] 이메일 확인:', email);
           
-          // @lottecard.co.kr 도메인 사용자는 관리자 권한
-          const isAdmin = email.endsWith('@lottecard.co.kr') || email.includes('wschoi-loca');
-          console.log('[Auth] 관리자 여부:', isAdmin);
+          // 특별 계정 확인 (wschoi-loca)
+          const isSpecialUser = email.includes('wschoi-loca');
+          
+          // 인증 결정
+          const isAuthorized = isLotteCardGWS || isSpecialUser;
+          
+          if (!isAuthorized) {
+            console.warn('[Auth] 인증되지 않은 사용자:', email);
+            throw new Error('lottecard.co.kr GWS 계정이 아닙니다');
+          }
+          
+          console.log('[Auth] 인증됨:', { 
+            email,
+            isGWS: isLotteCardGWS,
+            isSpecial: isSpecialUser
+          });
           
           const user = {
             id: payload.sub,
             email: email,
             name: payload.name || email.split('@')[0],
             picture: payload.picture || null,
-            role: isAdmin ? 'admin' : 'user'
+            role: 'admin' // 인증된 모든 사용자는 관리자 권한 부여
           };
           
           console.log('[Auth] 사용자 정보 설정:', user);
