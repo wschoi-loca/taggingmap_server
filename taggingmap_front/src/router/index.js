@@ -58,63 +58,68 @@ const router = createRouter({
 // 세션 체크 약속 - 한 번만 실행되도록
 let authCheckPromise = null;
 
-// 네비게이션 가드 설정 - 라우트 접근 전에 인증 확인
+// 네비게이션 가드 수정
 router.beforeEach(async (to, from, next) => {
   // 로딩 상태 설정
   store.commit('SET_LOADING', true);
   
-  // 인증 정보 초기 로드 (한 번만 실행)
-  if (!store.state.auth.userChecked) {
-    if (!authCheckPromise) {
-      authCheckPromise = store.dispatch('checkAuth')
-        .catch(error => {
-          console.error('Auth check failed:', error);
-          return null;
-        });
-    }
-    
-    await authCheckPromise;
+  // 로그인 후 리디렉션을 위해 원래 경로 저장
+  if (to.path !== '/login' && to.path !== '/unauthorized') {
+    store.dispatch('setRedirectPath', to.fullPath);
   }
   
-  const isLoggedIn = store.getters.isAuthenticated;
+  // 인증 상태 확인 (강제로 다시 체크)
+  let user = null;
+  if (localStorage.getItem('auth_token')) {
+    try {
+      // 항상 사용자 정보 다시 확인
+      user = await store.dispatch('checkAuth');
+      console.log('라우터 가드 - 인증 상태:', user ? '인증됨' : '인증 안됨');
+    } catch (error) {
+      console.error('인증 확인 실패:', error);
+    }
+  }
+
+  const isLoggedIn = !!user;
+  const userRole = user ? user.role : null;
   
-  // 로그인이 필요한 페이지에 접근하는 경우
+  console.log('라우터 가드 - 로그인 상태:', isLoggedIn, '권한:', userRole);
+  
+  // 인증이 필요한 페이지에 접근하는 경우
   if (to.matched.some(record => record.meta.requiresAuth)) {
     if (!isLoggedIn) {
-      // 로그인 페이지로 리디렉션하기 전에 현재 경로 저장
-      store.dispatch('setRedirectPath', to.fullPath);
-      
-      // 즉시 로그인 페이지로 이동
-      next({ name: 'login' });
+      // 로그인 페이지로 리디렉션
+      console.log('인증 필요 - 로그인으로 이동');
+      next('/login');
     }
     // 관리자 권한이 필요한 페이지
     else if (to.matched.some(record => record.meta.requiresAdmin)) {
-      const userRole = store.getters.userRole;
       if (userRole === 'admin' || userRole === 'superadmin') {
+        console.log('관리자 권한 확인 - 접근 허용');
         next(); // 관리자 권한 있음
       } else {
+        console.log('관리자 권한 필요 - 권한 부족');
         next('/unauthorized'); // 권한 부족 페이지로 이동
       }
     } else {
+      console.log('일반 인증 필요 - 접근 허용');
       next(); // 인증된 일반 사용자
     }
   }
   // 로그인 페이지에 이미 로그인한 사용자가 접근하는 경우
   else if (to.matched.some(record => record.meta.guest) && isLoggedIn) {
-    // 저장된 리다이렉트 경로가 있으면 해당 경로로, 없으면 홈으로
-    const redirectPath = store.getters.redirectPath;
-    next(redirectPath);
+    console.log('이미 로그인됨 - 홈으로 리다이렉트');
+    next('/'); // 홈으로 리디렉션
   } 
   else {
+    console.log('인증 불필요 - 정상 진행');
     next(); // 인증이 필요없는 페이지는 그대로 진행
   }
   
-  // 라우트 이동이 완료된 후 로딩 상태 해제
-  router.afterEach(() => {
-    setTimeout(() => {
-      store.commit('SET_LOADING', false);
-    }, 300);
-  });
+  // 로딩 상태 해제
+  setTimeout(() => {
+    store.commit('SET_LOADING', false);
+  }, 300);
 });
 
 export default router

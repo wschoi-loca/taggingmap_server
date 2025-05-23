@@ -740,7 +740,9 @@ app.get('/auth/google/callback', async (req, res) => {
     const email = userData.email;
     
     // 이메일(계정) 기반으로만 권한 확인
-    if (email && email.endsWith('@loca.kr')) {
+    // server.js의 /auth/google/callback 라우트 수정
+    // 이메일(계정) 기반으로만 권한 확인
+    if (email && email.endsWith('@lottecard.co.kr')) {
       // 인증 정보 저장
       res.cookie('auth_token', id_token, {
         httpOnly: false,
@@ -773,20 +775,44 @@ app.get('/auth/success', (req, res) => {
               
               if (authTokenCookie) {
                 const token = authTokenCookie.split('=')[1];
+                
+                // 토큰 저장 전에 로컬 스토리지 초기화
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('user');
+                
+                // 새 토큰 저장
                 localStorage.setItem('auth_token', token);
                 
-                // 토큰 디코딩하여 사용자 정보 저장
-                // - 여기서는 이메일 계정만 확인하면 됨
-                const payload = JSON.parse(atob(token.split('.')[1]));
-                const user = {
-                  id: payload.sub,
-                  email: payload.email,
-                  name: payload.name || payload.email.split('@')[0], // 이름 없으면 이메일 아이디 사용
-                  picture: payload.picture || '/default-avatar.png',
-                  role: payload.email.endsWith('@loca.kr') ? 'admin' : 'user'
-                };
-                
-                localStorage.setItem('user', JSON.stringify(user));
+                try {
+                  // 토큰 디코딩
+                  const base64Url = token.split('.')[1];
+                  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                  const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                  }).join(''));
+                  
+                  const payload = JSON.parse(jsonPayload);
+                  const email = payload.email || '';
+                  
+                  // choiwonseok 계정 또는 @lottecard.co.kr 이메일 처리
+                  const isAdmin = email.includes('choiwonseok');
+                  
+                  const user = {
+                    id: payload.sub,
+                    email: email,
+                    name: payload.name || email.split('@')[0],
+                    picture: payload.picture || null,
+                    role: isAdmin ? 'admin' : 'user'
+                  };
+                  
+                  console.log('사용자 정보 설정:', user);
+                  localStorage.setItem('user', JSON.stringify(user));
+                  
+                } catch (e) {
+                  console.error('토큰 디코딩 오류:', e);
+                }
+              } else {
+                console.error('인증 토큰을 찾을 수 없습니다');
               }
             } catch (e) {
               console.error('토큰 처리 오류:', e);

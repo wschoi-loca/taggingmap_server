@@ -3,25 +3,20 @@ import App from './App.vue'
 import router from './router'
 import store from './store'
 
-// Google ID 서비스 초기화 (setGoogleAuthInstance 사용 제거)
-if (typeof window !== 'undefined') {
-  window.onload = () => {
-    if (window.google && window.google.accounts) {
-      try {
-        window.google.accounts.id.initialize({
-          client_id: '434460786285-svua7r71njstq0rdqmuacth5tlq6d49d.apps.googleusercontent.com',
-          callback: (response) => {
-            if (window.googleAuthCallback) {
-              window.googleAuthCallback(response);
-            }
-          }
-        });
-        console.log('Google Identity Services 초기화 완료');
-      } catch (e) {
-        console.error('Google Identity Services 초기화 실패:', e);
-      }
-    }
-  };
+// 앱 시작 전 인증 상태 확인
+async function initApp() {
+  // auth 검증 실행
+  try {
+    console.log('[초기화] 인증 상태 확인 시작');
+    await store.dispatch('checkAuth');
+    console.log('[초기화] 인증 상태 확인 완료');
+  } catch (error) {
+    console.error('[초기화] 인증 확인 오류', error);
+  }
+  
+  // 앱 생성 및 마운트
+  createApp(App).use(store).use(router).mount('#app')
 }
 
-createApp(App).use(store).use(router).mount('#app')
+// 앱 초기화
+initApp();

@@ -42,28 +42,45 @@ export default {
       }
     }, 3000);
   },
+  // LoginView.vue methods 수정
   methods: {
-    // LoginView.vue에서 OAuth URL 생성 함수 수정
     redirectToGoogleLogin() {
+      // 이미 로그인된 경우 바로 리다이렉트
+      if (this.$store.getters.isAuthenticated) {
+        const redirectPath = this.$store.getters.redirectPath || '/';
+        this.$router.push(redirectPath);
+        return;
+      }
+      
       this.loading = true;
+      
+      // 로그인 리다이렉트 루프 방지 (마지막 리다이렉트 시간 확인)
+      const lastRedirect = localStorage.getItem('last_login_redirect');
+      const now = Date.now();
+      
+      if (lastRedirect && (now - parseInt(lastRedirect)) < 5000) {
+        // 5초 이내 중복 리다이렉트 방지
+        console.log('로그인 리다이렉트 무시 (중복 방지)');
+        this.loading = false;
+        return;
+      }
+      
+      // 현재 시간 저장
+      localStorage.setItem('last_login_redirect', now.toString());
       
       // 현재 URL을 저장
       const redirectPath = this.$store.getters.redirectPath || '/';
       localStorage.setItem('redirect_after_login', redirectPath);
       
+      // Google OAuth URL 생성 및 리다이렉트
       const clientId = '434460786285-svua7r71njstq0rdqmuacth5tlq6d49d.apps.googleusercontent.com';
       const redirectUri = encodeURIComponent(`${window.location.origin}/auth/google/callback`);
       const scope = encodeURIComponent('email profile');
       const responseType = 'code';
       const accessType = 'online';
+      const prompt = 'consent'; // 계정 권한에 집중
       
-      // 중요: select_account 대신 consent로 변경하여 항상 계정만 확인
-      const prompt = 'consent';
-      
-      // 로그인 시 프로필 선택이 아니라 계정 권한에 집중
-      const includeGrantedScopes = 'true';
-      
-      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=${responseType}&access_type=${accessType}&prompt=${prompt}&include_granted_scopes=${includeGrantedScopes}`;
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=${responseType}&access_type=${accessType}&prompt=${prompt}`;
       
       window.location.href = authUrl;
     }
