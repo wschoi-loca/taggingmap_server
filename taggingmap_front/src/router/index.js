@@ -55,8 +55,7 @@ const router = createRouter({
   routes
 })
 
-
-// 네비게이션 가드 수정
+// 네비게이션 가드 - 라우트 접근 전에 인증 확인
 router.beforeEach(async (to, from, next) => {
   // 로딩 상태 설정
   store.commit('SET_LOADING', true);
@@ -66,64 +65,48 @@ router.beforeEach(async (to, from, next) => {
     store.dispatch('setRedirectPath', to.fullPath);
   }
   
-  // 인증 상태 확인 (강제로 다시 체크)
-  let user = null;
-  if (localStorage.getItem('auth_token')) {
-    try {
-      // 항상 사용자 정보 다시 확인
-      user = await store.dispatch('checkAuth');
-      console.log('라우터 가드 - 인증 상태:', user ? '인증됨' : '인증 안됨');
-    } catch (error) {
-      console.error('인증 확인 실패:', error);
-    }
-  }
-
-  const isLoggedIn = !!user;
-  const userRole = user ? user.role : null;
-  
-  console.log('라우터 가드 - 로그인 상태:', isLoggedIn, '권한:', userRole);
-  
-// router/index.js
-router.beforeEach(async (to, from, next) => {
-  store.commit('SET_LOADING', true);
-  
-  // 리다이렉트 경로 저장
-  if (to.path !== '/login' && to.path !== '/unauthorized') {
-    store.dispatch('setRedirectPath', to.fullPath);
-  }
-  
   try {
     // 인증 상태 확인
     const user = await store.dispatch('checkAuth');
+    const isLoggedIn = !!user;
+    const userRole = user ? user.role : null;
     
-    // 인증이 필요한 페이지
+    console.log('라우터 가드 - 로그인 상태:', isLoggedIn, '권한:', userRole);
+    
+    // 인증이 필요한 페이지에 접근하는 경우
     if (to.matched.some(record => record.meta.requiresAuth)) {
-      if (!user) {
+      if (!isLoggedIn) {
+        console.log('인증 필요 - 로그인으로 이동');
         next('/login');
       }
       // 관리자 권한이 필요한 페이지
       else if (to.matched.some(record => record.meta.requiresAdmin)) {
-        if (user.role === 'admin') {
+        if (userRole === 'admin') {
+          console.log('관리자 권한 확인 - 접근 허용');
           next();
         } else {
+          console.log('관리자 권한 필요 - 권한 부족');
           next('/unauthorized');
         }
       } else {
+        console.log('일반 인증 필요 - 접근 허용');
         next();
       }
     }
-    // 로그인 페이지에 이미 로그인한 사용자 접근 시
-    else if (to.path === '/login' && user) {
+    // 로그인 페이지에 이미 로그인한 사용자가 접근하는 경우
+    else if (to.path === '/login' && isLoggedIn) {
+      console.log('이미 로그인됨 - 홈으로 리다이렉트');
       next('/');
-    }
+    } 
     else {
+      console.log('인증 불필요 - 정상 진행');
       next();
     }
   } catch (error) {
     console.error('라우터 가드 오류:', error);
     next('/login');
   } finally {
-    // 로딩 상태 종료
+    // 로딩 상태 해제
     setTimeout(() => {
       store.commit('SET_LOADING', false);
     }, 300);
