@@ -12,7 +12,28 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 require('dotenv').config(); // 환경 변수 로드
 const TaggingMap = require('./models/taggingMap'); // 모델
 
+// 먼저 Express 앱 생성
 const app = express();
+
+// 커스텀 CSP 헤더 설정
+app.use((req, res, next) => {
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; " +
+    "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; " +
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com; " +
+    "img-src 'self' https://*.googleapis.com https://*.gstatic.com https://res.cloudinary.com data:; " +
+    "connect-src 'self' https://*.googleapis.com https://accounts.google.com https://taggingmap-server.herokuapp.com https://taggingmap-server-bd06b783e6ac.herokuapp.com; " +
+    "font-src 'self' https://cdnjs.cloudflare.com data:"
+  );
+  next();
+});
+
+// Helmet 설정 - CSP는 비활성화
+app.use(helmet({
+  contentSecurityPolicy: false, // 커스텀 CSP 설정을 사용하므로 비활성화
+  crossOriginEmbedderPolicy: false
+}));
 
 // Cloudinary 설정 - 제공된 계정 정보 사용
 cloudinary.config({
@@ -36,37 +57,12 @@ const cloudinaryStorage = new CloudinaryStorage({
   }
 });
 
-app.use((req, res, next) => {
-  res.setHeader(
-    'Content-Security-Policy',
-    "default-src 'self'; " +
-    "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; " +
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com; " +
-    "img-src 'self' https://*.googleapis.com https://*.gstatic.com data:; " +
-    "connect-src 'self' https://*.googleapis.com https://accounts.google.com; " +
-    "font-src 'self' https://cdnjs.cloudflare.com data:"
-  );
-  next();
-});
-
 // Middleware
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors());
 
-// Helmet 설정
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", "data:", "blob:", "https://res.cloudinary.com"], 
-      connectSrc: ["'self'", "https://taggingmap-server.herokuapp.com", "https://taggingmap-server-bd06b783e6ac.herokuapp.com"]
-    }
-  },
-  crossOriginEmbedderPolicy: false
-}));
+
 
 // MongoDB connection
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/taggingMapSystem';
