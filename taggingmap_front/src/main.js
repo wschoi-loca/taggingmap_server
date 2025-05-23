@@ -1,28 +1,27 @@
 import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
-import store, { setGoogleAuthInstance } from './store' // 스토어 및 설정 함수 가져오기
-import vue3GoogleOauth from 'vue3-google-oauth2'
-import '@fortawesome/fontawesome-free/css/all.min.css';
+import store from './store'
 
-const app = createApp(App)
-
-// 구글 OAuth 설정
-const gauthOption = {
-  clientId: '434460786285-svua7r71njstq0rdqmuacth5tlq6d49d.apps.googleusercontent.com',
-  scope: 'profile email',
-  prompt: 'select_account'
+// Google ID 서비스 초기화 (setGoogleAuthInstance 사용 제거)
+if (typeof window !== 'undefined') {
+  window.onload = () => {
+    if (window.google && window.google.accounts) {
+      try {
+        window.google.accounts.id.initialize({
+          client_id: '434460786285-svua7r71njstq0rdqmuacth5tlq6d49d.apps.googleusercontent.com',
+          callback: (response) => {
+            if (window.googleAuthCallback) {
+              window.googleAuthCallback(response);
+            }
+          }
+        });
+        console.log('Google Identity Services 초기화 완료');
+      } catch (e) {
+        console.error('Google Identity Services 초기화 실패:', e);
+      }
+    }
+  };
 }
 
-// 플러그인 등록
-app.use(router)
-app.use(store)
-app.use(vue3GoogleOauth, gauthOption)
-
-// Google 인증 인스턴스를 스토어에서 사용할 수 있도록 설정
-const gAuth = app.config.globalProperties.$gAuth
-if (gAuth) {
-  setGoogleAuthInstance(gAuth)
-}
-
-app.mount('#app')
+createApp(App).use(store).use(router).mount('#app')

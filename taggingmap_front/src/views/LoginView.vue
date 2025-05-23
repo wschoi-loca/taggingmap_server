@@ -8,8 +8,11 @@
         {{ error }}
       </div>
       
-      <!-- Google 제공 로그인 버튼을 표시할 div -->
-      <div id="g_id_signin" class="google-signin-container"></div>
+      <!-- 구글 로그인 버튼 -->
+      <button @click="handleLogin" class="google-login-btn" :disabled="loading">
+        <img src="@/assets/google-icon.svg" alt="Google" />
+        {{ loading ? '로그인 중...' : 'Google Workspace로 로그인' }}
+      </button>
     </div>
   </div>
 </template>
@@ -25,88 +28,22 @@ export default {
       loading: false
     };
   },
-  mounted() {
-    this.initGoogleSignIn();
-    
-    // Google 인증 성공 이벤트 리스너
-    window.addEventListener('google-auth-success', this.handleGoogleAuthSuccess);
-  },
-  beforeUnmount() {
-    // 컴포넌트 파괴 시 리스너 제거
-    window.removeEventListener('google-auth-success', this.handleGoogleAuthSuccess);
-  },
   methods: {
-    ...mapActions(['setUser', 'setToken']),
+    ...mapActions(['loginWithGoogle']),
     
-    initGoogleSignIn() {
-      // 구글 클라이언트 초기화 (google.accounts.id가 로드된 후)
-      if (window.google && window.google.accounts) {
-        // 컴포넌트 내부 함수를 전역 스코프에 추가
-        window.handleGoogleCredentialResponse = this.handleGoogleCredentialResponse;
-        
-        window.google.accounts.id.initialize({
-          client_id: '434460786285-svua7r71njstq0rdqmuacth5tlq6d49d.apps.googleusercontent.com',
-          callback: window.handleGoogleCredentialResponse,
-          auto_select: false
-        });
-        
-        // 버튼 렌더링
-        window.google.accounts.id.renderButton(
-          document.getElementById('g_id_signin'),
-          { type: 'standard', theme: 'outline', size: 'large', text: 'signin_with', shape: 'rectangular', width: 250 }
-        );
-      } else {
-        // Google 라이브러리가 아직 로드되지 않았으면 대기
-        setTimeout(this.initGoogleSignIn, 100);
-      }
-    },
-    
-    // 콜백 함수 추가
-    handleGoogleCredentialResponse(response) {
-      // 인증 응답을 Vue 앱으로 전달
-      if (window.dispatchEvent) {
-        window.dispatchEvent(new CustomEvent('google-auth-success', {
-          detail: { credential: response.credential }
-        }));
-      }
-    },
-    
-    handleGoogleAuthSuccess(event) {
-      // JWT 토큰 획득
-      const idToken = event.detail.credential;
-      
+    async handleLogin() {
       try {
-        this.loading = true;
         this.error = null;
+        this.loading = true;
         
-        // JWT 토큰 디코딩 (간단한 방법)
-        const base64Url = idToken.split('.')[1];
-        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => {
-          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-        }).join(''));
+        await this.loginWithGoogle();
         
-        const payload = JSON.parse(jsonPayload);
-        
-        // 사용자 정보 추출
-        const user = {
-          id: payload.sub,
-          email: payload.email,
-          name: payload.name,
-          picture: payload.picture,
-          role: payload.email.endsWith('@loca.kr') ? 'admin' : 'user'
-        };
-        
-        // Vuex에 저장
-        this.setUser(user);
-        this.setToken(idToken);
-        
-        // 리다이렉트
+        // 저장된 경로가 있으면 해당 경로로, 없으면 홈으로
         const redirectPath = this.$store.state.auth.redirectPath || '/';
         this.$router.push(redirectPath);
       } catch (error) {
-        console.error('로그인 처리 중 오류:', error);
-        this.error = '로그인 정보 처리 중 오류가 발생했습니다.';
+        console.error('로그인 실패:', error);
+        this.error = '로그인에 실패했습니다. 다시 시도해주세요.';
       } finally {
         this.loading = false;
       }
@@ -114,6 +51,7 @@ export default {
   }
 };
 </script>
+
 
 <style scoped>
 .login-page {

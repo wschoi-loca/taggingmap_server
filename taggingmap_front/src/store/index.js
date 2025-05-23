@@ -1,5 +1,13 @@
 import { createStore } from 'vuex'
 
+// 전역 변수로 Google Auth 인스턴스에 접근하기 위한 설정
+let gAuthInstance = null;
+
+// 애플리케이션 시작 시 호출할 함수
+export function setGoogleAuthInstance(instance) {
+  gAuthInstance = instance;
+}
+
 export default createStore({
   modules: {
     auth: {
@@ -41,126 +49,63 @@ export default createStore({
           commit('SET_LOADING', true);
           
           try {
-            // Google Auth 인스턴스 얻기 (최대 10회, 5초 시도)
-            const authInstance = await dispatch('getGoogleAuthInstance');
+            // Google Auth 인스턴스 얻기
+            const authInstance = gAuthInstance;
             
-            if (!authInstance) {
-              throw new Error('Google 인증을 초기화할 수 없습니다.');
+            if (!authInstance && window.google && window.google.accounts) {
+              // 새 Google Identity Services API 사용
+              const response = await new Promise((resolve) => {
+                window.googleAuthCallback = (response) => {
+                  resolve(response);
+                };
+                
+                window.google.accounts.id.prompt((notification) => {
+                  if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+                    // 사용자에게 로그인 UI가 표시되지 않음
+                    resolve(null);
+                  }
+                });
+              });
+              
+              if (!response) {
+                throw new Error('Google 로그인 실패: 사용자 응답 없음');
+              }
+              
+              const credential = response.credential;
+              
+              // JWT 토큰 디코딩
+              const base64Url = credential.split('.')[1];
+              const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+              const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+              }).join(''));
+              
+              const payload = JSON.parse(jsonPayload);
+              
+              // 사용자 정보 구성
+              const user = {
+                id: payload.sub,
+                email: payload.email,
+                name: payload.name,
+                picture: payload.picture,
+                role: payload.email.endsWith('@loca.kr') ? 'admin' : 'user'
+              };
+              
+              // 상태 업데이트
+              commit('SET_TOKEN', credential);
+              commit('SET_USER', user);
+              commit('SET_USER_CHECKED', true);
+              
+              return user;
+            } else {
+              throw new Error('Google 인증을 초기화할 수 없습니다');
             }
-            
-            // Google 로그인 수행
-            const googleUser = await authInstance.signIn();
-            const profile = googleUser.getBasicProfile();
-            const authResponse = googleUser.getAuthResponse();
-            
-            // 사용자 정보 구성
-            const user = {
-              id: profile.getId(),
-              email: profile.getEmail(),
-              name: profile.getName(),
-              picture: profile.getImageUrl(),
-              role: profile.getEmail().endsWith('@loca.kr') ? 'admin' : 'user' // 이메일 도메인에 따라 역할 지정
-            };
-            
-            // 상태 업데이트
-            commit('SET_TOKEN', authResponse.id_token);
-            commit('SET_USER', user);
-            commit('SET_USER_CHECKED', true);
-            
-            return user;
           } catch (error) {
             console.error('Google 로그인 오류:', error);
             throw error;
           } finally {
             commit('SET_LOADING', false);
           }
-        },
-        
-        // Google Auth 인스턴스를 얻기 위한 헬퍼 액션
-        getGoogleAuthInstance() {
-          return new Promise((resolve) => {
-            // 이미 초기화된 인스턴스 확인
-            const checkInstance = () => {
-              // 전역 함수를 통한 접근 시도
-              if (window.getGoogleAuthInstance && window.getGoogleAuthInstance()) {
-                return window.getGoogleAuthInstance();
-              }
-              
-              // gapi 직접 접근 시도
-              if (window.gapi && window.gapi.auth2) {
-                try {
-                  const authInstance = window.gapi.auth2.getAuthInstance();
-                  if (authInstance) {
-                    return authInstance;
-                  }
-                } catch (e) {
-                  console.log('gapi 인스턴스 접근 실패:', e);
-                }
-              }
-              
-              return null;
-            };
-            
-            // 첫 번째 시도
-            let authInstance = checkInstance();
-            if (authInstance) {
-              resolve(authInstance);
-              return;
-            }
-            
-            // 인스턴스가 없으면 초기화 시도
-            const initializeAuth = () => {
-              if (!window.gapi || !window.gapi.auth2) {
-                return false;
-              }
-              
-              try {
-                window.gapi.auth2.init({
-                  client_id: '434460786285-svua7r71njstq0rdqmuacth5tlq6d49d.apps.googleusercontent.com',
-                  scope: 'profile email'
-                }).then(
-                  (auth) => {
-                    console.log('Google Auth 초기화 성공');
-                    resolve(auth);
-                  },
-                  (error) => {
-                    console.error('Google Auth 초기화 실패:', error);
-                    resolve(null);
-                  }
-                );
-                return true;
-              } catch (e) {
-                console.error('Google Auth 초기화 예외:', e);
-                return false;
-              }
-            };
-            
-            // 이미 초기화되어 있으면 재사용
-            if (initializeAuth()) {
-              return;
-            }
-            
-            // 아직 gapi가 로드되지 않았다면 이벤트 리스너 설정
-            window.addEventListener('google-auth-initialized', () => {
-              authInstance = checkInstance();
-              if (authInstance) {
-                resolve(authInstance);
-              } else {
-                // 이벤트는 발생했지만 인스턴스가 없으면 초기화 시도
-                if (!initializeAuth()) {
-                  resolve(null);
-                }
-              }
-            }, { once: true });
-            
-            // 타임아웃 설정 (5초)
-            setTimeout(() => {
-              if (!checkInstance()) {
-                console.warn('Google Auth 인스턴스 획득 시간 초과');
-                resolve(null);
-              }
-            }, 5000);
-          });
         },
         
         // 사용자 상태 체크
@@ -172,8 +117,6 @@ export default createStore({
           
           try {
             // 토큰 검증 로직
-            // 실제 서버 API가 구현되어 있으면 서버에 검증 요청
-            // 임시로 토큰이 있으면 세션이 유효한 것으로 처리
             if (state.token && state.user) {
               commit('SET_USER_CHECKED', true);
               return state.user;
@@ -190,22 +133,18 @@ export default createStore({
         
         // 로그아웃 처리
         async logout({ commit }) {
-            try {
-                // 새 Google ID 서비스 사용해 로그아웃
-                if (window.google && window.google.accounts) {
-                window.google.accounts.id.disableAutoSelect();
-                // 로그인 상태 제거
-                window.google.accounts.id.revoke(localStorage.getItem('auth_token'), () => {
-                    console.log('Google 로그아웃 성공');
-                });
-                }
-            } catch (e) {
-                console.warn('Google 로그아웃 오류:', e);
-            } finally {
-                // 항상 로컬 상태는 초기화
-                commit('CLEAR_AUTH');
-                commit('SET_USER_CHECKED', true);
+          try {
+            // Google 로그아웃
+            if (window.google && window.google.accounts) {
+              window.google.accounts.id.disableAutoSelect();
             }
+          } catch (e) {
+            console.warn('Google 로그아웃 오류:', e);
+          } finally {
+            // 항상 로컬 상태는 초기화
+            commit('CLEAR_AUTH');
+            commit('SET_USER_CHECKED', true);
+          }
         },
         
         // 사용자 설정
