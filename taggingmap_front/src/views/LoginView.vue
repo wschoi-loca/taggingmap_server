@@ -8,7 +8,7 @@
         {{ error }}
       </div>
       
-      <!-- 구글 로그인 버튼 -->
+      <!-- Google 로그인 버튼 -->
       <button @click="handleLogin" class="google-login-btn" :disabled="loading">
         <img src="@/assets/google-icon.svg" alt="Google" />
         {{ loading ? '로그인 중...' : 'Google Workspace로 로그인' }}
@@ -25,21 +25,41 @@ export default {
   data() {
     return {
       error: null,
-      loading: false
+      loading: false,
+      autoPromptTriggered: false
     };
+  },
+  mounted() {
+    // 3초 후 자동 로그인 시도 (사용자 경험을 위해 약간의 지연 추가)
+    this.triggerAutoLogin();
   },
   methods: {
     ...mapActions(['loginWithGoogle']),
+    
+    triggerAutoLogin() {
+      if (this.autoPromptTriggered) return;
+      
+      // 이미 자동 로그인을 시도했음을 표시
+      this.autoPromptTriggered = true;
+      
+      setTimeout(() => {
+        if (!this.$store.getters.isAuthenticated && !this.loading) {
+          console.log('자동 로그인 시도');
+          this.handleLogin();
+        }
+      }, 1000); // 1초 지연
+    },
     
     async handleLogin() {
       try {
         this.error = null;
         this.loading = true;
         
+        // Google 로그인 시도
         await this.loginWithGoogle();
         
         // 저장된 경로가 있으면 해당 경로로, 없으면 홈으로
-        const redirectPath = this.$store.state.auth.redirectPath || '/';
+        const redirectPath = this.$store.getters.redirectPath;
         this.$router.push(redirectPath);
       } catch (error) {
         console.error('로그인 실패:', error);
