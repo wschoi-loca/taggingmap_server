@@ -172,15 +172,6 @@
           </small>
         </div>
       </div>
-      <!-- 공유 버튼 추가 - 필터 선택기 근처에 배치하세요 -->
-      <div class="share-container" v-if="selectedUrl && selectedTimestamp">
-        <button @click="copyShareLink" class="share-button">
-          <i class="fas fa-share-alt"></i> 현재 필터와 함께 공유
-        </button>
-        <span v-if="showCopyNotification" class="copy-notification">
-          링크가 클립보드에 복사되었습니다!
-        </span>
-      </div>
 
       <!-- 적용된 필터 표시 영역 (필터 섹션 바로 아래) -->
       <div v-if="hasActiveAdvancedFilters" class="active-filters">
@@ -315,10 +306,7 @@ export default {
       error: null,
       preSelectedUrl: null,
       preSelectedEventType: null, // 변수명 통일
-      timeFilter: {
-        startDate: null,
-        endDate: null
-      },
+      
       // 컬럼 정렬 순서
       columnOrder: [
       "EVENTNAME",
@@ -449,13 +437,7 @@ export default {
       editImage: null,
       editImageFile: null,
       editColumns: [],
-      editData: [],
-       // 공유 기능 관련 상태
-      showCopyNotification: false,
-      preSelectedTimestamp: null,
-      isInitializingFromURL: false,
-      isUpdatingURL: false,
-      dataInitialized: false
+      editData: []
     }
   },
   computed: {
@@ -569,7 +551,6 @@ export default {
   },
   async created() {
     try {
-      this.initializeFromURL();
       // 경로 매핑 데이터 로드
       this.pathMappings = await PathMappingService.loadMappings();
       console.log("경로 매핑 데이터 로드 완료:", Object.keys(this.pathMappings).length);
@@ -610,316 +591,210 @@ export default {
     }
   },
   methods: {
-    // URL에서 필터 상태 읽어오기
-    initializeFromURL() {
-      // URL에서 필터를 초기화하는 중에 추가 API 호출이 발생하지 않도록 플래그 설정
-      this.isInitializingFromURL = true;
-      
-      const query = this.$route.query;
-      
-      // 이벤트 타입 복원
-      if (query.eventType) {
-        this.selectedEventType = query.eventType;
-      }
-      
-      // URL 필터 복원
-      if (query.url) {
-        this.preSelectedUrl = query.url;
-      }
-      
-      // 시간 필터 복원
-      if (query.timestamp) {
-        this.preSelectedTimestamp = query.timestamp;
-      }
-      
-      // 팝업 필터 복원
-      if (query.isPopup === 'true') {
-        this.isPopupFilter = true;
-      }
-      
-      // 고급 검색 필터 복원
-      if (this.advancedSearchFilters && this.advancedSearchFilters.fields) {
-        Object.keys(this.advancedSearchFilters.fields).forEach(field => {
-          if (query[`${field}_exists`] === 'true') {
-            this.advancedSearchFilters.fields[field].anyValue = true;
-          } else if (query[field]) {
-            this.advancedSearchFilters.fields[field].value = query[field];
-          }
-        });
-      }
-      
-      this.isInitializingFromURL = false;
-      
-      // URL에 필터가 있을 때만 fetchPageData를 호출 (무한 루프 방지)
-      if (Object.keys(query).length > 0 && !this.dataInitialized) {
-        this.dataInitialized = true;
-        this.loading = true;
-        this.fetchPageData(); 
-      }
-    },
-    
-    // 필터 변경 시 URL 업데이트
-    updateURLWithFilters() {
-      // 초기화 중이거나 이미 URL 업데이트 중인 경우 중복 호출 방지
-      if (this.isInitializingFromURL || this.isUpdatingURL) {
-        return;
-      }
-      
-      this.isUpdatingURL = true;
-      
-      // 현재 라우트 복사
-      const currentRoute = this.$router.currentRoute;
-      
-      // 쿼리 파라미터 객체 구성
-      const query = {
-        ...currentRoute.query, // 기존 쿼리 유지
-        eventType: this.selectedEventType || undefined,
-        url: this.selectedUrl || undefined,
-        timestamp: this.selectedTimestamp || undefined,
-        isPopup: this.isPopupFilter ? 'true' : undefined
-      };
-      
-      // 고급 검색 필터도 URL에 추가
-      if (this.advancedSearchFilters && this.advancedSearchFilters.fields) {
-        Object.keys(this.advancedSearchFilters.fields).forEach(field => {
-          const filter = this.advancedSearchFilters.fields[field];
-          if (filter.anyValue) {
-            query[`${field}_exists`] = 'true';
-          } else if (filter.value) {
-            query[field] = filter.value;
-          }
-        });
-      }
-      
-      // undefined 값을 가진 프로퍼티 제거 (URL 깔끔하게 유지)
-      Object.keys(query).forEach(key => {
-        if (query[key] === undefined || query[key] === null) {
-          delete query[key];
-        }
-      });
-      
-      // 현재 URL과 새 URL이 다를 경우에만 업데이트
-      const currentQuery = JSON.stringify(currentRoute.query);
-      const newQuery = JSON.stringify(query);
-      
-      if (currentQuery !== newQuery) {
-        // URL 업데이트 (history.pushState와 같은 역할)
-        this.$router.replace({ 
-          ...currentRoute,
-          query
-        }).catch(err => {
-          if (err.name !== 'NavigationDuplicated') {
-            throw err;
-          }
-        });
-      }
-      
-      this.isUpdatingURL = false;
-    },
-    
-    // URL 공유 기능
-    copyShareLink() {
-      // 현재 필터 상태로 URL 업데이트
-      this.updateURLWithFilters();
-      
-      // 현재 창의 전체 URL 가져오기
-      const shareURL = window.location.href;
-      
-      // 클립보드에 복사
-      navigator.clipboard.writeText(shareURL)
-        .then(() => {
-          // 복사 성공 메시지 표시
-          this.showCopyNotification = true;
-          setTimeout(() => {
-            this.showCopyNotification = false;
-          }, 3000);
-        })
-        .catch(err => {
-          console.error('URL 복사 실패:', err);
-          // 대체 메서드 사용
-          this.fallbackCopyToClipboard(shareURL);
-        });
-    },
-    
-    // 대체 복사 메서드 (older browsers)
-    fallbackCopyToClipboard(text) {
-      const textArea = document.createElement("textarea");
-      textArea.value = text;
-      textArea.style.position = "fixed";
-      document.body.appendChild(textArea);
-      textArea.focus();
-      textArea.select();
-      
-      try {
-        const successful = document.execCommand('copy');
-        if (successful) {
-          this.showCopyNotification = true;
-          setTimeout(() => {
-            this.showCopyNotification = false;
-          }, 3000);
-        } else {
-          console.error('복사 명령 실패');
-          alert('URL 복사를 지원하지 않는 브라우저입니다. URL을 직접 복사해주세요.');
-        }
-      } catch (err) {
-        console.error('복사 시도 중 오류:', err);
-        alert('URL을 복사할 수 없습니다.');
-      }
-      
-      document.body.removeChild(textArea);
-    },
-    
-    // 팝업 필터 변경 처리
-    async handlePopupFilterChange() {
-      this.selectedUrl = '';
-      this.selectedTimestamp = ''; // selectedTime -> selectedTimestamp 수정
-      this.taggingMaps = [];
-      await this.handleEventTypeChange(); // 메서드명 변경
-      // 필터 상태로 URL 업데이트
-      this.updateURLWithFilters();
-    },
-    
-    async fetchPageData() {
-      try {
-        this.loading = true;
-        this.error = null;
-        
-        // 사전 선택된 이벤트 타입이 있으면 적용
-        if (this.preSelectedEventType) {
-          this.selectedEventType = this.preSelectedEventType;
-        } else {
-          // 기본값은 visibility로 설정
-          this.selectedEventType = 'visibility';
-        }
-        
-        // URL 목록 가져오기 (URL 자동 업데이트 X)
-        await this.handleEventTypeChange(true, false);
-        
-        // 사전 선택된 타임스탬프가 있으면 적용
-        if (this.preSelectedTimestamp && this.times.some(t => t.timestamp === this.preSelectedTimestamp)) {
-          this.selectedTimestamp = this.preSelectedTimestamp;
-          await this.handleTimestampChange(false);
-        }
-        
-        // 데이터 로드 완료 후 한 번만 URL 업데이트
-        if (!this.isInitializingFromURL) {
-          this.updateURLWithFilters();
-        }
-      } catch (error) {
-        console.error('Error fetching page data:', error);
-        this.error = '페이지 데이터를 불러오는데 실패했습니다.';
-        this.loading = false;
-      }
-    },
-    
-    // 이벤트 타입 변경 핸들러
-    selectEventType(eventType) {
-      if (this.selectedEventType === eventType) return;
-      this.selectedEventType = eventType;
-      this.handleEventTypeChange(false); // 자동 전환 없음
-      // URL 업데이트
-      this.updateURLWithFilters();
-    },
-    
-    async handleEventTypeChange(autoSwitch = false) { 
-      try {
+      // 팝업 필터 변경 처리
+      async handlePopupFilterChange() {
         this.selectedUrl = '';
-        this.selectedTimestamp = '';
-        this.times = [];
+        this.selectedTimestamp = ''; // selectedTime -> selectedTimestamp 수정
         this.taggingMaps = [];
-        
-        const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
-        
-        // 쿼리 파라미터 구성 (고급 검색 필터 포함)
-        const params = {
-          isPopup: this.isPopupFilter
-        };
-        
-        // 고급 검색 필터가 적용된 경우 파라미터에 추가
-        if (this.hasActiveAdvancedFilters) {
-          for (const field in this.advancedSearchFilters.fields) {
-            const filter = this.advancedSearchFilters.fields[field];
-            if (filter.anyValue) {
-              params[`${field}_exists`] = 'true';
-            } else if (filter.value) {
-              params[field] = filter.value;
+        await this.handleEventTypeChange(); // 메서드명 변경
+      },
+      
+      async fetchPageData() {
+        try {
+          this.loading = true;
+          this.error = null;
+          
+          // 사전 선택된 이벤트 타입이 있으면 적용
+          if (this.preSelectedEventType) {
+            this.selectedEventType = this.preSelectedEventType;
+          } else {
+            // 기본값은 visibility로 설정
+            this.selectedEventType = 'visibility';
+          }
+          
+          // URL 목록 가져오기
+          await this.handleEventTypeChange(true); // 자동 전환 플래그 추가
+        } catch (error) {
+          console.error('Error fetching page data:', error);
+          this.error = '페이지 데이터를 불러오는데 실패했습니다.';
+          this.loading = false;
+        }
+      },
+
+      // 이벤트 타입 변경 핸들러
+      selectEventType(eventType) {
+        if (this.selectedEventType === eventType) return;
+        this.selectedEventType = eventType;
+        this.handleEventTypeChange(false); // 자동 전환 없음
+      },
+
+      async handleEventTypeChange(autoSwitch = false) { 
+        try {
+          this.selectedUrl = '';
+          this.selectedTimestamp = '';
+          this.times = [];
+          this.taggingMaps = [];
+          
+          const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
+          
+          // 쿼리 파라미터 구성 (고급 검색 필터 포함)
+          const params = {
+            isPopup: this.isPopupFilter
+          };
+          
+          // 고급 검색 필터가 적용된 경우 파라미터에 추가
+          if (this.hasActiveAdvancedFilters) {
+            for (const field in this.advancedSearchFilters.fields) {
+              const filter = this.advancedSearchFilters.fields[field];
+              if (filter.anyValue) {
+                params[`${field}_exists`] = 'true';
+              } else if (filter.value) {
+                params[field] = filter.value;
+              }
             }
           }
-        }
-        
-        // URL 목록 가져오기
-        const urlsResponse = await axios.get(
-          `${baseUrl}/api/urls/${this.pagetitle}/${this.selectedEventType}`,
-          { params }
-        );
-        
-        // null URL 필터링
-        this.urls = urlsResponse.data.filter(url => url.url !== null);
-        
-        // URLs이 없고, 현재 이벤트 타입이 visibility이며, 자동 전환이 활성화된 경우
-        if (this.urls.length === 0 && this.selectedEventType === 'visibility' && autoSwitch) {
-          console.log('No visibility data found, switching to click events');
-          this.selectedEventType = 'click';
           
-          // 클릭 이벤트로 다시 시도
-          const clickUrlsResponse = await axios.get(
-            `${baseUrl}/api/urls/${this.pagetitle}/click`,
+          // URL 목록 가져오기
+          const urlsResponse = await axios.get(
+            `${baseUrl}/api/urls/${this.pagetitle}/${this.selectedEventType}`,
             { params }
           );
           
           // null URL 필터링
-          this.urls = clickUrlsResponse.data.filter(url => url.url !== null);
-        }
-        
-        // 팝업 필터가 켜져 있고 URL 결과가 없을 경우 사용자에게 알림
-        if (this.urls.length === 0 && this.isPopupFilter) {
-          this.error = '선택한 페이지에 팝업 이벤트가 포함된 태깅맵이 없습니다.';
-          this.loading = false;
-          return;
-        }
+          this.urls = urlsResponse.data.filter(url => url.url !== null);
+          
+          // URLs이 없고, 현재 이벤트 타입이 visibility이며, 자동 전환이 활성화된 경우
+          if (this.urls.length === 0 && this.selectedEventType === 'visibility' && autoSwitch) {
+            console.log('No visibility data found, switching to click events');
+            this.selectedEventType = 'click';
             
-        // URL 선택 처리
-        if (this.urls.length > 0) {
-          if (this.preSelectedUrl && this.urls.find(u => u.url === this.preSelectedUrl)) {
-            this.selectedUrl = this.preSelectedUrl;
-          } else {
-            this.selectedUrl = this.urls[0].url;
+            // 클릭 이벤트로 다시 시도
+            const clickUrlsResponse = await axios.get(
+              `${baseUrl}/api/urls/${this.pagetitle}/click`,
+              { params }
+            );
+            
+            // null URL 필터링
+            this.urls = clickUrlsResponse.data.filter(url => url.url !== null);
           }
           
-          // 선택된 URL로 시간 목록 가져오기
-          await this.handleUrlChange();
-          
-          // 사전 선택된 URL 처리 후 변수 초기화
-          this.preSelectedUrl = null;
-          this.preSelectedEventType = null;
-          
-          // URL 업데이트
-          this.updateURLWithFilters();
-        } else {
+          // 팝업 필터가 켜져 있고 URL 결과가 없을 경우 사용자에게 알림
+          if (this.urls.length === 0 && this.isPopupFilter) {
+            this.error = '선택한 페이지에 팝업 이벤트가 포함된 태깅맵이 없습니다.';
+            this.loading = false;
+            return;
+          }
+              
+          // URL 선택 처리
+          if (this.urls.length > 0) {
+            if (this.preSelectedUrl && this.urls.find(u => u.url === this.preSelectedUrl)) {
+              this.selectedUrl = this.preSelectedUrl;
+            } else {
+              this.selectedUrl = this.urls[0].url;
+            }
+            
+            // 선택된 URL로 시간 목록 가져오기
+            await this.handleUrlChange();
+            
+            // 사전 선택된 URL 처리 후 변수 초기화
+            this.preSelectedUrl = null;
+            this.preSelectedEventType = null;
+          } else {
+            this.loading = false;
+          }
+        } catch (error) {
+          console.error('Error fetching URLs:', error);
+          this.error = 'URL 목록을 불러오는데 실패했습니다.';
           this.loading = false;
         }
-      } catch (error) {
-        console.error('Error fetching URLs:', error);
-        this.error = 'URL 목록을 불러오는데 실패했습니다.';
-        this.loading = false;
-      }
-    },
-    
-    async handleUrlChange() {
-      try {
-        this.selectedTimestamp = '';
-        this.taggingMaps = [];
-        
-        const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
-        const encodedUrl = encodeURIComponent(this.selectedUrl);
-        
-        // 쿼리 파라미터 구성 (고급 검색 필터 포함)
-        const params = {
-          isPopup: this.isPopupFilter
-        };
-        
-        // 고급 검색 필터가 적용된 경우 파라미터에 추가
-        if (this.hasActiveAdvancedFilters) {
+      },
+      
+      async handleUrlChange() {
+        try {
+          this.selectedTimestamp = '';
+          this.taggingMaps = [];
+          
+          const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
+          const encodedUrl = encodeURIComponent(this.selectedUrl);
+          
+          // 쿼리 파라미터 구성 (고급 검색 필터 포함)
+          const params = {
+            isPopup: this.isPopupFilter
+          };
+          
+          // 고급 검색 필터가 적용된 경우 파라미터에 추가
+          if (this.hasActiveAdvancedFilters) {
+            for (const field in this.advancedSearchFilters.fields) {
+              const filter = this.advancedSearchFilters.fields[field];
+              if (filter.anyValue) {
+                params[`${field}_exists`] = 'true';
+              } else if (filter.value) {
+                params[field] = filter.value;
+              }
+            }
+          }
+          
+          // 시간 목록 가져오기 - 서버가 이제 eventNames를 포함해 반환
+          const timesResponse = await axios.get(
+            `${baseUrl}/api/times/${this.pagetitle}/${this.selectedEventType}/${encodedUrl}`,
+            { params }
+          );
+          
+          // 시간 데이터 처리
+          this.times = timesResponse.data.sort((a, b) => 
+            new Date(b.timestamp) - new Date(a.timestamp)
+          );
+          
+          console.log('Times loaded with event names:', this.times);
+          
+          // 기본 timestamp 설정 (최신 시간)
+          if (this.times.length > 0) {
+            // timestamp가 있는지 명시적으로 확인
+            const latestTime = this.times[0];
+            if (latestTime && latestTime.timestamp) {
+              this.selectedTimestamp = latestTime.timestamp;
+              console.log('Auto-selected timestamp:', this.selectedTimestamp);
+              
+              // 필터링된 데이터 가져오기
+              await this.fetchFilteredData();
+            } else {
+              console.error('Latest time object does not have timestamp:', latestTime);
+              this.loading = false;
+            }
+          } else {
+            this.loading = false;
+          }
+          
+        } catch (error) {
+          console.error('Error fetching times:', error);
+          this.error = '시간 목록을 불러오는데 실패했습니다.';
+          this.loading = false;
+        }
+      },
+      
+      // 타임스탬프 변경 핸들러 추가
+      async handleTimestampChange() {
+        if (!this.selectedTimestamp) return;
+        await this.fetchFilteredData();
+      },
+      
+      // 필터 조건이 적용된 URL 목록 로드 메서드 추가
+      async refreshUrlsWithFilters() {
+        try {
+          this.loading = true;
+          this.selectedUrl = '';
+          this.selectedTimestamp = '';
+          this.times = [];
+          this.taggingMaps = [];
+          
+          const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
+          
+          // URL 목록 요청 파라미터에 고급 검색 필터 추가
+          const params = {
+            isPopup: this.isPopupFilter
+          };
+          
+          // 고급 검색 필터 추가
           for (const field in this.advancedSearchFilters.fields) {
             const filter = this.advancedSearchFilters.fields[field];
             if (filter.anyValue) {
@@ -928,585 +803,513 @@ export default {
               params[field] = filter.value;
             }
           }
-        }
-        
-        // 시간 목록 가져오기 - 서버가 이제 eventNames를 포함해 반환
-        const timesResponse = await axios.get(
-          `${baseUrl}/api/times/${this.pagetitle}/${this.selectedEventType}/${encodedUrl}`,
-          { params }
-        );
-        
-        // 시간 데이터 처리
-        this.times = timesResponse.data.sort((a, b) => 
-          new Date(b.timestamp) - new Date(a.timestamp)
-        );
-        
-        console.log('Times loaded with event names:', this.times);
-        
-        // 기본 timestamp 설정 (최신 시간)
-        if (this.times.length > 0) {
-          // timestamp가 있는지 명시적으로 확인
-          const latestTime = this.times[0];
-          if (latestTime && latestTime.timestamp) {
-            this.selectedTimestamp = latestTime.timestamp;
-            console.log('Auto-selected timestamp:', this.selectedTimestamp);
+          
+          // 필터가 적용된 URL 목록 가져오기
+          const urlsResponse = await axios.get(
+            `${baseUrl}/api/urls/${this.pagetitle}/${this.selectedEventType}`,
+            { params }
+          );
+          
+          // null URL 필터링
+          this.urls = urlsResponse.data.filter(url => url.url !== null);
+          
+          // URL 선택 처리
+          if (this.urls.length > 0) {
+            this.selectedUrl = this.urls[0].url;
             
-            // 필터링된 데이터 가져오기
-            await this.fetchFilteredData();
-            
-            // URL 업데이트
-            this.updateURLWithFilters();
+            // 선택된 URL로 필터링된 시간 목록 가져오기
+            await this.handleUrlChangeWithFilters();
           } else {
-            console.error('Latest time object does not have timestamp:', latestTime);
             this.loading = false;
           }
-        } else {
+        } catch (error) {
+          console.error('Error fetching filtered URLs:', error);
+          this.error = '필터링된 URL 목록을 불러오는데 실패했습니다.';
           this.loading = false;
         }
-        
-      } catch (error) {
-        console.error('Error fetching times:', error);
-        this.error = '시간 목록을 불러오는데 실패했습니다.';
-        this.loading = false;
-      }
-    },
-    
-    // 타임스탬프 변경 핸들러 추가
-    async handleTimestampChange() {
-      if (!this.selectedTimestamp) return;
-      await this.fetchFilteredData();
-      // URL 업데이트
-      this.updateURLWithFilters();
-    },
-    
-    // 필터 조건이 적용된 URL 목록 로드 메서드 추가
-    async refreshUrlsWithFilters() {
-      try {
-        this.loading = true;
+      },
+      
+      // 이벤트 이름 목록을 포맷팅하는 함수
+      formatEventNames(eventNames) {
+        if (!eventNames || eventNames.length === 0) return '';
+        return ` | ${eventNames.join(' | ')}`;
+      },
+
+      // 필터 조건이 적용된 타임스탬프 목록 로드 메서드
+      async handleUrlChangeWithFilters() {
+        try {
+          this.selectedTimestamp = '';
+          this.taggingMaps = [];
+          
+          const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
+          const encodedUrl = encodeURIComponent(this.selectedUrl);
+          
+          // 타임스탬프 목록 요청 파라미터에 고급 검색 필터 추가
+          const params = {
+            isPopup: this.isPopupFilter
+          };
+          
+          // 고급 검색 필터 추가
+          for (const field in this.advancedSearchFilters.fields) {
+            const filter = this.advancedSearchFilters.fields[field];
+            if (filter.anyValue) {
+              params[`${field}_exists`] = 'true';
+            } else if (filter.value) {
+              params[field] = filter.value;
+            }
+          }
+          
+          // 필터가 적용된 시간 목록 가져오기
+          // 서버에서 이제 timestamp와 eventNames를 포함하여 반환
+          const timesResponse = await axios.get(
+            `${baseUrl}/api/times/${this.pagetitle}/${this.selectedEventType}/${encodedUrl}`,
+            { params }
+          );
+          
+          // 시간 데이터 처리 - 서버에서 반환된 형태 그대로 사용
+          // (각 항목은 timestamp와 eventNames 배열을 포함)
+          const timesData = timesResponse.data;
+          
+          // 시간 목록 정렬 (최신순)
+          this.times = timesData.sort((a, b) => 
+            new Date(b.timestamp) - new Date(a.timestamp)
+          );
+          
+          console.log('Filtered times loaded with event names:', this.times);
+          
+          // 기본 timestamp 설정 (최신 시간)
+          if (this.times.length > 0) {
+            const latestTime = this.times[0];
+            if (latestTime && latestTime.timestamp) {
+              this.selectedTimestamp = latestTime.timestamp;
+              
+              // 필터링된 데이터 가져오기
+              await this.fetchFilteredData();
+            } else {
+              this.loading = false;
+            }
+          } else {
+            this.loading = false;
+          }
+          
+        } catch (error) {
+          console.error('Error fetching filtered times:', error);
+          this.error = '필터링된 시간 목록을 불러오는데 실패했습니다.';
+          this.loading = false;
+        }
+      },
+      
+      resetFilters() {
+        this.urls = [];
+        this.times = [];
+        this.selectedEventType = 'visibility'; // 기본값 변경
         this.selectedUrl = '';
         this.selectedTimestamp = '';
-        this.times = [];
+        this.isPopupFilter = false;
         this.taggingMaps = [];
-        
-        const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
-        
-        // URL 목록 요청 파라미터에 고급 검색 필터 추가
-        const params = {
-          isPopup: this.isPopupFilter
-        };
-        
-        // 고급 검색 필터 추가
-        for (const field in this.advancedSearchFilters.fields) {
-          const filter = this.advancedSearchFilters.fields[field];
-          if (filter.anyValue) {
-            params[`${field}_exists`] = 'true';
-          } else if (filter.value) {
-            params[field] = filter.value;
-          }
-        }
-        
-        // 필터가 적용된 URL 목록 가져오기
-        const urlsResponse = await axios.get(
-          `${baseUrl}/api/urls/${this.pagetitle}/${this.selectedEventType}`,
-          { params }
-        );
-        
-        // null URL 필터링
-        this.urls = urlsResponse.data.filter(url => url.url !== null);
-        
-        // URL 선택 처리
-        if (this.urls.length > 0) {
-          this.selectedUrl = this.urls[0].url;
-          
-          // 선택된 URL로 필터링된 시간 목록 가져오기
-          await this.handleUrlChangeWithFilters();
-          
-          // URL 업데이트
-          this.updateURLWithFilters();
-        } else {
-          this.loading = false;
-        }
-      } catch (error) {
-        console.error('Error fetching filtered URLs:', error);
-        this.error = '필터링된 URL 목록을 불러오는데 실패했습니다.';
-        this.loading = false;
-      }
-    },
-    
-    // 이벤트 이름 목록을 포맷팅하는 함수
-    formatEventNames(eventNames) {
-      if (!eventNames || eventNames.length === 0) return '';
-      return ` | ${eventNames.join(' | ')}`;
-    },
-
-    // 필터 조건이 적용된 타임스탬프 목록 로드 메서드
-    async handleUrlChangeWithFilters() {
-      try {
-        this.selectedTimestamp = '';
-        this.taggingMaps = [];
-        
-        const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
-        const encodedUrl = encodeURIComponent(this.selectedUrl);
-        
-        // 타임스탬프 목록 요청 파라미터에 고급 검색 필터 추가
-        const params = {
-          isPopup: this.isPopupFilter
-        };
-        
-        // 고급 검색 필터 추가
-        for (const field in this.advancedSearchFilters.fields) {
-          const filter = this.advancedSearchFilters.fields[field];
-          if (filter.anyValue) {
-            params[`${field}_exists`] = 'true';
-          } else if (filter.value) {
-            params[field] = filter.value;
-          }
-        }
-        
-        // 필터가 적용된 시간 목록 가져오기
-        // 서버에서 이제 timestamp와 eventNames를 포함하여 반환
-        const timesResponse = await axios.get(
-          `${baseUrl}/api/times/${this.pagetitle}/${this.selectedEventType}/${encodedUrl}`,
-          { params }
-        );
-        
-        // 시간 데이터 처리 - 서버에서 반환된 형태 그대로 사용
-        // (각 항목은 timestamp와 eventNames 배열을 포함)
-        const timesData = timesResponse.data;
-        
-        // 시간 목록 정렬 (최신순)
-        this.times = timesData.sort((a, b) => 
-          new Date(b.timestamp) - new Date(a.timestamp)
-        );
-        
-        console.log('Filtered times loaded with event names:', this.times);
-        
-        // 기본 timestamp 설정 (최신 시간)
-        if (this.times.length > 0) {
-          const latestTime = this.times[0];
-          if (latestTime && latestTime.timestamp) {
-            this.selectedTimestamp = latestTime.timestamp;
-            
-            // 필터링된 데이터 가져오기
-            await this.fetchFilteredData();
-            
-            // URL 업데이트
-            this.updateURLWithFilters();
-          } else {
-            this.loading = false;
-          }
-        } else {
-          this.loading = false;
-        }
-        
-      } catch (error) {
-        console.error('Error fetching filtered times:', error);
-        this.error = '필터링된 시간 목록을 불러오는데 실패했습니다.';
-        this.loading = false;
-      }
-    },
-    
-    resetFilters() {
-      this.urls = [];
-      this.times = [];
-      this.selectedEventType = 'visibility'; // 기본값 변경
-      this.selectedUrl = '';
-      this.selectedTimestamp = '';
-      this.isPopupFilter = false;
-      this.taggingMaps = [];
-      // 고급 검색 필터도 초기화
-      this.advancedSearchFilters.fields = JSON.parse(JSON.stringify(this.initialAdvancedFilters));
+        // 고급 검색 필터도 초기화
+        this.advancedSearchFilters.fields = JSON.parse(JSON.stringify(this.initialAdvancedFilters));
+      },
       
-      // URL 업데이트
-      this.updateURLWithFilters();
-    },
-    
-    // 타임스탬프 포맷팅 함수
-    formatTimestamp(timestamp) {
-      if (!timestamp) return '';
-      try {
-        const date = new Date(timestamp);
-        
-        // 유효한 날짜인지 확인
-        if (isNaN(date.getTime())) {
+      // 타임스탬프 포맷팅 함수
+      formatTimestamp(timestamp) {
+        if (!timestamp) return '';
+        try {
+          const date = new Date(timestamp);
+          
+          // 유효한 날짜인지 확인
+          if (isNaN(date.getTime())) {
+            return timestamp;
+          }
+          
+          // 날짜와 시간 포맷팅 (YYYY-MM-DD HH:MM:SS)
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          const hours = String(date.getHours()).padStart(2, '0');
+          const minutes = String(date.getMinutes()).padStart(2, '0');
+          const seconds = String(date.getSeconds()).padStart(2, '0');
+          
+          return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        } catch (error) {
+          console.error('Error formatting timestamp:', error);
           return timestamp;
         }
+      },
+      
+      formatTime(isoTime) {
+        // ISO 시간을 사용자 친화적 형식으로 변환 (예: "2025-05-13 20:07:00")
+        const date = new Date(isoTime);
+        return date.toLocaleString();
+      },
+      
+      // 모달 대신 새 창에서 이미지 보기
+      openImageModal() {
+        if (!this.taggingMaps || this.taggingMaps.length === 0) return;
         
-        // 날짜와 시간 포맷팅 (YYYY-MM-DD HH:MM:SS)
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        const seconds = String(date.getSeconds()).padStart(2, '0');
+        const imageUrl = this.taggingMaps[0].image;
+        if (!imageUrl) return;
         
-        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-      } catch (error) {
-        console.error('Error formatting timestamp:', error);
-        return timestamp;
-      }
-    },
-    
-    formatTime(isoTime) {
-      // ISO 시간을 사용자 친화적 형식으로 변환 (예: "2025-05-13 20:07:00")
-      const date = new Date(isoTime);
-      return date.toLocaleString();
-    },
-    
-    // 모달 대신 새 창에서 이미지 보기
-    openImageModal() {
-      if (!this.taggingMaps || this.taggingMaps.length === 0) return;
+        // 새 창으로 이미지 열기
+        const newWindow = window.open('', '_blank', 'width=1000,height=800');
+        newWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>원본 이미지</title>
+            <style>
+              body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
+              .container { max-width: 100%; text-align: center; }
+              img { max-width: 100%; height: auto; }
+              h1 { margin-bottom: 20px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h1>원본 이미지</h1>
+              <img src="${imageUrl}" alt="원본 이미지" />
+            </div>
+          </body>
+          </html>
+        `);
+        newWindow.document.close();
+      },
       
-      const imageUrl = this.taggingMaps[0].image;
-      if (!imageUrl) return;
-      
-      // 새 창으로 이미지 열기
-      const newWindow = window.open('', '_blank', 'width=1000,height=800');
-      newWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>원본 이미지</title>
-          <style>
-            body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
-            .container { max-width: 100%; text-align: center; }
-            img { max-width: 100%; height: auto; }
-            h1 { margin-bottom: 20px; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <h1>원본 이미지</h1>
-            <img src="${imageUrl}" alt="원본 이미지" />
-          </div>
-        </body>
-        </html>
-      `);
-      newWindow.document.close();
-    },
-    
-    // 모달 대신 새 창에서 표 보기
-    openTableModal() {
-      if (!this.taggingMaps || this.taggingMaps.length === 0 || !this.sortedColumns) return;
-      
-      // 테이블 HTML 생성
-      let tableHTML = `
-        <table style="width:100%; border-collapse: collapse; margin-top: 20px;">
-          <thead>
-            <tr>
-              <th style="border:1px solid #ddd; padding:8px; background-color:#f2f2f2;">SHOT_NUMBER</th>
-      `;
-      
-      // 테이블 헤더 추가
-      this.sortedColumns.forEach(column => {
-        tableHTML += `<th style="border:1px solid #ddd; padding:8px; background-color:#f2f2f2;">${column}</th>`;
-      });
-      
-      tableHTML += `</tr></thead><tbody>`;
-      
-      // 테이블 본문 추가
-      this.taggingMaps[0].eventParams.forEach(data => {
-        tableHTML += `<tr><td style="border:1px solid #ddd; padding:8px;">${data.SHOT_NUMBER || '-'}</td>`;
+      // 모달 대신 새 창에서 표 보기
+      openTableModal() {
+        if (!this.taggingMaps || this.taggingMaps.length === 0 || !this.sortedColumns) return;
         
+        // 테이블 HTML 생성
+        let tableHTML = `
+          <table style="width:100%; border-collapse: collapse; margin-top: 20px;">
+            <thead>
+              <tr>
+                <th style="border:1px solid #ddd; padding:8px; background-color:#f2f2f2;">SHOT_NUMBER</th>
+        `;
+        
+        // 테이블 헤더 추가
         this.sortedColumns.forEach(column => {
-          tableHTML += `<td style="border:1px solid #ddd; padding:8px;">${data[column] || '-'}</td>`;
+          tableHTML += `<th style="border:1px solid #ddd; padding:8px; background-color:#f2f2f2;">${column}</th>`;
         });
         
-        tableHTML += `</tr>`;
-      });
-      
-      tableHTML += `</tbody></table>`;
-      
-      // 새 창으로 테이블 열기
-      const newWindow = window.open('', '_blank', 'width=1200,height=800');
-      newWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>전체 데이터 표</title>
-          <style>
-            body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
-            .container { width: 100%; overflow-x: auto; }
-            h1 { margin-bottom: 20px; }
-            table { border-collapse: collapse; width: 100%; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            th { position: sticky; top: 0; background-color: #f2f2f2; }
-            tr:nth-child(even) { background-color: #f8f9fa; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <h1>전체 데이터 표</h1>
-            ${tableHTML}
-          </div>
-        </body>
-        </html>
-      `);
-      newWindow.document.close();
-    },
+        tableHTML += `</tr></thead><tbody>`;
+        
+        // 테이블 본문 추가
+        this.taggingMaps[0].eventParams.forEach(data => {
+          tableHTML += `<tr><td style="border:1px solid #ddd; padding:8px;">${data.SHOT_NUMBER || '-'}</td>`;
+          
+          this.sortedColumns.forEach(column => {
+            tableHTML += `<td style="border:1px solid #ddd; padding:8px;">${data[column] || '-'}</td>`;
+          });
+          
+          tableHTML += `</tr>`;
+        });
+        
+        tableHTML += `</tbody></table>`;
+        
+        // 새 창으로 테이블 열기
+        const newWindow = window.open('', '_blank', 'width=1200,height=800');
+        newWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>전체 데이터 표</title>
+            <style>
+              body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
+              .container { width: 100%; overflow-x: auto; }
+              h1 { margin-bottom: 20px; }
+              table { border-collapse: collapse; width: 100%; }
+              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+              th { position: sticky; top: 0; background-color: #f2f2f2; }
+              tr:nth-child(even) { background-color: #f8f9fa; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h1>전체 데이터 표</h1>
+              ${tableHTML}
+            </div>
+          </body>
+          </html>
+        `);
+        newWindow.document.close();
+      },
 
-    // 삭제 확인 모달 표시
-    confirmDelete() {
-      this.showDeleteModal = true;
-    },
-    
-    // 태깅맵 삭제 처리
-    async deleteTaggingMap() {
-      try {
-        if (!this.taggingMaps || this.taggingMaps.length === 0 || !this.taggingMaps[0]._id) {
-          this.showDeleteModal = false;
-          this.$router.push('/');
-          return;
-        }
-        
-        this.isDeleting = true;
-        const taggingMapId = this.taggingMaps[0]._id;
-        const imageUrl = this.taggingMaps[0].image || '';
-        
-        const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
-        const response = await axios.delete(`${baseUrl}/api/taggingmaps/${taggingMapId}`, {
-          data: {
-            imageUrl: imageUrl
+      // 삭제 확인 모달 표시
+      confirmDelete() {
+        this.showDeleteModal = true;
+      },
+      
+      // 태깅맵 삭제 처리
+      async deleteTaggingMap() {
+        try {
+          if (!this.taggingMaps || this.taggingMaps.length === 0 || !this.taggingMaps[0]._id) {
+            this.showDeleteModal = false;
+            this.$router.push('/');
+            return;
           }
+          
+          this.isDeleting = true;
+          const taggingMapId = this.taggingMaps[0]._id;
+          const imageUrl = this.taggingMaps[0].image || '';
+          
+          const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
+          const response = await axios.delete(`${baseUrl}/api/taggingmaps/${taggingMapId}`, {
+            data: {
+              imageUrl: imageUrl
+            }
+          });
+          
+          if (response.status === 200) {
+            // 삭제 성공
+            this.showDeleteModal = false;
+            
+            // 성공 메시지 표시 (알림 라이브러리가 있다면 사용)
+            alert('태깅맵이 성공적으로 삭제되었습니다.');
+            
+            // 메인 페이지로 이동
+            this.$router.push('/');
+          } else {
+            throw new Error(`삭제 요청 실패: ${response.status}`);
+          }
+        } catch (error) {
+          console.error('태깅맵 삭제 중 오류 발생:', error);
+          alert(`삭제 실패: ${error.message}`);
+        } finally {
+          this.isDeleting = false;
+          this.showDeleteModal = false;
+        }
+      },
+      
+      // 고급 검색 필드 초기화
+      initAdvancedFilters() {
+        const initialFields = {};
+        this.searchFields.forEach(field => {
+          initialFields[field] = { anyValue: false, value: '' };
         });
         
-        if (response.status === 200) {
-          // 삭제 성공
-          this.showDeleteModal = false;
+        this.initialAdvancedFilters = JSON.parse(JSON.stringify(initialFields));
+        this.advancedFilters.fields = JSON.parse(JSON.stringify(initialFields));
+        this.advancedSearchFilters.fields = JSON.parse(JSON.stringify(initialFields));
+      },
+      
+      // 고급 검색 모달 토글
+      toggleAdvancedSearch() {
+        this.showAdvancedSearch = !this.showAdvancedSearch;
+        
+        // 모달이 열릴 때 현재 적용된 필터로 초기화
+        if (this.showAdvancedSearch) {
+          // 깊은 복사로 필드 필터 초기화
+          this.advancedFilters.fields = JSON.parse(JSON.stringify(this.initialAdvancedFilters));
           
-          // 성공 메시지 표시 (알림 라이브러리가 있다면 사용)
-          alert('태깅맵이 성공적으로 삭제되었습니다.');
-          
-          // 메인 페이지로 이동
-          this.$router.push('/');
-        } else {
-          throw new Error(`삭제 요청 실패: ${response.status}`);
+          // 현재 적용된 필터가 있으면 설정
+          for (const field in this.advancedSearchFilters.fields) {
+            if (this.advancedFilters.fields[field]) {
+              this.advancedFilters.fields[field] = { 
+                ...this.advancedSearchFilters.fields[field] 
+              };
+            }
+          }
         }
-      } catch (error) {
-        console.error('태깅맵 삭제 중 오류 발생:', error);
-        alert(`삭제 실패: ${error.message}`);
-      } finally {
-        this.isDeleting = false;
-        this.showDeleteModal = false;
-      }
-    },
-    
-    // 고급 검색 필드 초기화
-    initAdvancedFilters() {
-      const initialFields = {};
-      this.searchFields.forEach(field => {
-        initialFields[field] = { anyValue: false, value: '' };
-      });
+      },
       
-      this.initialAdvancedFilters = JSON.parse(JSON.stringify(initialFields));
-      this.advancedFilters.fields = JSON.parse(JSON.stringify(initialFields));
-      this.advancedSearchFilters.fields = JSON.parse(JSON.stringify(initialFields));
-    },
-    
-    // 고급 검색 모달 토글
-    toggleAdvancedSearch() {
-      this.showAdvancedSearch = !this.showAdvancedSearch;
-      
-      // 모달이 열릴 때 현재 적용된 필터로 초기화
-      if (this.showAdvancedSearch) {
-        // 깊은 복사로 필드 필터 초기화
+      // 고급 검색 필터 초기화
+      resetAdvancedFilters() {
         this.advancedFilters.fields = JSON.parse(JSON.stringify(this.initialAdvancedFilters));
+      },
+      
+      // 고급 검색 적용 - 수정됨
+      applyAdvancedSearch() {
+        // 깊은 복사로 현재 필터 상태 저장
+        this.advancedSearchFilters.fields = JSON.parse(JSON.stringify(this.advancedFilters.fields));
         
-        // 현재 적용된 필터가 있으면 설정
-        for (const field in this.advancedSearchFilters.fields) {
-          if (this.advancedFilters.fields[field]) {
-            this.advancedFilters.fields[field] = { 
-              ...this.advancedSearchFilters.fields[field] 
-            };
-          }
+        // 모달 닫기
+        this.showAdvancedSearch = false;
+        
+        // 필터 조건이 변경되었으므로 URL 목록부터 다시 로드
+        this.refreshUrlsWithFilters();
+      },
+      
+      // 필터 제거 - 수정됨
+      removeAdvancedFilter(key) {
+        if (this.advancedSearchFilters.fields[key]) {
+          this.advancedSearchFilters.fields[key] = { anyValue: false, value: '' };
         }
-      }
-    },
-    
-    // 고급 검색 필터 초기화
-    resetAdvancedFilters() {
-      this.advancedFilters.fields = JSON.parse(JSON.stringify(this.initialAdvancedFilters));
-    },
-    
-    // 고급 검색 적용 - 수정됨
-    applyAdvancedSearch() {
-      // 깊은 복사로 현재 필터 상태 저장
-      this.advancedSearchFilters.fields = JSON.parse(JSON.stringify(this.advancedFilters.fields));
+        
+        // 필터가 변경되었으므로 URL 목록부터 다시 로드
+        this.refreshUrlsWithFilters();
+      },
       
-      // 모달 닫기
-      this.showAdvancedSearch = false;
+      // 모든 필터 초기화 - 수정됨
+      clearAllAdvancedFilters() {
+        for (const key in this.advancedSearchFilters.fields) {
+          this.advancedSearchFilters.fields[key] = { anyValue: false, value: '' };
+        }
+        
+        // 필터가 초기화되었으므로 URL 목록부터 다시 로드
+        this.refreshUrlsWithFilters();
+      },
       
-      // 필터 조건이 변경되었으므로 URL 목록부터 다시 로드
-      this.refreshUrlsWithFilters();
-      
-      // URL 업데이트
-      this.updateURLWithFilters();
-    },
-    
-    // 필터 제거 - 수정됨
-    removeAdvancedFilter(key) {
-      if (this.advancedSearchFilters.fields[key]) {
-        this.advancedSearchFilters.fields[key] = { anyValue: false, value: '' };
-      }
-      
-      // 필터가 변경되었으므로 URL 목록부터 다시 로드
-      this.refreshUrlsWithFilters();
-      
-      // URL 업데이트
-      this.updateURLWithFilters();
-    },
-    
-    // 모든 필터 초기화 - 수정됨
-    clearAllAdvancedFilters() {
-      for (const key in this.advancedSearchFilters.fields) {
-        this.advancedSearchFilters.fields[key] = { anyValue: false, value: '' };
-      }
-      
-      // 필터가 초기화되었으므로 URL 목록부터 다시 로드
-      this.refreshUrlsWithFilters();
-      
-      // URL 업데이트
-      this.updateURLWithFilters();
-    },
-    
-    // 필터링된 데이터 가져오기
-    async fetchFilteredData() {
-      try {
-        if (!this.selectedEventType || !this.selectedUrl || !this.selectedTimestamp) {
+      // 필터링된 데이터 가져오기
+      async fetchFilteredData() {
+        try {
+          if (!this.selectedEventType || !this.selectedUrl || !this.selectedTimestamp) {
+            this.loading = false;
+            return;
+          }
+          
+          this.loading = true;
+          
+          const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
+          let url = this.selectedUrl;
+          
+          // URL 디코딩 처리
+          while (url.includes('%')) {
+            const decodedUrl = decodeURIComponent(url);
+            if (decodedUrl === url) break;
+            url = decodedUrl;
+          }
+          
+          // 기본 파라미터 설정
+          const params = {
+            pagetitle: this.pagetitle,
+            eventtype: this.selectedEventType,
+            url: url,
+            timestamp: this.selectedTimestamp,
+            isPopup: this.isPopupFilter
+          };
+          
+          // 고급 검색 필터 추가
+          for (const field in this.advancedSearchFilters.fields) {
+            const filter = this.advancedSearchFilters.fields[field];
+            if (filter.anyValue) {
+              params[`${field}_exists`] = 'true';
+            } else if (filter.value) {
+              params[field] = filter.value;
+            }
+          }
+          
+          // 필터링된 데이터 가져오기
+          const filteredResponse = await axios.get(`${baseUrl}/api/taggingmaps/filtered`, {
+            params,
+            timeout: 30000
+          });
+          
+          this.taggingMaps = filteredResponse.data;
+          
+          // 데이터가 로드된 후 콘솔에 사용 가능한 키 출력 (디버깅용)
+          if (this.taggingMaps.length > 0 && this.taggingMaps[0].eventParams && this.taggingMaps[0].eventParams.length > 0) {
+            console.log('Available columns:', Object.keys(this.taggingMaps[0].eventParams[0]));
+          }
+          
           this.loading = false;
-          return;
+          
+        } catch (error) {
+          console.error('Error fetching filtered data:', error);
+          this.error = '필터링된 데이터를 불러오는데 실패했습니다.';
+          this.loading = false;
         }
+      },
+      startEdit() {
+        if (!this.taggingMaps || this.taggingMaps.length === 0) return;
         
-        this.loading = true;
+        // 현재 컬럼 목록 복사
+        this.editColumns = [...this.sortedColumns];
         
-        const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
-        let url = this.selectedUrl;
+        // 깊은 복사로 데이터 복사
+        this.editData = JSON.parse(JSON.stringify(this.taggingMaps[0].eventParams));
         
-        // URL 디코딩 처리
-        while (url.includes('%')) {
-          const decodedUrl = decodeURIComponent(url);
-          if (decodedUrl === url) break;
-          url = decodedUrl;
+        // 수정 모드 활성화
+        this.isEditing = true;
+      },
+      
+      // 수정 취소
+      cancelEdit() {
+        if(confirm('수정을 취소하시겠습니까? 변경된 내용은 저장되지 않습니다.')) {
+          this.isEditing = false;
+          this.editImage = null;
+          this.editImageFile = null;
+          this.editColumns = [];
+          this.editData = [];
         }
+      },
+      
+      // 이미지 선택 창 열기
+      triggerImageSelect() {
+        this.$refs.imageInput.click();
+      },
+      
+      // 이미지 변경 처리
+      handleImageChange(event) {
+        const file = event.target.files[0];
+        if (!file) return;
         
-        // 기본 파라미터 설정
-        const params = {
-          pagetitle: this.pagetitle,
-          eventtype: this.selectedEventType,
-          url: url,
-          timestamp: this.selectedTimestamp,
-          isPopup: this.isPopupFilter
+        this.editImageFile = file;
+        
+        // 이미지 미리보기
+        const reader = new FileReader();
+        reader.onload = e => {
+          this.editImage = e.target.result;
         };
-        
-        // 고급 검색 필터 추가
-        for (const field in this.advancedSearchFilters.fields) {
-          const filter = this.advancedSearchFilters.fields[field];
-          if (filter.anyValue) {
-            params[`${field}_exists`] = 'true';
-          } else if (filter.value) {
-            params[field] = filter.value;
-          }
-        }
-        
-        // 필터링된 데이터 가져오기
-        const filteredResponse = await axios.get(`${baseUrl}/api/taggingmaps/filtered`, {
-          params,
-          timeout: 30000
-        });
-        
-        this.taggingMaps = filteredResponse.data;
-        
-        // 데이터가 로드된 후 콘솔에 사용 가능한 키 출력 (디버깅용)
-        if (this.taggingMaps.length > 0 && this.taggingMaps[0].eventParams && this.taggingMaps[0].eventParams.length > 0) {
-          console.log('Available columns:', Object.keys(this.taggingMaps[0].eventParams[0]));
-        }
-        
-        this.loading = false;
-        
-      } catch (error) {
-        console.error('Error fetching filtered data:', error);
-        this.error = '필터링된 데이터를 불러오는데 실패했습니다.';
-        this.loading = false;
-      }
-    },
-    
-    startEdit() {
-      if (!this.taggingMaps || this.taggingMaps.length === 0) return;
-      
-      // 현재 컬럼 목록 복사
-      this.editColumns = [...this.sortedColumns];
-      
-      // 깊은 복사로 데이터 복사
-      this.editData = JSON.parse(JSON.stringify(this.taggingMaps[0].eventParams));
-      
-      // 수정 모드 활성화
-      this.isEditing = true;
-    },
-    
-    // 수정 취소
-    cancelEdit() {
-      if(confirm('수정을 취소하시겠습니까? 변경된 내용은 저장되지 않습니다.')) {
-        this.isEditing = false;
-        this.editImage = null;
-        this.editImageFile = null;
-        this.editColumns = [];
-        this.editData = [];
-      }
-    },
-    
-    // 이미지 선택 창 열기
-    triggerImageSelect() {
-      this.$refs.imageInput.click();
-    },
-    
-    // 이미지 변경 처리
-    handleImageChange(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      
-      this.editImageFile = file;
-      
-      // 이미지 미리보기
-      const reader = new FileReader();
-      reader.onload = e => {
-        this.editImage = e.target.result;
-      };
-      reader.readAsDataURL(file);
-    },
-    
-    // 컬럼 추가
-    addColumn() {
-      const newColumn = prompt('새 컬럼 이름을 입력하세요:');
-      if (!newColumn || newColumn.trim() === '') return;
-      
-      const formattedColumn = newColumn.trim().toUpperCase();
-      
-      // 중복 확인
-      if (this.editColumns.includes(formattedColumn)) {
-        alert(`'${formattedColumn}' 컬럼이 이미 존재합니다.`);
-        return;
-      }
+        reader.readAsDataURL(file);
+      },
       
       // 컬럼 추가
-      this.editColumns.push(formattedColumn);
+      addColumn() {
+        const newColumn = prompt('새 컬럼 이름을 입력하세요:');
+        if (!newColumn || newColumn.trim() === '') return;
+        
+        const formattedColumn = newColumn.trim().toUpperCase();
+        
+        // 중복 확인
+        if (this.editColumns.includes(formattedColumn)) {
+          alert(`'${formattedColumn}' 컬럼이 이미 존재합니다.`);
+          return;
+        }
+        
+        // 컬럼 추가
+        this.editColumns.push(formattedColumn);
+        
+        // 모든 로우에 새 컬럼 추가
+        this.editData.forEach(row => {
+          row[formattedColumn] = '';
+        });
+      },
       
-      // 모든 로우에 새 컬럼 추가
-      this.editData.forEach(row => {
-        row[formattedColumn] = '';
-      });
-    },
-    
-    // 로우 추가
-    addRow() {
-      if (this.editData.length === 0) {
-        // 데이터가 없는 경우 초기 로우 생성
-        const currentTime = new Date().toISOString();
+      // 로우 추가
+      addRow() {
+        if (this.editData.length === 0) {
+          // 데이터가 없는 경우 초기 로우 생성
+          const currentTime = new Date().toISOString();
+          const newRow = {
+            SHOT_NUMBER: 0,
+            EVENTNAME: this.selectedEventType === 'visibility' ? 'cts_view' : 'cts_click',
+            PAGETITLE: this.taggingMaps[0]?.PAGETITLE || '',
+            PAGEPATH: this.taggingMaps[0]?.URL || '',
+            TIME: this.formatTime(currentTime)
+          };
+          
+          // 모든 컬럼 초기화
+          this.editColumns.forEach(column => {
+            if (!['SHOT_NUMBER', 'EVENTNAME', 'PAGETITLE', 'PAGEPATH', 'TIME'].includes(column)) {
+              newRow[column] = '';
+            }
+          });
+          
+          this.editData.push(newRow);
+          return;
+        }
+        
+        // 마지막 로우 가져오기
+        const lastRow = this.editData[this.editData.length - 1];
+        
+        // 새 로우 생성
         const newRow = {
-          SHOT_NUMBER: 0,
-          EVENTNAME: this.selectedEventType === 'visibility' ? 'cts_view' : 'cts_click',
-          PAGETITLE: this.taggingMaps[0]?.PAGETITLE || '',
-          PAGEPATH: this.taggingMaps[0]?.URL || '',
-          TIME: this.formatTime(currentTime)
+          SHOT_NUMBER: parseInt(lastRow.SHOT_NUMBER) + 1,
+          EVENTNAME: lastRow.EVENTNAME || '',
+          PAGETITLE: lastRow.PAGETITLE || '',
+          PAGEPATH: lastRow.PAGEPATH || '',
+          TIME: lastRow.TIME || ''
         };
         
         // 모든 컬럼 초기화
@@ -1516,95 +1319,72 @@ export default {
           }
         });
         
+        // 로우 추가
         this.editData.push(newRow);
-        return;
-      }
+      },
       
-      // 마지막 로우 가져오기
-      const lastRow = this.editData[this.editData.length - 1];
-      
-      // 새 로우 생성
-      const newRow = {
-        SHOT_NUMBER: parseInt(lastRow.SHOT_NUMBER) + 1,
-        EVENTNAME: lastRow.EVENTNAME || '',
-        PAGETITLE: lastRow.PAGETITLE || '',
-        PAGEPATH: lastRow.PAGEPATH || '',
-        TIME: lastRow.TIME || ''
-      };
-      
-      // 모든 컬럼 초기화
-      this.editColumns.forEach(column => {
-        if (!['SHOT_NUMBER', 'EVENTNAME', 'PAGETITLE', 'PAGEPATH', 'TIME'].includes(column)) {
-          newRow[column] = '';
+      // 로우 삭제
+      removeRow(index) {
+        if (confirm('이 행을 삭제하시겠습니까?')) {
+          this.editData.splice(index, 1);
+          
+          // SHOT_NUMBER 재정렬
+          this.editData.forEach((row, idx) => {
+            row.SHOT_NUMBER = idx;
+          });
         }
-      });
+      },
       
-      // 로우 추가
-      this.editData.push(newRow);
-    },
-    
-    // 로우 삭제
-    removeRow(index) {
-      if (confirm('이 행을 삭제하시겠습니까?')) {
-        this.editData.splice(index, 1);
-        
-        // SHOT_NUMBER 재정렬
-        this.editData.forEach((row, idx) => {
-          row.SHOT_NUMBER = idx;
-        });
-      }
-    },
-    
-    // 변경사항 저장
-    async saveChanges() {
-      try {
-        if (!this.taggingMaps || this.taggingMaps.length === 0) return;
-        
-        this.isSaving = true;
-        const taggingMapId = this.taggingMaps[0]._id;
-        
-        const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
-        const formData = new FormData();
-        
-        // 데이터 추가
-        formData.append('eventParams', JSON.stringify(this.editData));
-        
-        // 이미지가 변경된 경우 추가
-        if (this.editImageFile) {
-          formData.append('image', this.editImageFile);
-        }
-        
-        // 태깅맵 업데이트 요청
-        const response = await axios.put(`${baseUrl}/api/taggingmaps/${taggingMapId}`, formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data'
+      // 변경사항 저장
+      async saveChanges() {
+        try {
+          if (!this.taggingMaps || this.taggingMaps.length === 0) return;
+          
+          this.isSaving = true;
+          const taggingMapId = this.taggingMaps[0]._id;
+          
+          const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
+          const formData = new FormData();
+          
+          // 데이터 추가
+          formData.append('eventParams', JSON.stringify(this.editData));
+          
+          // 이미지가 변경된 경우 추가
+          if (this.editImageFile) {
+            formData.append('image', this.editImageFile);
           }
-        });
-        
-        if (response.status === 200) {
-          // 수정 성공
-          alert('태깅맵이 성공적으로 수정되었습니다.');
-          this.isEditing = false;
           
-          // 수정 상태 초기화
-          this.editImage = null;
-          this.editImageFile = null;
-          this.editColumns = [];
-          this.editData = [];
+          // 태깅맵 업데이트 요청
+          const response = await axios.put(`${baseUrl}/api/taggingmaps/${taggingMapId}`, formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data'
+            }
+          });
           
-          // 현재 페이지 리로드
-          this.fetchFilteredData();
-        } else {
-          throw new Error('수정 요청이 실패했습니다.');
+          if (response.status === 200) {
+            // 수정 성공
+            alert('태깅맵이 성공적으로 수정되었습니다.');
+            this.isEditing = false;
+            
+            // 수정 상태 초기화
+            this.editImage = null;
+            this.editImageFile = null;
+            this.editColumns = [];
+            this.editData = [];
+            
+            // 현재 페이지 리로드
+            this.fetchFilteredData();
+          } else {
+            throw new Error('수정 요청이 실패했습니다.');
+          }
+        } catch (error) {
+          console.error('태깅맵 수정 중 오류:', error);
+          alert(`수정 실패: ${error.message}`);
+        } finally {
+          this.isSaving = false;
         }
-      } catch (error) {
-        console.error('태깅맵 수정 중 오류:', error);
-        alert(`수정 실패: ${error.message}`);
-      } finally {
-        this.isSaving = false;
       }
-    }
-}
+  }
 }
 </script>
 
@@ -1870,19 +1650,19 @@ button:hover {
 }
 
 .image-preview {
-  margin-bottom: 20px;
+  margin-bottom: 15px;
   border: 1px solid #ddd;
-  padding: 15px; /* 패딩 증가 */
+  padding: 10px;
   text-align: center;
-  background-color: #f9f9fa;
-  border-radius: 8px; /* 모서리 둥글게 */
-  max-height: 500px; /* 400px에서 500px로 증가 */
+  background-color: #f9f9f9;
+  border-radius: 4px;
+  max-height: 400px;
   overflow: hidden;
 }
 
 .image-preview img {
   max-width: 100%;
-  max-height: 450px; /* 350px에서 450px로 증가 */
+  max-height: 350px;
   object-fit: contain;
 }
 
@@ -2325,74 +2105,5 @@ input[type="file"] {
 .delete-confirm-button:disabled {
   background-color: #e9a0a8;
   cursor: not-allowed;
-}
-
-/* 테이블 끝에 추가 */
-@media screen and (min-width: 1920px) {
-  .edit-modal {
-    max-width: 1900px;
-  }
-  
-  .table-container {
-    max-height: 700px;
-  }
-  
-  .image-preview {
-    max-height: 600px;
-  }
-  
-  .image-preview img {
-    max-height: 550px;
-  }
-}
-
-.add-column-btn, .remove-row-btn {
-  width: 30px; /* 24px에서 30px로 증가 */
-  height: 30px; /* 24px에서 30px로 증가 */
-  font-size: 18px; /* 폰트 크기 증가 */
-}
-
-.add-row-btn {
-  padding: 12px 30px; /* 패딩 증가 */
-  font-size: 16px; /* 폰트 크기 증가 */
-}
-
-.save-button, .cancel-button {
-  padding: 12px 25px; /* 패딩 증가 */
-  font-size: 16px; /* 폰트 크기 증가 */
-}
-
-.share-container {
-  margin: 15px 0;
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.share-button {
-  background-color: #0070c0;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 8px 15px;
-  font-size: 14px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.share-button:hover {
-  background-color: #005999;
-}
-
-.copy-notification {
-  margin-left: 10px;
-  background-color: rgba(0, 0, 0, 0.7);
-  color: white;
-  border-radius: 4px;
-  padding: 6px 12px;
-  font-size: 12px;
-  white-space: nowrap;
 }
 </style>
