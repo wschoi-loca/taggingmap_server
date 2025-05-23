@@ -45,67 +45,36 @@ export default createStore({
       },
       actions: {
         // 새로운 Google 로그인 액션 (간소화 및 안정화)
+        // 새로운 Google 로그인 액션 (OAuth 리다이렉트 방식)
         async loginWithGoogle({ commit }) {
-          commit('SET_LOADING', true);
-          
-          try {
-            // Google Auth 인스턴스 얻기
-            const authInstance = gAuthInstance;
+            commit('SET_LOADING', true);
             
-            if (!authInstance && window.google && window.google.accounts) {
-              // 새 Google Identity Services API 사용
-              const response = await new Promise((resolve) => {
-                window.googleAuthCallback = (response) => {
-                  resolve(response);
-                };
-                
-                window.google.accounts.id.prompt((notification) => {
-                  if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-                    // 사용자에게 로그인 UI가 표시되지 않음
-                    resolve(null);
-                  }
-                });
-              });
-              
-              if (!response) {
-                throw new Error('Google 로그인 실패: 사용자 응답 없음');
-              }
-              
-              const credential = response.credential;
-              
-              // JWT 토큰 디코딩
-              const base64Url = credential.split('.')[1];
-              const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-              const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => {
-                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-              }).join(''));
-              
-              const payload = JSON.parse(jsonPayload);
-              
-              // 사용자 정보 구성
-              const user = {
-                id: payload.sub,
-                email: payload.email,
-                name: payload.name,
-                picture: payload.picture,
-                role: payload.email.endsWith('@loca.kr') ? 'admin' : 'user'
-              };
-              
-              // 상태 업데이트
-              commit('SET_TOKEN', credential);
-              commit('SET_USER', user);
-              commit('SET_USER_CHECKED', true);
-              
-              return user;
-            } else {
-              throw new Error('Google 인증을 초기화할 수 없습니다');
+            try {
+            // 로그아웃 상태 확인
+            if (window.google && window.google.accounts) {
+                try {
+                window.google.accounts.id.disableAutoSelect();
+                } catch (e) {
+                console.warn('Auto select disable error:', e);
+                }
             }
-          } catch (error) {
+            
+            // API에서 로그인 URL 가져오기
+            const response = await fetch('/api/auth/google-login-url');
+            const data = await response.json();
+            
+            if (data.url) {
+                // Google 로그인 페이지로 리다이렉트
+                window.location.href = data.url;
+                return; // 페이지 이동으로 처리 종료
+            } else {
+                throw new Error('로그인 URL을 가져오는데 실패했습니다');
+            }
+            } catch (error) {
             console.error('Google 로그인 오류:', error);
-            throw error;
-          } finally {
             commit('SET_LOADING', false);
-          }
+            throw error;
+            }
         },
         
         // 사용자 상태 체크
@@ -132,19 +101,23 @@ export default createStore({
         },
         
         // 로그아웃 처리
+        // 로그아웃 처리 (store/index.js)
         async logout({ commit }) {
-          try {
-            // Google 로그아웃
-            if (window.google && window.google.accounts) {
-              window.google.accounts.id.disableAutoSelect();
-            }
-          } catch (e) {
-            console.warn('Google 로그아웃 오류:', e);
-          } finally {
-            // 항상 로컬 상태는 초기화
+            try {
+            // 로컬 상태 초기화
             commit('CLEAR_AUTH');
             commit('SET_USER_CHECKED', true);
-          }
+            
+            // 계정 완전 로그아웃을 위해 Google 로그아웃 페이지로 이동
+            // 이렇게 하면 다음 로그인 시 반드시 계정 선택 화면이 표시됨
+            const redirectTo = encodeURIComponent(window.location.origin);
+            window.location.href = `https://www.google.com/accounts/Logout?continue=https://appengine.google.com/_ah/logout?continue=${redirectTo}`;
+            } catch (e) {
+            console.warn('로그아웃 오류:', e);
+            // 로컬 로그아웃은 항상 수행
+            commit('CLEAR_AUTH');
+            commit('SET_USER_CHECKED', true);
+            }
         },
         
         // 사용자 설정

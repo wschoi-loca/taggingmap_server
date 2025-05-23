@@ -710,6 +710,7 @@ app.post('/csp-report', (req, res) => {
 });
 
 // Google OAuth 콜백 처리
+// server.js의 콜백 처리 함수 조정
 app.get('/auth/google/callback', async (req, res) => {
   const code = req.query.code;
   
@@ -718,7 +719,7 @@ app.get('/auth/google/callback', async (req, res) => {
   }
   
   try {
-    // 승인 코드로 토큰 교환
+    // 코드로 토큰 교환
     const tokenResponse = await axios.post('https://oauth2.googleapis.com/token', {
       code,
       client_id: process.env.GOOGLE_CLIENT_ID,
@@ -727,24 +728,26 @@ app.get('/auth/google/callback', async (req, res) => {
       grant_type: 'authorization_code'
     });
     
-    // 액세스 토큰으로 사용자 정보 얻기
-    const { access_token, id_token } = tokenResponse.data;
+    const { id_token } = tokenResponse.data;
     
-    const userInfoResponse = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
-      headers: { Authorization: `Bearer ${access_token}` }
-    });
+    // JWT 디코딩해서 사용자 계정 정보 확인
+    const tokenParts = id_token.split('.');
+    const payload = JSON.parse(Buffer.from(tokenParts[1], 'base64').toString());
     
-    const userData = userInfoResponse.data;
-    
-    // 사용자 정보와 ID 토큰을 쿠키에 저장
-    res.cookie('auth_token', id_token, {
-      httpOnly: false, // 클라이언트에서 접근 가능하도록
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 24 * 60 * 60 * 1000 // 24시간
-    });
-    
-    // 저장된 리다이렉트 경로로 이동
-    res.redirect('/auth/success');
+    // 계정 이메일 주소 확인 (wschoi-loca 계정만 허용하는 예시)
+    if (payload.email === 'wschoi@loca.kr') {
+      // 인증 정보 저장
+      res.cookie('auth_token', id_token, {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 24 * 60 * 60 * 1000
+      });
+      
+      res.redirect('/auth/success');
+    } else {
+      // 계정 검증 실패
+      res.redirect('/login?login_failed=true&reason=unauthorized_account');
+    }
   } catch (error) {
     console.error('Google OAuth 콜백 오류:', error);
     res.redirect('/login?login_failed=true');
@@ -799,6 +802,20 @@ app.get('/auth/success', (req, res) => {
   `);
 });
 
+// server.js - 서버 측 라우트 추가
+app.get('/api/auth/google-login-url', (req, res) => {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const redirectUri = encodeURIComponent(`${req.protocol}://${req.get('host')}/auth/google/callback`);
+  const scope = encodeURIComponent('email profile');
+  const responseType = 'code';
+  const accessType = 'online';
+  const prompt = 'select_account'; // 항상 계정 선택 화면 표시
+  
+  // Google 로그인 URL 생성
+  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=${responseType}&access_type=${accessType}&prompt=${prompt}`;
+  
+  res.json({ url: authUrl });
+});
 
 // 3. 모든 나머지 요청은 Vue Router가 처리하도록 설정
 app.get('*', (req, res) => {

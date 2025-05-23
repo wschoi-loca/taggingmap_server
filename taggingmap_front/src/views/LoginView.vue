@@ -55,8 +55,10 @@ export default {
       const redirectUri = encodeURIComponent(`${window.location.origin}/auth/google/callback`);
       const scope = encodeURIComponent('email profile');
       const responseType = 'code';
+      
+      // 계정 단위 로그인을 강제하는 파라미터
       const accessType = 'online';
-      const prompt = 'select_account';
+      const prompt = 'select_account';  // 항상 계정 선택 화면 표시
       
       // Google 로그인 페이지로 리다이렉트
       const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=${responseType}&access_type=${accessType}&prompt=${prompt}`;
