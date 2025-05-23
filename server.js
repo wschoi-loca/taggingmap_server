@@ -23,8 +23,11 @@ app.use((req, res, next) => {
     "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; " +
     "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com; " +
     "img-src 'self' https://*.googleapis.com https://*.gstatic.com https://res.cloudinary.com data:; " +
-    "connect-src 'self' https://*.googleapis.com https://accounts.google.com https://taggingmap-server.herokuapp.com https://taggingmap-server-bd06b783e6ac.herokuapp.com; " +
-    "font-src 'self' https://cdnjs.cloudflare.com data:"
+    "connect-src 'self' https://*.googleapis.com https://accounts.google.com https://apis.google.com; " +
+    "font-src 'self' https://cdnjs.cloudflare.com data:; " +
+    "frame-src https://accounts.google.com https://content.googleapis.com; " +
+    "frame-ancestors 'self'; " +
+    "report-uri /csp-report"
   );
   next();
 });
@@ -687,6 +690,12 @@ app.put('/api/taggingmaps/:id', upload.single('image'), async (req, res) => {
     console.error('태깅맵 업데이트 오류:', error);
     return res.status(500).json({ message: '서버 오류가 발생했습니다.', error: error.message });
   }
+});
+
+// server.js에 CSP 보고 엔드포인트 추가
+app.post('/csp-report', (req, res) => {
+  console.log('CSP violation:', req.body);
+  res.status(204).end();
 });
 
 // 3. 모든 나머지 요청은 Vue Router가 처리하도록 설정
