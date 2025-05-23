@@ -10,12 +10,6 @@
       
       <!-- Google 제공 로그인 버튼을 표시할 div -->
       <div id="g_id_signin" class="google-signin-container"></div>
-      
-      <!-- 기존 버튼은 숨김 또는 제거 -->
-      <!-- <button @click="handleLogin" class="google-login-btn" :disabled="loading">
-        <img src="@/assets/google-icon.svg" alt="Google" />
-        {{ loading ? '로그인 중...' : 'Google Workspace로 로그인' }}
-      </button> -->
     </div>
   </div>
 </template>
@@ -47,9 +41,12 @@ export default {
     initGoogleSignIn() {
       // 구글 클라이언트 초기화 (google.accounts.id가 로드된 후)
       if (window.google && window.google.accounts) {
+        // 컴포넌트 내부 함수를 전역 스코프에 추가
+        window.handleGoogleCredentialResponse = this.handleGoogleCredentialResponse;
+        
         window.google.accounts.id.initialize({
           client_id: '434460786285-svua7r71njstq0rdqmuacth5tlq6d49d.apps.googleusercontent.com',
-          callback: handleGoogleCredentialResponse,
+          callback: window.handleGoogleCredentialResponse,
           auto_select: false
         });
         
@@ -58,12 +55,19 @@ export default {
           document.getElementById('g_id_signin'),
           { type: 'standard', theme: 'outline', size: 'large', text: 'signin_with', shape: 'rectangular', width: 250 }
         );
-        
-        // 원클릭 로그인 표시 (선택사항)
-        // window.google.accounts.id.prompt();
       } else {
         // Google 라이브러리가 아직 로드되지 않았으면 대기
         setTimeout(this.initGoogleSignIn, 100);
+      }
+    },
+    
+    // 콜백 함수 추가
+    handleGoogleCredentialResponse(response) {
+      // 인증 응답을 Vue 앱으로 전달
+      if (window.dispatchEvent) {
+        window.dispatchEvent(new CustomEvent('google-auth-success', {
+          detail: { credential: response.credential }
+        }));
       }
     },
     
@@ -140,37 +144,10 @@ h1 {
   margin-bottom: 30px;
 }
 
-.google-login-btn {
+.google-signin-container {
   display: flex;
-  align-items: center;
   justify-content: center;
-  width: 100%;
-  padding: 12px;
   margin-top: 20px;
-  background-color: #ffffff;
-  color: rgba(0, 0, 0, 0.75);
-  border: 1px solid #dadce0;
-  border-radius: 4px;
-  font-size: 16px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.google-login-btn:hover {
-  background-color: #f8f9fa;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-.google-login-btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.google-login-btn img {
-  width: 18px;
-  height: 18px;
-  margin-right: 10px;
 }
 
 .error-message {
@@ -179,11 +156,5 @@ h1 {
   padding: 10px;
   background-color: #fbe9e7;
   border-radius: 4px;
-}
-
-.google-signin-container {
-  display: flex;
-  justify-content: center;
-  margin-top: 20px;
 }
 </style>
