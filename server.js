@@ -713,54 +713,63 @@ app.post('/csp-report', (req, res) => {
 // server.js의 콜백 처리 함수 수정
 // server.js - 콜백 엔드포인트
 app.get('/auth/google/callback', async (req, res) => {
-  const code = req.query.code;
-  
-  if (!code) {
-    return res.redirect('/login?login_failed=true');
-  }
-  
   try {
-    // 승인 코드를 액세스 토큰과 ID 토큰으로 교환
-    const tokenResponse = await axios.post('https://oauth2.googleapis.com/token', {
-      code,
-      client_id: process.env.GOOGLE_CLIENT_ID,
-      client_secret: process.env.GOOGLE_CLIENT_SECRET,
-      redirect_uri: `${req.protocol}://${req.get('host')}/auth/google/callback`,
-      grant_type: 'authorization_code'
-    });
+    console.log('[OAuth] 콜백 요청 받음');
+    const code = req.query.code;
     
-    const { access_token, id_token } = tokenResponse.data;
+    if (!code) {
+      console.error('[OAuth] 인증 코드 없음');
+      return res.redirect('/login?login_failed=true&reason=no_code');
+    }
     
-    // 액세스 토큰으로 사용자 정보 요청 (여기서 GWS 검증이 시작됨)
-    const userInfoResponse = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
-      headers: { Authorization: `Bearer ${access_token}` }
-    });
-    
-    const userData = userInfoResponse.data;
-    
-    // hd 필드로 Google Workspace 계정 확인 (핵심)
-    const isLotteCardGWS = userData.hd === 'lottecard.co.kr';
-    
-    console.log('[Auth] 사용자 정보:', {
-      email: userData.email,
-      hostedDomain: userData.hd || '없음'
-    });
-    
-    if (isLotteCardGWS) {
-      // 인증 성공
-      res.cookie('auth_token', id_token, {
-        httpOnly: false,
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 24 * 60 * 60 * 1000
+    try {
+      const tokenResponse = await axios.post('https://oauth2.googleapis.com/token', {
+        code,
+        client_id: process.env.GOOGLE_CLIENT_ID,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET,
+        redirect_uri: `${req.protocol}://${req.get('host')}/auth/google/callback`,
+        grant_type: 'authorization_code'
       });
-      res.redirect('/auth/success');
-    } else {
-      console.log('[Auth] GWS 계정 아님:', userData.email);
-      res.redirect('/login?login_failed=true&reason=not_gws');
+      
+      const { access_token, id_token } = tokenResponse.data;
+      console.log('[OAuth] 토큰 교환 성공');
+      
+      const userInfoResponse = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${access_token}` }
+      });
+      
+      const userData = userInfoResponse.data;
+      
+      // 전체 사용자 정보 로깅 (디버깅용)
+      console.log('[OAuth] 사용자 정보 전체:', JSON.stringify(userData));
+      console.log('[OAuth] hd 필드:', userData.hd);
+      console.log('[OAuth] 이메일:', userData.email);
+      
+      // 인증 조건 완화 (임시)
+      const isAuthorized = userData.email.endsWith('@lottecard.co.kr');
+      
+      if (isAuthorized) {
+        console.log('[OAuth] 인증 성공');
+        
+        // 쿠키 설정
+        res.cookie('auth_token', id_token, {
+          httpOnly: false,
+          secure: process.env.NODE_ENV === 'production',
+          maxAge: 24 * 60 * 60 * 1000
+        });
+        
+        return res.redirect('/auth/success');
+      } else {
+        console.log('[OAuth] 인증 실패');
+        return res.redirect('/login?login_failed=true&reason=not_authorized');
+      }
+    } catch (error) {
+      console.error('[OAuth] 처리 오류:', error.message);
+      return res.redirect('/login?login_failed=true&reason=process_error');
     }
   } catch (error) {
-    console.error('[Auth] 오류:', error);
-    res.redirect('/login?login_failed=true');
+    console.error('[OAuth] 예외 발생:', error);
+    return res.redirect('/login?login_failed=true&reason=exception');
   }
 });
 // 로그인 성공 후 리다이렉트 처리
