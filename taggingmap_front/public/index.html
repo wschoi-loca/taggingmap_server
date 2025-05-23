@@ -8,53 +8,22 @@
     <link rel="icon" href="<%= BASE_URL %>favicon.ico">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <title>태깅맵</title>
-    <!-- index.html의 </head> 태그 앞에 추가 -->
-    <script>
-      // Google API 초기화 함수
-      function gapiLoaded() {
-        gapi.load('auth2', initAuth);
-      }
-      
-      function initAuth() {
-        try {
-          // 이미 초기화되어 있는지 확인
-          if (gapi.auth2.getAuthInstance()) {
-            console.log('Google Auth 인스턴스가 이미 존재합니다.');
-            return;
-          }
-          
-          gapi.auth2.init({
-            client_id: '434460786285-svua7r71njstq0rdqmuacth5tlq6d49d.apps.googleusercontent.com',
-            scope: 'profile email'
-          }).then(
-            function() { 
-              console.log('Google Auth 초기화 성공'); 
-              // 인증 준비 완료 이벤트 발행
-              window.dispatchEvent(new Event('google-auth-initialized'));
-            },
-            function(error) { console.error('Google Auth 초기화 실패:', error); }
-          );
-        } catch (e) {
-          console.error('Google Auth 초기화 중 오류:', e);
-        }
-      }
+    <!-- 기존 gapi.auth2 스크립트 제거 -->
+    <!-- <script src="https://apis.google.com/js/api.js?onload=gapiLoaded" async defer></script> -->
 
-      // 전역 함수로 인증 인스턴스 접근 제공
-      window.getGoogleAuthInstance = function() {
-        if (window.gapi && window.gapi.auth2) {
-          try {
-            return window.gapi.auth2.getAuthInstance();
-          } catch (e) {
-            console.error('인증 인스턴스 접근 오류:', e);
-            return null;
-          }
+    <!-- 새로운 Google Identity Services 추가 -->
+    <script>
+      function handleGoogleCredentialResponse(response) {
+        // 인증 응답을 Vue 앱으로 전달
+        if (window.dispatchEvent) {
+          window.dispatchEvent(new CustomEvent('google-auth-success', {
+            detail: { credential: response.credential }
+          }));
         }
-        return null;
-      };
+      }
     </script>
 
-    <!-- Google API 로드 -->
-    <script src="https://apis.google.com/js/api.js?onload=gapiLoaded" async defer></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
   </head>
   <body>
     <noscript>

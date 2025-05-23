@@ -190,19 +190,22 @@ export default createStore({
         
         // 로그아웃 처리
         async logout({ commit }) {
-          try {
-            // Google 로그아웃
-            const authInstance = await this.dispatch('auth/getGoogleAuthInstance');
-            if (authInstance && authInstance.isSignedIn && authInstance.isSignedIn.get()) {
-              await authInstance.signOut();
+            try {
+                // 새 Google ID 서비스 사용해 로그아웃
+                if (window.google && window.google.accounts) {
+                window.google.accounts.id.disableAutoSelect();
+                // 로그인 상태 제거
+                window.google.accounts.id.revoke(localStorage.getItem('auth_token'), () => {
+                    console.log('Google 로그아웃 성공');
+                });
+                }
+            } catch (e) {
+                console.warn('Google 로그아웃 오류:', e);
+            } finally {
+                // 항상 로컬 상태는 초기화
+                commit('CLEAR_AUTH');
+                commit('SET_USER_CHECKED', true);
             }
-          } catch (e) {
-            console.warn('Google 로그아웃 오류:', e);
-          } finally {
-            // 항상 로컬 상태는 초기화
-            commit('CLEAR_AUTH');
-            commit('SET_USER_CHECKED', true);
-          }
         },
         
         // 사용자 설정
