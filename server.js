@@ -11,6 +11,7 @@ const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 require('dotenv').config(); // 환경 변수 로드
 const TaggingMap = require('./models/taggingMap'); // 모델
+const axios = require('axios');  // 이 줄을 추가하세요
 
 // 먼저 Express 앱 생성
 const app = express();
@@ -708,6 +709,8 @@ app.post('/csp-report', (req, res) => {
   console.log('CSP violation:', req.body);
   res.status(204).end();
 });
+
+
 
 // Google OAuth 콜백 처리
 // server.js의 콜백 처리 함수 수정
