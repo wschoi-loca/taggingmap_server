@@ -2,7 +2,7 @@
   <div class="login-page">
     <div class="login-container">
       <h1>태깅맵 로그인</h1>
-      <p class="subtitle">@lottecard.co.kr 구글 계정만 가능합니다.</p>
+      <p class="subtitle">로카넷 계정으로 구글 로그인</p>
       <p class="subtitle2">계정권한 문의: 카드Biz 최원석</p>
       <div v-if="error" class="error-message">
         {{ error }}
