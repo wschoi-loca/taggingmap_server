@@ -2,7 +2,8 @@
   <div class="login-page">
     <div class="login-container">
       <h1>태깅맵 로그인</h1>
-      <p class="subtitle">Google Workspace 계정(로카넷 계정으로 구글 로그인)으로 로그인하세요</p>
+      <p class="subtitle">Google Workspace 계정(로카넷 계정으로 구글 로그인)으로</p>
+      <p class="subtitle">로그인하세요</p>
       <p class="subtitle2">계정권한 문의: 카드Biz 최원석</p>
       <div v-if="error" class="error-message">
         {{ error }}
@@ -11,7 +12,7 @@
       <!-- Google 로그인 버튼 -->
       <button @click="redirectToGoogleLogin" class="google-login-btn" :disabled="loading">
         <img src="@/assets/google-icon.svg" alt="Google" />
-        {{ loading ? '로그인 중...' : 'Google Workspace로 로그인' }}
+        {{ loading ? '로그인 중...' : '로카넷 구글 계정으로 로그인' }}
       </button>
     </div>
   </div>
