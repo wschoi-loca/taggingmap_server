@@ -9,7 +9,7 @@
       </div>
       
       <!-- Google 로그인 버튼 -->
-      <button @click="handleLogin" class="google-login-btn" :disabled="loading">
+      <button @click="redirectToGoogleLogin" class="google-login-btn" :disabled="loading">
         <img src="@/assets/google-icon.svg" alt="Google" />
         {{ loading ? '로그인 중...' : 'Google Workspace로 로그인' }}
       </button>
@@ -18,60 +18,54 @@
 </template>
 
 <script>
-import { mapActions } from 'vuex';
-
 export default {
   name: 'LoginView',
   data() {
     return {
       error: null,
-      loading: false,
-      autoPromptTriggered: false
+      loading: false
     };
   },
   mounted() {
-    // 3초 후 자동 로그인 시도 (사용자 경험을 위해 약간의 지연 추가)
-    this.triggerAutoLogin();
+    // URL에서 로그인 결과 파라미터 확인
+    const urlParams = new URLSearchParams(window.location.search);
+    const loginFailed = urlParams.get('login_failed');
+    
+    if (loginFailed) {
+      this.error = '로그인에 실패했습니다. 다시 시도해주세요.';
+    }
+    
+    // 자동 로그인 시도 (3초 대기 후)
+    setTimeout(() => {
+      if (!this.$store.getters.isAuthenticated) {
+        this.redirectToGoogleLogin();
+      }
+    }, 3000);
   },
   methods: {
-    ...mapActions(['loginWithGoogle']),
-    
-    triggerAutoLogin() {
-      if (this.autoPromptTriggered) return;
+    redirectToGoogleLogin() {
+      this.loading = true;
       
-      // 이미 자동 로그인을 시도했음을 표시
-      this.autoPromptTriggered = true;
+      // 현재 URL을 저장 (로그인 후 리다이렉트용)
+      const redirectPath = this.$store.getters.redirectPath || '/';
+      localStorage.setItem('redirect_after_login', redirectPath);
       
-      setTimeout(() => {
-        if (!this.$store.getters.isAuthenticated && !this.loading) {
-          console.log('자동 로그인 시도');
-          this.handleLogin();
-        }
-      }, 1000); // 1초 지연
-    },
-    
-    async handleLogin() {
-      try {
-        this.error = null;
-        this.loading = true;
-        
-        // Google 로그인 시도
-        await this.loginWithGoogle();
-        
-        // 저장된 경로가 있으면 해당 경로로, 없으면 홈으로
-        const redirectPath = this.$store.getters.redirectPath;
-        this.$router.push(redirectPath);
-      } catch (error) {
-        console.error('로그인 실패:', error);
-        this.error = '로그인에 실패했습니다. 다시 시도해주세요.';
-      } finally {
-        this.loading = false;
-      }
+      // Google OAuth 인증 URL 생성
+      const clientId = '434460786285-svua7r71njstq0rdqmuacth5tlq6d49d.apps.googleusercontent.com';
+      const redirectUri = encodeURIComponent(`${window.location.origin}/auth/google/callback`);
+      const scope = encodeURIComponent('email profile');
+      const responseType = 'code';
+      const accessType = 'online';
+      const prompt = 'select_account';
+      
+      // Google 로그인 페이지로 리다이렉트
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=${responseType}&access_type=${accessType}&prompt=${prompt}`;
+      
+      window.location.href = authUrl;
     }
   }
 };
 </script>
-
 
 <style scoped>
 .login-page {

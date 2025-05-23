@@ -709,6 +709,97 @@ app.post('/csp-report', (req, res) => {
   res.status(204).end();
 });
 
+// Google OAuth 콜백 처리
+app.get('/auth/google/callback', async (req, res) => {
+  const code = req.query.code;
+  
+  if (!code) {
+    return res.redirect('/login?login_failed=true');
+  }
+  
+  try {
+    // 승인 코드로 토큰 교환
+    const tokenResponse = await axios.post('https://oauth2.googleapis.com/token', {
+      code,
+      client_id: process.env.GOOGLE_CLIENT_ID,
+      client_secret: process.env.GOOGLE_CLIENT_SECRET,
+      redirect_uri: `${req.protocol}://${req.get('host')}/auth/google/callback`,
+      grant_type: 'authorization_code'
+    });
+    
+    // 액세스 토큰으로 사용자 정보 얻기
+    const { access_token, id_token } = tokenResponse.data;
+    
+    const userInfoResponse = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${access_token}` }
+    });
+    
+    const userData = userInfoResponse.data;
+    
+    // 사용자 정보와 ID 토큰을 쿠키에 저장
+    res.cookie('auth_token', id_token, {
+      httpOnly: false, // 클라이언트에서 접근 가능하도록
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 24 * 60 * 60 * 1000 // 24시간
+    });
+    
+    // 저장된 리다이렉트 경로로 이동
+    res.redirect('/auth/success');
+  } catch (error) {
+    console.error('Google OAuth 콜백 오류:', error);
+    res.redirect('/login?login_failed=true');
+  }
+});
+
+// 로그인 성공 후 리다이렉트 처리
+app.get('/auth/success', (req, res) => {
+  res.send(`
+    <html>
+      <head>
+        <title>로그인 성공</title>
+        <script>
+          // 저장된 리다이렉트 경로 가져오기
+          const redirectPath = localStorage.getItem('redirect_after_login') || '/';
+          
+          // 쿠키에서 토큰 정보 가져와 Vue 앱의 로컬 스토리지에 저장
+          document.addEventListener('DOMContentLoaded', function() {
+            try {
+              const cookies = document.cookie.split(';').map(c => c.trim());
+              const authTokenCookie = cookies.find(c => c.startsWith('auth_token='));
+              
+              if (authTokenCookie) {
+                const token = authTokenCookie.split('=')[1];
+                localStorage.setItem('auth_token', token);
+                
+                // 토큰 디코딩하여 사용자 정보 저장
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                const user = {
+                  id: payload.sub,
+                  email: payload.email,
+                  name: payload.name,
+                  picture: payload.picture,
+                  role: payload.email.endsWith('@loca.kr') ? 'admin' : 'user'
+                };
+                
+                localStorage.setItem('user', JSON.stringify(user));
+              }
+            } catch (e) {
+              console.error('토큰 처리 오류:', e);
+            }
+            
+            // 원래 가려던 페이지로 리다이렉트
+            window.location.href = redirectPath;
+          });
+        </script>
+      </head>
+      <body>
+        <h2>로그인 성공! 리다이렉트 중...</h2>
+      </body>
+    </html>
+  `);
+});
+
+
 // 3. 모든 나머지 요청은 Vue Router가 처리하도록 설정
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'taggingmap_front/dist/index.html'));
