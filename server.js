@@ -711,6 +711,7 @@ app.post('/csp-report', (req, res) => {
 
 // Google OAuth 콜백 처리
 // server.js의 콜백 처리 함수 수정
+// server.js - 콜백 엔드포인트
 app.get('/auth/google/callback', async (req, res) => {
   const code = req.query.code;
   
@@ -719,7 +720,7 @@ app.get('/auth/google/callback', async (req, res) => {
   }
   
   try {
-    // 코드로 토큰 교환
+    // 승인 코드를 액세스 토큰과 ID 토큰으로 교환
     const tokenResponse = await axios.post('https://oauth2.googleapis.com/token', {
       code,
       client_id: process.env.GOOGLE_CLIENT_ID,
@@ -728,40 +729,41 @@ app.get('/auth/google/callback', async (req, res) => {
       grant_type: 'authorization_code'
     });
     
-    // 토큰으로 사용자 정보 획득
-    const { id_token, access_token } = tokenResponse.data;
+    const { access_token, id_token } = tokenResponse.data;
     
-    // 접근 토큰을 사용해 이메일 계정 정보 직접 조회
+    // 액세스 토큰으로 사용자 정보 요청 (여기서 GWS 검증이 시작됨)
     const userInfoResponse = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
       headers: { Authorization: `Bearer ${access_token}` }
     });
     
     const userData = userInfoResponse.data;
-    const email = userData.email;
+    console.log('Google에서 받은 사용자 정보:', userData);
     
-    // 이메일(계정) 기반으로만 권한 확인
-    // server.js의 /auth/google/callback 라우트 수정
-    // 이메일(계정) 기반으로만 권한 확인
-    if (email && email.endsWith('@lottecard.co.kr')) {
-      // 인증 정보 저장
+    // ★ 중요: GWS 소속 확인
+    // 1. hd(hosted domain) 필드 확인 - 이것이 GWS에 속한 사용자임을 나타내는 핵심 필드
+    const isGwsUser = userData.hd === 'lottecard.co.kr' || userData.email.endsWith('@loca.kr');
+    
+    if (isGwsUser) {
+      // 인증 성공 - 토큰 생성 및 저장
       res.cookie('auth_token', id_token, {
         httpOnly: false,
         secure: process.env.NODE_ENV === 'production',
         maxAge: 24 * 60 * 60 * 1000
       });
       
+      // 로그인 성공 페이지로 리디렉션
       res.redirect('/auth/success');
     } else {
-      // 계정 검증 실패
-      res.redirect('/login?login_failed=true&reason=unauthorized_account');
+      // Google Workspace 사용자가 아님
+      res.redirect('/login?login_failed=true&reason=not_gws_user');
     }
   } catch (error) {
-    console.error('Google OAuth 콜백 오류:', error);
+    console.error('Google 인증 처리 오류:', error);
     res.redirect('/login?login_failed=true');
   }
 });
 // 로그인 성공 후 리다이렉트 처리
-// auth/success 페이지의 스크립트 부분 수정
+// 로그인 성공 페이지 (auth/success)
 app.get('/auth/success', (req, res) => {
   res.send(`
     <html>
@@ -775,50 +777,31 @@ app.get('/auth/success', (req, res) => {
               
               if (authTokenCookie) {
                 const token = authTokenCookie.split('=')[1];
-                
-                // 토큰 저장 전에 로컬 스토리지 초기화
-                localStorage.removeItem('auth_token');
-                localStorage.removeItem('user');
-                
-                // 새 토큰 저장
                 localStorage.setItem('auth_token', token);
                 
-                try {
-                  // 토큰 디코딩
-                  const base64Url = token.split('.')[1];
-                  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-                  const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => {
-                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-                  }).join(''));
-                  
-                  const payload = JSON.parse(jsonPayload);
-                  const email = payload.email || '';
-                  
-                  // choiwonseok 계정 또는 @lottecard.co.kr 이메일 처리
-                  const isAdmin = email.includes('choiwonseok');
-                  
-                  const user = {
-                    id: payload.sub,
-                    email: email,
-                    name: payload.name || email.split('@')[0],
-                    picture: payload.picture || null,
-                    role: isAdmin ? 'admin' : 'user'
-                  };
-                  
-                  console.log('사용자 정보 설정:', user);
-                  localStorage.setItem('user', JSON.stringify(user));
-                  
-                } catch (e) {
-                  console.error('토큰 디코딩 오류:', e);
-                }
-              } else {
-                console.error('인증 토큰을 찾을 수 없습니다');
+                // JWT 토큰 디코딩
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const decodedPayload = JSON.parse(atob(base64));
+                
+                // 사용자 정보 저장
+                const user = {
+                  id: decodedPayload.sub,
+                  email: decodedPayload.email,
+                  name: decodedPayload.name || decodedPayload.email.split('@')[0],
+                  picture: decodedPayload.picture,
+                  // hd 필드로 GWS 사용자 확인 (추가 검증)
+                  role: decodedPayload.hd === 'lottecard.co.kr' ? 'admin' : 'user'
+                };
+                
+                localStorage.setItem('user', JSON.stringify(user));
+                console.log('사용자 정보 저장 완료:', user);
               }
             } catch (e) {
               console.error('토큰 처리 오류:', e);
             }
             
-            // 원래 가려던 페이지로 리다이렉트
+            // 원래 경로로 리다이렉트
             const redirectPath = localStorage.getItem('redirect_after_login') || '/';
             window.location.href = redirectPath;
           });

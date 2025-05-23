@@ -44,42 +44,23 @@ export default {
   },
   // LoginView.vue methods 수정
   methods: {
+    // LoginView.vue의 로그인 버튼 클릭 함수
     redirectToGoogleLogin() {
-      // 이미 로그인된 경우 바로 리다이렉트
-      if (this.$store.getters.isAuthenticated) {
-        const redirectPath = this.$store.getters.redirectPath || '/';
-        this.$router.push(redirectPath);
-        return;
-      }
-      
       this.loading = true;
       
-      // 로그인 리다이렉트 루프 방지 (마지막 리다이렉트 시간 확인)
-      const lastRedirect = localStorage.getItem('last_login_redirect');
-      const now = Date.now();
-      
-      if (lastRedirect && (now - parseInt(lastRedirect)) < 5000) {
-        // 5초 이내 중복 리다이렉트 방지
-        console.log('로그인 리다이렉트 무시 (중복 방지)');
-        this.loading = false;
-        return;
-      }
-      
-      // 현재 시간 저장
-      localStorage.setItem('last_login_redirect', now.toString());
-      
-      // 현재 URL을 저장
+      // 로그인 후 리다이렉트할 경로 저장
       const redirectPath = this.$store.getters.redirectPath || '/';
       localStorage.setItem('redirect_after_login', redirectPath);
       
-      // Google OAuth URL 생성 및 리다이렉트
+      // Google OAuth 인증 URL 구성
       const clientId = '434460786285-svua7r71njstq0rdqmuacth5tlq6d49d.apps.googleusercontent.com';
       const redirectUri = encodeURIComponent(`${window.location.origin}/auth/google/callback`);
       const scope = encodeURIComponent('email profile');
       const responseType = 'code';
       const accessType = 'online';
-      const prompt = 'consent'; // 계정 권한에 집중
+      const prompt = 'select_account'; // 계정 선택 화면 표시
       
+      // Google OAuth 2.0 인증 서버로 리다이렉트
       const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=${responseType}&access_type=${accessType}&prompt=${prompt}`;
       
       window.location.href = authUrl;
