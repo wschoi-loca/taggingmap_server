@@ -43,25 +43,27 @@ export default {
     }, 3000);
   },
   methods: {
+    // LoginView.vue에서 OAuth URL 생성 함수 수정
     redirectToGoogleLogin() {
       this.loading = true;
       
-      // 현재 URL을 저장 (로그인 후 리다이렉트용)
+      // 현재 URL을 저장
       const redirectPath = this.$store.getters.redirectPath || '/';
       localStorage.setItem('redirect_after_login', redirectPath);
       
-      // Google OAuth 인증 URL 생성
       const clientId = '434460786285-svua7r71njstq0rdqmuacth5tlq6d49d.apps.googleusercontent.com';
       const redirectUri = encodeURIComponent(`${window.location.origin}/auth/google/callback`);
       const scope = encodeURIComponent('email profile');
       const responseType = 'code';
-      
-      // 계정 단위 로그인을 강제하는 파라미터
       const accessType = 'online';
-      const prompt = 'select_account';  // 항상 계정 선택 화면 표시
       
-      // Google 로그인 페이지로 리다이렉트
-      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=${responseType}&access_type=${accessType}&prompt=${prompt}`;
+      // 중요: select_account 대신 consent로 변경하여 항상 계정만 확인
+      const prompt = 'consent';
+      
+      // 로그인 시 프로필 선택이 아니라 계정 권한에 집중
+      const includeGrantedScopes = 'true';
+      
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=${responseType}&access_type=${accessType}&prompt=${prompt}&include_granted_scopes=${includeGrantedScopes}`;
       
       window.location.href = authUrl;
     }

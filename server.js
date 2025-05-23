@@ -710,7 +710,7 @@ app.post('/csp-report', (req, res) => {
 });
 
 // Google OAuth 콜백 처리
-// server.js의 콜백 처리 함수 조정
+// server.js의 콜백 처리 함수 수정
 app.get('/auth/google/callback', async (req, res) => {
   const code = req.query.code;
   
@@ -728,14 +728,19 @@ app.get('/auth/google/callback', async (req, res) => {
       grant_type: 'authorization_code'
     });
     
-    const { id_token } = tokenResponse.data;
+    // 토큰으로 사용자 정보 획득
+    const { id_token, access_token } = tokenResponse.data;
     
-    // JWT 디코딩해서 사용자 계정 정보 확인
-    const tokenParts = id_token.split('.');
-    const payload = JSON.parse(Buffer.from(tokenParts[1], 'base64').toString());
+    // 접근 토큰을 사용해 이메일 계정 정보 직접 조회
+    const userInfoResponse = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${access_token}` }
+    });
     
-    // 계정 이메일 주소 확인 (wschoi-loca 계정만 허용하는 예시)
-    if (payload.email === 'wschoi@loca.kr') {
+    const userData = userInfoResponse.data;
+    const email = userData.email;
+    
+    // 이메일(계정) 기반으로만 권한 확인
+    if (email && email.endsWith('@loca.kr')) {
       // 인증 정보 저장
       res.cookie('auth_token', id_token, {
         httpOnly: false,
@@ -753,18 +758,14 @@ app.get('/auth/google/callback', async (req, res) => {
     res.redirect('/login?login_failed=true');
   }
 });
-
 // 로그인 성공 후 리다이렉트 처리
+// auth/success 페이지의 스크립트 부분 수정
 app.get('/auth/success', (req, res) => {
   res.send(`
     <html>
       <head>
         <title>로그인 성공</title>
         <script>
-          // 저장된 리다이렉트 경로 가져오기
-          const redirectPath = localStorage.getItem('redirect_after_login') || '/';
-          
-          // 쿠키에서 토큰 정보 가져와 Vue 앱의 로컬 스토리지에 저장
           document.addEventListener('DOMContentLoaded', function() {
             try {
               const cookies = document.cookie.split(';').map(c => c.trim());
@@ -775,12 +776,13 @@ app.get('/auth/success', (req, res) => {
                 localStorage.setItem('auth_token', token);
                 
                 // 토큰 디코딩하여 사용자 정보 저장
+                // - 여기서는 이메일 계정만 확인하면 됨
                 const payload = JSON.parse(atob(token.split('.')[1]));
                 const user = {
                   id: payload.sub,
                   email: payload.email,
-                  name: payload.name,
-                  picture: payload.picture,
+                  name: payload.name || payload.email.split('@')[0], // 이름 없으면 이메일 아이디 사용
+                  picture: payload.picture || '/default-avatar.png',
                   role: payload.email.endsWith('@loca.kr') ? 'admin' : 'user'
                 };
                 
@@ -791,6 +793,7 @@ app.get('/auth/success', (req, res) => {
             }
             
             // 원래 가려던 페이지로 리다이렉트
+            const redirectPath = localStorage.getItem('redirect_after_login') || '/';
             window.location.href = redirectPath;
           });
         </script>
