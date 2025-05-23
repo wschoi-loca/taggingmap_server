@@ -825,50 +825,145 @@ app.get('/auth/google/callback', async (req, res) => {
 app.get('/auth/success', (req, res) => {
   res.send(`
     <html>
-      <head>
-        <title>로그인 성공</title>
-        <script>
-          document.addEventListener('DOMContentLoaded', function() {
-            try {
-              const cookies = document.cookie.split(';').map(c => c.trim());
-              const authTokenCookie = cookies.find(c => c.startsWith('auth_token='));
-              
-              if (authTokenCookie) {
-                const token = authTokenCookie.split('=')[1];
-                localStorage.setItem('auth_token', token);
-                
-                // JWT 토큰 디코딩
-                const base64Url = token.split('.')[1];
-                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-                const decodedPayload = JSON.parse(atob(base64));
-                
-                // 사용자 정보 저장
-                const user = {
-                  id: decodedPayload.sub,
-                  email: decodedPayload.email,
-                  name: decodedPayload.name || decodedPayload.email.split('@')[0],
-                  picture: decodedPayload.picture,
-                  // hd 필드로 GWS 사용자 확인 (추가 검증)
-                  role: decodedPayload.hd === 'lottecard.co.kr' ? 'admin' : 'user'
-                };
-                
-                localStorage.setItem('user', JSON.stringify(user));
-                console.log('사용자 정보 저장 완료:', user);
-              }
-            } catch (e) {
-              console.error('토큰 처리 오류:', e);
-            }
+    <head>
+      <title>로그인 성공</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <style>
+        body {
+          font-family: 'Noto Sans KR', 'Roboto', sans-serif;
+          background-color: #f8f9fa;
+          margin: 0;
+          padding: 0;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 100vh;
+          color: #333;
+        }
+        
+        .success-container {
+          background-color: white;
+          border-radius: 8px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          padding: 40px;
+          width: 90%;
+          max-width: 400px;
+          text-align: center;
+          position: relative;
+        }
+        
+        h2 {
+          margin-bottom: 20px;
+          color: #333;
+          font-weight: 500;
+        }
+        
+        .message {
+          color: #666;
+          margin-bottom: 30px;
+          font-size: 16px;
+        }
+        
+        .loader {
+          display: inline-block;
+          width: 50px;
+          height: 50px;
+          border: 3px solid rgba(0, 112, 192, 0.2);
+          border-radius: 50%;
+          border-top-color: #0070c0;
+          animation: spin 1s ease-in-out infinite;
+          margin: 20px 0;
+        }
+        
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+        
+        .logo {
+          width: 80px;
+          margin-bottom: 20px;
+        }
+        
+        .progress {
+          height: 4px;
+          width: 100%;
+          background-color: #e0e0e0;
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          border-bottom-left-radius: 8px;
+          border-bottom-right-radius: 8px;
+          overflow: hidden;
+        }
+        
+        .progress-bar {
+          height: 100%;
+          width: 0%;
+          background-color: #0070c0;
+          animation: progress 2s ease forwards;
+        }
+        
+        @keyframes progress {
+          to { width: 100%; }
+        }
+      </style>
+      <script>
+        document.addEventListener('DOMContentLoaded', function() {
+          try {
+            const cookies = document.cookie.split(';').map(c => c.trim());
+            const authTokenCookie = cookies.find(c => c.startsWith('auth_token='));
             
-            // 원래 경로로 리다이렉트
-            const redirectPath = localStorage.getItem('redirect_after_login') || '/';
+            if (authTokenCookie) {
+              const token = authTokenCookie.split('=')[1];
+              localStorage.setItem('auth_token', token);
+              
+              // JWT 토큰 디코딩
+              const base64Url = token.split('.')[1];
+              const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+              const decodedPayload = JSON.parse(atob(base64));
+              
+              // 사용자 정보 저장
+              const user = {
+                id: decodedPayload.sub,
+                email: decodedPayload.email,
+                name: decodedPayload.name || decodedPayload.email.split('@')[0],
+                picture: decodedPayload.picture,
+                // hd 필드로 GWS 사용자 확인 (추가 검증)
+                role: decodedPayload.hd === 'lottecard.co.kr' ? 'admin' : 'user'
+              };
+              
+              localStorage.setItem('user', JSON.stringify(user));
+              console.log('사용자 정보 저장 완료:', user);
+              
+              // 사용자 이름 표시
+              const userNameElement = document.getElementById('userName');
+              if (userNameElement && user.name) {
+                userNameElement.textContent = user.name;
+              }
+            }
+          } catch (e) {
+            console.error('토큰 처리 오류:', e);
+          }
+          
+          // 원래 경로로 리다이렉트
+          const redirectPath = localStorage.getItem('redirect_after_login') || '/';
+          setTimeout(() => {
             window.location.href = redirectPath;
-          });
-        </script>
-      </head>
-      <body>
-        <h2>로그인 성공! 리다이렉트 중...</h2>
-      </body>
-    </html>
+          }, 2000);
+        });
+      </script>
+    </head>
+    <body>
+      <div class="success-container">
+        <div class="loader"></div>
+        <h2>로그인 성공!</h2>
+        <p class="message"><span id="userName">사용자</span>님, 환영합니다.<br>잠시 후 메인 페이지로 이동합니다.</p>
+        <div class="progress">
+          <div class="progress-bar"></div>
+        </div>
+      </div>
+    </body>
+  </html>
   `);
 });
 

@@ -2,8 +2,8 @@
   <div class="login-page">
     <div class="login-container">
       <h1>태깅맵 로그인</h1>
-      <p class="subtitle">Google Workspace 계정으로 로그인하세요</p>
-      
+      <p class="subtitle">Google Workspace 계정(로카넷 계정으로 구글 로그인)으로 로그인하세요</p>
+      <p class="subtitle2">계정권한 문의: 카드Biz 최원석</p>
       <div v-if="error" class="error-message">
         {{ error }}
       </div>
@@ -110,5 +110,52 @@ h1 {
   padding: 10px;
   background-color: #fbe9e7;
   border-radius: 4px;
+}
+
+.google-login-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 12px 16px;
+  background-color: white;
+  color: #757575;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s, box-shadow 0.3s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  margin-top: 20px;
+  position: relative;
+  outline: none;
+}
+
+.google-login-btn:hover {
+  background-color: #f8f9fa;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+}
+
+.google-login-btn:active {
+  background-color: #f1f3f4;
+}
+
+.google-login-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.google-login-btn img {
+  width: 18px;
+  height: 18px;
+  margin-right: 12px;
+}
+
+.subtitle2 {
+  color: #888;
+  font-size: 14px;
+  margin-top: -20px;
+  margin-bottom: 25px;
 }
 </style>
