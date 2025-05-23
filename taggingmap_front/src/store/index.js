@@ -45,7 +45,7 @@ export default createStore({
       },
       actions: {
         // 새로운 Google 로그인 액션 (간소화 및 안정화)
-        async loginWithGoogle({ commit, dispatch }) {
+        async loginWithGoogle({ commit }) {
           commit('SET_LOADING', true);
           
           try {
