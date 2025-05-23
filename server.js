@@ -738,15 +738,34 @@ app.get('/auth/google/callback', async (req, res) => {
     
     try {
       console.log('[디버그] 토큰 교환 시도');
-      const redirectUri = `${req.protocol}://${req.get('host')}/auth/google/callback`;
       
-      const tokenResponse = await axios.post('https://oauth2.googleapis.com/token', {
-        code,
-        client_id: process.env.GOOGLE_CLIENT_ID,
-        client_secret: process.env.GOOGLE_CLIENT_SECRET,
+      // 현재 URI와 정확히 일치하는 리디렉션 URI 사용
+      const redirectUri = 'https://taggingmap-server-bd06b783e6ac.herokuapp.com/auth/google/callback';
+      
+      // 폼 데이터 형식으로 변경 (application/x-www-form-urlencoded)
+      const params = new URLSearchParams();
+      params.append('code', code);
+      params.append('client_id', process.env.GOOGLE_CLIENT_ID);
+      params.append('client_secret', process.env.GOOGLE_CLIENT_SECRET);
+      params.append('redirect_uri', redirectUri);
+      params.append('grant_type', 'authorization_code');
+      
+      console.log('[디버그] 요청 파라미터:', {
+        code_length: code.length,
         redirect_uri: redirectUri,
-        grant_type: 'authorization_code'
+        client_id_set: !!process.env.GOOGLE_CLIENT_ID,
+        client_secret_set: !!process.env.GOOGLE_CLIENT_SECRET
       });
+      
+      const tokenResponse = await axios.post(
+        'https://oauth2.googleapis.com/token', 
+        params, 
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          }
+        }
+      );
       
       console.log('[디버그] 토큰 교환 성공');
       const { access_token, id_token } = tokenResponse.data;
