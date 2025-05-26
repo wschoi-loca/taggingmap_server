@@ -18,114 +18,115 @@
         </div>
       </div>
       
-      <!-- 삭제 확인 모달 -->
-      <div v-if="showDeleteModal" class="modal-overlay">
-        <div class="modal-content delete-modal">
-          <div class="modal-header">
-            <h3>태깅맵 삭제 확인</h3>
-            <button class="close-button" @click="showDeleteModal = false">&times;</button>
+<!-- 삭제 확인 모달 -->
+<div v-if="showDeleteModal" class="modal-overlay">
+  <div class="modal-content delete-modal">
+    <div class="modal-header">
+      <h3>태깅맵 삭제 확인</h3>
+      <button class="close-button" @click="showDeleteModal = false">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="warning-text">이 태깅맵 데이터를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.</p>
+      <p>다음 데이터가 함께 삭제됩니다:</p>
+      <ul class="delete-info">
+        <li>MongoDB의 태깅맵 데이터</li>
+        <li>Cloudinary에 저장된 이미지</li>
+      </ul>
+    </div>
+    <div class="modal-footer">
+      <button class="cancel-button" @click="showDeleteModal = false">취소</button>
+      <button class="delete-confirm-button" @click="deleteTaggingMap" :disabled="isDeleting">
+        <span v-if="isDeleting">삭제 중...</span>
+        <span v-else>삭제</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+  <!-- 수정 모달 -->
+  <div v-if="isEditing" class="modal-overlay">
+    <div class="modal-content edit-modal">
+      <div class="modal-header">
+        <h3>태깅맵 수정</h3>
+        <button class="close-button" @click="cancelEdit">&times;</button>
+      </div>
+      <div class="modal-body">
+        <!-- 스크린샷 교체 영역 -->
+        <div class="edit-image-section">
+          <h4>스크린샷</h4>
+          <div class="image-preview">
+            <img :src="editImage || taggingMaps[0].image" alt="Screenshot" />
           </div>
-          <div class="modal-body">
-            <p class="warning-text">이 태깅맵 데이터를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.</p>
-            <p>다음 데이터가 함께 삭제됩니다:</p>
-            <ul class="delete-info">
-              <li>MongoDB의 태깅맵 데이터</li>
-              <li>Cloudinary에 저장된 이미지</li>
-            </ul>
-          </div>
-          <div class="modal-footer">
-            <button class="cancel-button" @click="showDeleteModal = false">취소</button>
-            <button class="delete-confirm-button" @click="deleteTaggingMap" :disabled="isDeleting">
-              <span v-if="isDeleting">삭제 중...</span>
-              <span v-else>삭제</span>
-            </button>
+          <input type="file" ref="imageInput" accept="image/*" @change="handleImageChange" />
+          <button class="change-image-btn" @click="triggerImageSelect">이미지 변경</button>
+        </div>
+        
+        <!-- 데이터 편집 영역 -->
+        <div class="edit-data-section">
+          <h4>데이터 편집</h4>
+          <div class="table-container">
+            <!-- 테이블은 일반 테이블로 구현 -->
+            <table class="edit-table">
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>SHOT_NUMBER</th>
+                  <th v-for="column in editColumns" :key="column">{{ column }}</th>
+                  <th class="column-add-cell">
+                    <button class="add-column-btn" @click="addColumn" title="컬럼 추가">+</button>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(row, index) in editData" :key="row.uniqueId || index">
+                  <td class="move-buttons-cell">
+                    <button 
+                      class="move-up-btn" 
+                      @click="moveRow(index, 'up')" 
+                      :disabled="index === 0"
+                      title="위로 이동"
+                    >↑</button>
+                    <button 
+                      class="move-down-btn" 
+                      @click="moveRow(index, 'down')" 
+                      :disabled="index === editData.length-1"
+                      title="아래로 이동"
+                    >↓</button>
+                  </td>
+                  <td>
+                    <input 
+                      type="number" 
+                      v-model.number="row.SHOT_NUMBER" 
+                      class="cell-input shot-number-input"
+                      min="0"
+                      @input="validateShotNumber(index)"
+                    />
+                  </td>
+                  <td v-for="column in editColumns" :key="`${index}-${column}`">
+                    <input type="text" v-model="row[column]" class="cell-input" />
+                  </td>
+                  <td class="action-cell">
+                    <button class="remove-row-btn" @click="removeRow(index)" title="로우 삭제">×</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="add-row-container">
+              <button class="add-row-btn" @click="addRow">+ 로우 추가</button>
+            </div>
           </div>
         </div>
       </div>
-
-      <!-- 수정 모달 -->
-      <div v-if="isEditing" class="modal-overlay">
-        <div class="modal-content edit-modal">
-          <div class="modal-header">
-            <h3>태깅맵 수정</h3>
-            <button class="close-button" @click="cancelEdit">&times;</button>
-          </div>
-          <div class="modal-body">
-            <!-- 스크린샷 교체 영역 -->
-            <div class="edit-image-section">
-              <h4>스크린샷</h4>
-              <div class="image-preview">
-                <img :src="editImage || taggingMaps[0].image" alt="Screenshot" />
-              </div>
-              <input type="file" ref="imageInput" accept="image/*" @change="handleImageChange" />
-              <button class="change-image-btn" @click="triggerImageSelect">이미지 변경</button>
-            </div>
-            
-            <!-- 데이터 편집 영역 -->
-            <!-- 데이터 편집 영역 -->
-            <div class="edit-data-section">
-              <h4>데이터 편집</h4>
-              <div class="table-container">
-                <!-- 테이블은 일반 테이블로 구현 -->
-                <table class="edit-table">
-                  <thead>
-                    <tr>
-                      <th></th>
-                      <th>SHOT_NUMBER</th>
-                      <th v-for="column in editColumns" :key="column">{{ column }}</th>
-                      <th class="column-add-cell">
-                        <button class="add-column-btn" @click="addColumn" title="컬럼 추가">+</button>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="(row, index) in editData" :key="row.uniqueId || index">
-                      <td>
-                        <span class="row-drag-handle" style="cursor:grab;">&#9776;</span>
-                      </td>
-                      <td>
-                        <input 
-                          type="number" 
-                          v-model.number="row.SHOT_NUMBER" 
-                          class="cell-input shot-number-input"
-                          min="0"
-                          @input="validateShotNumber(index)"
-                        />
-                      </td>
-                      <td v-for="column in editColumns" :key="`${index}-${column}`">
-                        <input type="text" v-model="row[column]" class="cell-input" />
-                      </td>
-                      <td class="action-cell">
-                        <button class="remove-row-btn" @click="removeRow(index)" title="로우 삭제">×</button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-
-                <!-- 숨겨진 draggable로 데이터만 관리 -->
-                <draggable
-                  v-model="editData"
-                  :animation="150"
-                  handle=".row-drag-handle"
-                  @end="onRowDragEnd"
-                  style="display: none;"
-                >
-                </draggable>
-                <div class="add-row-container">
-                  <button class="add-row-btn" @click="addRow">+ 로우 추가</button>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button class="cancel-button" @click="cancelEdit">취소</button>
-            <button class="save-button" @click="saveChanges" :disabled="isSaving">
-              <span v-if="isSaving">저장 중...</span>
-              <span v-else>저장</span>
-            </button>
-          </div>
-        </div>
+      <div class="modal-footer">
+        <button class="cancel-button" @click="cancelEdit">취소</button>
+        <button class="save-button" @click="saveChanges" :disabled="isSaving">
+          <span v-if="isSaving">저장 중...</span>
+          <span v-else>저장</span>
+        </button>
       </div>
+    </div>
+  </div>
 
       <!-- 필터 섹션 -->
       <div class="filter-section">
@@ -2173,5 +2174,30 @@ input[type="file"] {
 }
 .row-drag-handle:active {
   cursor: grabbing;
+}
+
+.move-buttons-cell {
+  white-space: nowrap;
+}
+
+.move-up-btn, .move-down-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  margin: 0 2px;
+  font-size: 14px;
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.move-up-btn:hover, .move-down-btn:hover {
+  background-color: #e0e0e0;
+}
+
+.move-up-btn:disabled, .move-down-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>
