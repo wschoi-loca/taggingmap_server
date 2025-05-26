@@ -520,22 +520,15 @@ export default {
       editColumns: [],
       editData: [],
       // 로그 파싱 관련
-      parsingMethod: 'text',
       logFormat: 'android', // 기본값을 'android'로 변경
       logText: '',
-      logFileName: '',
-      logFileContent: '',
     }
   },
   computed: {
   
     // 파싱 버튼 활성화 여부
     canParse() {
-      if (this.parsingMethod === 'text') {
-        return this.logText.trim() !== '';
-      } else {
-        return this.logFileContent !== '';
-      }
+      return this.logText.trim() !== '';
     },
     
     // URL 경로에서 PAGETITLE 형식 계산 (기존 코드)
@@ -1544,11 +1537,10 @@ export default {
         reader.readAsText(file);
       },
       
-      // 로그 파싱
+      // 로그 파싱 (수정)
       parseLog() {
         try {
-          const logContent = this.parsingMethod === 'text' ? this.logText : this.logFileContent;
-          if (!logContent.trim()) {
+          if (!this.logText.trim()) {
             alert('파싱할 로그 내용이 없습니다.');
             return;
           }
@@ -1557,9 +1549,9 @@ export default {
           
           // 로그 형식에 따라 파싱
           if (this.logFormat === 'android') {
-            parsedData = this.parseAndroidLog(logContent);
+            parsedData = this.parseAndroidLog(this.logText);
           } else if (this.logFormat === 'ios') {
-            parsedData = this.parseIOSLog(logContent);
+            parsedData = this.parseIOSLog(this.logText);
           }
           
           if (parsedData.length === 0) {
@@ -1581,6 +1573,7 @@ export default {
           alert(`로그 파싱 중 오류가 발생했습니다: ${error.message}`);
         }
       },
+  
       
       // 안드로이드 로그 파싱
       parseAndroidLog(logText) {
@@ -1820,8 +1813,6 @@ export default {
       // 로그 입력 초기화
       clearLogInput() {
         this.logText = '';
-        this.logFileName = '';
-        this.logFileContent = '';
       }
   }
 }
@@ -2657,18 +2648,6 @@ input[type="file"] {
   font-weight: 500;
 }
 
-.radio-group {
-  display: flex;
-  gap: 15px;
-}
-
-.radio-label {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  cursor: pointer;
-}
-
 .log-input-area textarea {
   width: 100%;
   padding: 10px;
@@ -2677,36 +2656,6 @@ input[type="file"] {
   font-family: monospace;
   font-size: 14px;
   resize: vertical;
-}
-
-.log-file-upload {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 15px;
-}
-
-.log-file-upload input[type="file"] {
-  display: none;
-}
-
-.upload-btn {
-  background-color: #6c757d;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 8px 12px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.upload-btn:hover {
-  background-color: #5a6268;
-}
-
-.file-name {
-  font-size: 14px;
-  color: #555;
 }
 
 .parsing-actions {
