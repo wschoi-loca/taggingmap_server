@@ -282,7 +282,7 @@
             <img 
               :src="taggingMaps[0].image" 
               alt="태깅맵 이미지" 
-              @click="openImageModal" 
+              @click="openImageZoomModal" 
               class="clickable-image"
               v-if="taggingMaps.length > 0 && taggingMaps[0].image"
             />
@@ -1874,7 +1874,7 @@ export default {
         return requiredColumns.includes(columnName);
       },
       // 이미지 모달 열기
-      openImageModal() {
+      openImageZoomModal() {
         this.showImageModal = true;
         this.resetZoom();
         
