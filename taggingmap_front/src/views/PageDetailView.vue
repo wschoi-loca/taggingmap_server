@@ -1552,7 +1552,7 @@ export default {
           this.addParsedDataToTable(parsedData);
           
           // 성공 메시지
-          alert(`${parsedData.length}개의 데이터가 성공적으로 파싱되어 추가되었습니다.`);
+          //alert(`${parsedData.length}개의 데이터가 성공적으로 파싱되어 추가되었습니다.`);
           
           // 입력 초기화
           this.clearLogInput();
