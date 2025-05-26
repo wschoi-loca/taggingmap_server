@@ -1712,10 +1712,9 @@ button:hover {
   overflow-y: auto;
 }
 
+/* 모달 바디 기본 스타일 */
 .modal-body {
-  display: flex;
-  flex-direction: column;
-  gap: 30px;
+  padding: 25px; /* 패딩 증가 */
 }
 
 /* 스크린샷 영역 */
@@ -1936,10 +1935,6 @@ input[type="file"] {
   font-size: 24px; /* 폰트 크기 증가 */
 }
 
-.modal-body {
-  padding: 25px; /* 패딩 증가 */
-}
-
 .close-button {
   background: none;
   border: none;
@@ -1950,10 +1945,6 @@ input[type="file"] {
 
 .close-button:hover {
   color: #333;
-}
-
-.modal-body {
-  padding: 20px;
 }
 
 .modal-footer {
@@ -2231,6 +2222,38 @@ input[type="file"] {
     flex: 0 0 100%;
     max-width: 100%;
     margin-bottom: 20px;
+  }
+}
+
+/* 추가: 가로 레이아웃 스타일 강화 */
+.modal-body.horizontal-layout {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 20px !important;
+}
+
+.horizontal-layout .edit-image-section {
+  flex: 0 0 40% !important;
+  max-width: 40% !important;
+  margin-right: 20px !important;
+}
+
+.horizontal-layout .edit-data-section {
+  flex: 1 !important;
+  overflow: auto !important;
+}
+
+/* 모바일 반응형 강화 */
+@media (max-width: 768px) {
+  .modal-body.horizontal-layout {
+    flex-direction: column !important;
+  }
+  
+  .horizontal-layout .edit-image-section {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+    margin-right: 0 !important;
+    margin-bottom: 20px !important;
   }
 }
 </style>
