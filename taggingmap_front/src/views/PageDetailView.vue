@@ -288,8 +288,20 @@
           <table>
             <thead>
               <tr>
+                <th></th>
                 <th>SHOT_NUMBER</th>
-                <th v-for="column in sortedColumns" :key="column">{{ column }}</th>
+                <th v-for="column in editColumns" :key="column" class="column-header">
+                  {{ column }}
+                  <button 
+                    class="remove-column-btn" 
+                    @click="removeColumn(column)" 
+                    title="컬럼 삭제"
+                    v-if="!isRequiredColumn(column)"
+                  >×</button>
+                </th>
+                <th class="column-add-cell">
+                  <button class="add-column-btn" @click="addColumn" title="컬럼 추가">+</button>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -1617,11 +1629,6 @@ export default {
                   }
                 }
                 
-                // LABEL_TEXT가 없으면 기본값 설정
-                if (!row['LABEL_TEXT']) {
-                  row['LABEL_TEXT'] = '(라벨 없음)';
-                }
-                
                 rows.push(row);
               }
             }
@@ -1794,7 +1801,34 @@ export default {
       // 로그 입력 초기화
       clearLogInput() {
         this.logText = '';
-      }
+      },
+      // 컬럼 삭제
+      removeColumn(columnName) {
+        if (this.isRequiredColumn(columnName)) {
+          alert('필수 컬럼은 삭제할 수 없습니다.');
+          return;
+        }
+        
+        if (confirm(`'${columnName}' 컬럼을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`)) {
+          // editColumns 배열에서 컬럼 제거
+          const columnIndex = this.editColumns.indexOf(columnName);
+          if (columnIndex !== -1) {
+            this.editColumns.splice(columnIndex, 1);
+            
+            // 모든 행에서 해당 컬럼 속성 제거
+            this.editData.forEach(row => {
+              delete row[columnName];
+            });
+          }
+        }
+      },
+
+      // 필수 컬럼 체크
+      isRequiredColumn(columnName) {
+        // 삭제할 수 없는 필수 컬럼 목록
+        const requiredColumns = ['SHOT_NUMBER', 'EVENTNAME', 'TIME'];
+        return requiredColumns.includes(columnName);
+      },
   }
 }
 </script>
@@ -2690,5 +2724,41 @@ select {
   border-radius: 4px;
   border: 1px solid #ced4da;
   background-color: white;
+}
+
+.column-header {
+  position: relative;
+  padding-right: 30px; /* 삭제 버튼을 위한 공간 확보 */
+}
+
+.remove-column-btn {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+  line-height: 1;
+  opacity: 0.7;
+  visibility: hidden; /* 기본적으로 숨김 */
+}
+
+.column-header:hover .remove-column-btn {
+  visibility: visible; /* 헤더에 마우스 올릴 때만 표시 */
+}
+
+.remove-column-btn:hover {
+  opacity: 1;
+  background-color: #c82333;
 }
 </style>
