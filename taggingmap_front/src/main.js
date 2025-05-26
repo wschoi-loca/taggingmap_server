@@ -2,6 +2,7 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
 import store from './store'
+import '@fortawesome/fontawesome-free/css/all.css'
 
 // 앱 시작 전 인증 상태 확인
 async function initApp() {

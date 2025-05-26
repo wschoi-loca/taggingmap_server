@@ -276,14 +276,53 @@
       
       <!-- 데이터 표시 -->
       <div v-else class="content-section">
+        <!-- 이미지 섹션 -->
         <div class="image-section">
-          <!-- 원본 이미지 보기 버튼 추가 -->
-          <div class="section-header">
-            <button class="view-full-btn" @click="openImageModal">
-              원본 이미지 새 창에서 보기
-            </button>
+          <div class="image-container">
+            <img 
+              :src="taggingMaps[0].image" 
+              alt="태깅맵 이미지" 
+              @click="openImageModal" 
+              class="clickable-image"
+              v-if="taggingMaps.length > 0 && taggingMaps[0].image"
+            />
+            <div class="image-zoom-hint" v-if="taggingMaps.length > 0 && taggingMaps[0].image">
+              <i class="fas fa-search-plus"></i> 클릭하여 확대
+            </div>
+            <p v-else class="no-image">이미지가 없습니다</p>
           </div>
-          <img :src="taggingMaps[0].image" alt="Captured Image" />
+        </div>
+
+        <!-- 이미지 확대 모달 -->
+        <div class="modal-overlay" v-if="showImageModal" @click.self="closeImageModal">
+          <div class="image-modal">
+            <div class="modal-header">
+              <h3>이미지 확대</h3>
+              <button class="close-button" @click="closeImageModal">&times;</button>
+            </div>
+            <div class="modal-body">
+              <div class="image-zoom-container" ref="zoomContainer">
+                <img 
+                  :src="taggingMaps[0].image" 
+                  alt="태깅맵 이미지 확대" 
+                  ref="zoomImage"
+                  :style="{ transform: `scale(${zoomLevel})`, transformOrigin: 'top left' }"
+                />
+              </div>
+              <div class="zoom-controls">
+                <button @click="zoomOut" class="zoom-btn" :disabled="zoomLevel <= 0.5">
+                  <i class="fas fa-search-minus"></i>
+                </button>
+                <span class="zoom-level">{{ Math.round(zoomLevel * 100) }}%</span>
+                <button @click="zoomIn" class="zoom-btn" :disabled="zoomLevel >= 3">
+                  <i class="fas fa-search-plus"></i>
+                </button>
+                <button @click="resetZoom" class="zoom-btn reset">
+                  <i class="fas fa-sync-alt"></i>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
         
         <div class="data-section">
@@ -511,6 +550,14 @@ export default {
       // 로그 파싱 관련
       logFormat: 'android', // 기본값을 'android'로 변경
       logText: '',
+      // 이미지 확대 관련
+      showImageModal: false,
+      zoomLevel: 1,
+      initialZoomLevel: 1,
+      panPosition: { x: 0, y: 0 },
+      isDragging: false,
+      startDragPosition: { x: 0, y: 0 },
+      
     }
   },
   computed: {
@@ -1826,6 +1873,157 @@ export default {
         const requiredColumns = ['SHOT_NUMBER', 'EVENTNAME', 'TIME'];
         return requiredColumns.includes(columnName);
       },
+      // 이미지 모달 열기
+      openImageModal() {
+        this.showImageModal = true;
+        this.resetZoom();
+        
+        // 모달이 열린 후 키보드 이벤트 리스너 추가
+        this.$nextTick(() => {
+          document.addEventListener('keydown', this.handleKeyDown);
+          
+          // 드래그 기능 초기화
+          const zoomContainer = this.$refs.zoomContainer;
+          if (zoomContainer) {
+            zoomContainer.addEventListener('mousedown', this.startDrag);
+            zoomContainer.addEventListener('mousemove', this.drag);
+            zoomContainer.addEventListener('mouseup', this.endDrag);
+            zoomContainer.addEventListener('mouseleave', this.endDrag);
+            
+            // 모바일 터치 이벤트
+            zoomContainer.addEventListener('touchstart', this.startDrag);
+            zoomContainer.addEventListener('touchmove', this.drag);
+            zoomContainer.addEventListener('touchend', this.endDrag);
+          }
+        });
+      },
+      
+      // 이미지 모달 닫기
+      closeImageModal() {
+        this.showImageModal = false;
+        
+        // 이벤트 리스너 제거
+        document.removeEventListener('keydown', this.handleKeyDown);
+        
+        const zoomContainer = this.$refs.zoomContainer;
+        if (zoomContainer) {
+          zoomContainer.removeEventListener('mousedown', this.startDrag);
+          zoomContainer.removeEventListener('mousemove', this.drag);
+          zoomContainer.removeEventListener('mouseup', this.endDrag);
+          zoomContainer.removeEventListener('mouseleave', this.endDrag);
+          
+          zoomContainer.removeEventListener('touchstart', this.startDrag);
+          zoomContainer.removeEventListener('touchmove', this.drag);
+          zoomContainer.removeEventListener('touchend', this.endDrag);
+        }
+      },
+      
+      // 키보드 이벤트 처리
+      handleKeyDown(e) {
+        if (e.key === 'Escape') {
+          this.closeImageModal();
+        } else if (e.key === '+' || e.key === '=') {
+          this.zoomIn();
+        } else if (e.key === '-') {
+          this.zoomOut();
+        } else if (e.key === '0') {
+          this.resetZoom();
+        }
+      },
+      
+      // 확대
+      zoomIn() {
+        if (this.zoomLevel < 3) {
+          this.zoomLevel += 0.1;
+        }
+      },
+      
+      // 축소
+      zoomOut() {
+        if (this.zoomLevel > 0.5) {
+          this.zoomLevel -= 0.1;
+        }
+      },
+      
+      // 원래 크기로 복원
+      resetZoom() {
+        this.zoomLevel = 1;
+        
+        // 이미지 크기에 따라 초기 확대/축소 수준 결정
+        this.$nextTick(() => {
+          const zoomContainer = this.$refs.zoomContainer;
+          const zoomImage = this.$refs.zoomImage;
+          
+          if (zoomContainer && zoomImage) {
+            const containerWidth = zoomContainer.clientWidth;
+            const containerHeight = zoomContainer.clientHeight;
+            const imageWidth = zoomImage.naturalWidth;
+            const imageHeight = zoomImage.naturalHeight;
+            
+            // 이미지가 컨테이너보다 작을 경우, 적절한 확대 수준 설정
+            if (imageWidth < containerWidth * 0.8 && imageHeight < containerHeight * 0.8) {
+              // 컨테이너 크기의 80%를 채울 정도로 확대
+              const scaleX = (containerWidth * 0.8) / imageWidth;
+              const scaleY = (containerHeight * 0.8) / imageHeight;
+              this.initialZoomLevel = Math.min(scaleX, scaleY, 1.5); // 최대 1.5배까지만
+              this.zoomLevel = this.initialZoomLevel;
+            } else {
+              this.initialZoomLevel = 1;
+              this.zoomLevel = 1;
+            }
+          }
+        });
+        
+        // 패닝 위치 초기화
+        this.panPosition = { x: 0, y: 0 };
+        if (this.$refs.zoomImage) {
+          this.$refs.zoomImage.style.transform = `scale(${this.zoomLevel})`;
+          this.$refs.zoomImage.style.left = '0px';
+          this.$refs.zoomImage.style.top = '0px';
+        }
+      },
+      
+      // 드래그 시작
+      startDrag(e) {
+        e.preventDefault();
+        
+        this.isDragging = true;
+        
+        // 터치 이벤트와 마우스 이벤트 구분
+        const pageX = e.touches ? e.touches[0].pageX : e.pageX;
+        const pageY = e.touches ? e.touches[0].pageY : e.pageY;
+        
+        this.startDragPosition = {
+          x: pageX - this.panPosition.x,
+          y: pageY - this.panPosition.y
+        };
+      },
+      
+      // 드래그 중
+      drag(e) {
+        if (!this.isDragging) return;
+        
+        e.preventDefault();
+        
+        // 터치 이벤트와 마우스 이벤트 구분
+        const pageX = e.touches ? e.touches[0].pageX : e.pageX;
+        const pageY = e.touches ? e.touches[0].pageY : e.pageY;
+        
+        this.panPosition = {
+          x: pageX - this.startDragPosition.x,
+          y: pageY - this.startDragPosition.y
+        };
+        
+        if (this.$refs.zoomImage) {
+          this.$refs.zoomImage.style.left = `${this.panPosition.x}px`;
+          this.$refs.zoomImage.style.top = `${this.panPosition.y}px`;
+        }
+      },
+      
+      // 드래그 종료
+      endDrag() {
+        this.isDragging = false;
+      }    
   }
 }
 </script>
@@ -2757,5 +2955,139 @@ select {
 .remove-column-btn:hover {
   opacity: 1;
   background-color: #c82333;
+}
+
+/* 클릭 가능한 이미지 스타일 */
+.image-container {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.clickable-image {
+  cursor: zoom-in;
+  max-width: 100%;
+  height: auto;
+  display: block;
+  transition: transform 0.2s;
+}
+
+.clickable-image:hover {
+  transform: scale(1.02);
+}
+
+.image-zoom-hint {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background-color: rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+/* 이미지 확대 모달 스타일 */
+.image-modal {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 1400px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.image-zoom-container {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: 70vh;
+  background-color: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.image-zoom-container img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  position: relative;
+  transition: transform 0.1s ease-out;
+  cursor: grab;
+}
+
+.image-zoom-container img:active {
+  cursor: grabbing;
+}
+
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 15px;
+  gap: 10px;
+  background-color: #f8f9fa;
+  border-top: 1px solid #eee;
+}
+
+.zoom-btn {
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.zoom-btn:hover:not(:disabled) {
+  background-color: #e0e0e0;
+}
+
+.zoom-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.zoom-btn.reset {
+  background-color: #007bff;
+  color: white;
+  border: none;
+}
+
+.zoom-btn.reset:hover {
+  background-color: #0056b3;
+}
+
+.zoom-level {
+  font-size: 14px;
+  font-weight: bold;
+  min-width: 60px;
+  text-align: center;
+}
+
+/* 반응형 조정 */
+@media (max-width: 768px) {
+  .image-modal {
+    width: 95%;
+  }
+  
+  .image-zoom-container {
+    height: 60vh;
+  }
+  
+  .zoom-btn {
+    width: 36px;
+    height: 36px;
+  }
 }
 </style>

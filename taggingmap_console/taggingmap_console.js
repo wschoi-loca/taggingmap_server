@@ -323,13 +323,13 @@ function highlightGtmElements(eventType) {
 }
 
 function highlightGtmElementsOverlay(eventType) {
-
     var selector = getGtmSelector(eventType);
     var elements = document.querySelectorAll(selector);
 
     Array.prototype.forEach.call(elements, function(el, index) {
         var rect = el.getBoundingClientRect();
         var overlay = document.createElement('div');
+        overlay.setAttribute('data-gtm-overlay', 'true'); // 오버레이 요소 식별자 추가
         overlay.style.position = 'absolute';
         overlay.style.top = rect.top + 'px';
         overlay.style.left = rect.left + 'px';
@@ -381,7 +381,15 @@ function removeHighlightGtmElements() {
         }
     });
 
-    // Remove overlay if it exists
+    // Remove overlay elements
+    var overlays = document.querySelectorAll('[data-gtm-overlay]');
+    Array.prototype.forEach.call(overlays, function(overlay) {
+        if (overlay.parentNode) {
+            overlay.parentNode.removeChild(overlay);
+        }
+    });
+
+    // Remove overlay if it exists (기존 코드 유지)
     var overlay = document.getElementById('gtm-overlay');
     if (overlay) {
         document.body.removeChild(overlay);
