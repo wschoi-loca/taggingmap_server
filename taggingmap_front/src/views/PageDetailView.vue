@@ -2197,7 +2197,7 @@ input[type="file"] {
 
 .cell-input {
   width: 100%;
-  padding: 6px;
+  padding: 0px;
   border: 1px solid #ddd;
   border-radius: 4px;
   background-color: #f8f9fa;
