@@ -1041,12 +1041,6 @@ export default {
         }
       },
       
-      formatTime(isoTime) {
-        // ISO 시간을 사용자 친화적 형식으로 변환 (예: "2025-05-13 20:07:00")
-        const date = new Date(isoTime);
-        return date.toLocaleString();
-      },
-      
       // 모달 대신 새 창에서 이미지 보기
       openImageModal() {
         if (!this.taggingMaps || this.taggingMaps.length === 0) return;
