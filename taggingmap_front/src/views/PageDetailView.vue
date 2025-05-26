@@ -50,8 +50,8 @@
         <h3>태깅맵 수정</h3>
         <button class="close-button" @click="cancelEdit">&times;</button>
       </div>
-      <div class="modal-body">
-        <!-- 스크린샷 교체 영역 -->
+      <div class="modal-body horizontal-layout">
+        <!-- 스크린샷 교체 영역 (왼쪽) -->
         <div class="edit-image-section">
           <h4>스크린샷</h4>
           <div class="image-preview">
@@ -61,12 +61,13 @@
           <button class="change-image-btn" @click="triggerImageSelect">이미지 변경</button>
         </div>
         
-        <!-- 데이터 편집 영역 -->
+        <!-- 데이터 편집 영역 (오른쪽) -->
         <div class="edit-data-section">
           <h4>데이터 편집</h4>
           <div class="table-container">
             <!-- 테이블은 일반 테이블로 구현 -->
             <table class="edit-table">
+              <!-- 테이블 내용 (변경 없음) -->
               <thead>
                 <tr>
                   <th></th>
@@ -79,6 +80,7 @@
               </thead>
               <tbody>
                 <tr v-for="(row, index) in editData" :key="row.uniqueId || index">
+                  <!-- 행 내용 (변경 없음) -->
                   <td class="move-buttons-cell">
                     <button 
                       class="move-up-btn" 
@@ -1718,29 +1720,25 @@ button:hover {
 
 /* 스크린샷 영역 */
 .edit-image-section {
-  margin-bottom: 20px;
+  flex: 0 0 40%; /* 왼쪽 영역 너비 조정 (40%) */
+  max-width: 40%;
 }
 
 .edit-image-section h4 {
   margin-bottom: 15px;
   color: #333;
 }
-
+ 
 .image-preview {
   margin-bottom: 15px;
-  border: 1px solid #ddd;
-  padding: 10px;
-  text-align: center;
-  background-color: #f9f9f9;
-  border-radius: 4px;
-  max-height: 400px;
-  overflow: hidden;
 }
 
 .image-preview img {
   max-width: 100%;
-  max-height: 350px;
+  max-height: 400px;
   object-fit: contain;
+  border: 1px solid #ddd;
+  border-radius: 4px;
 }
 
 input[type="file"] {
@@ -1765,6 +1763,11 @@ input[type="file"] {
 .edit-data-section h4 {
   margin-bottom: 15px;
   color: #333;
+}
+
+.edit-data-section {
+  flex: 1; /* 남은 공간 모두 차지 */
+  overflow: auto;
 }
 
 .table-container {
@@ -2216,5 +2219,18 @@ input[type="file"] {
 .move-up-btn:disabled, .move-down-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* 모바일 반응형 처리 */
+@media (max-width: 768px) {
+  .horizontal-layout {
+    flex-direction: column;
+  }
+  
+  .edit-image-section {
+    flex: 0 0 100%;
+    max-width: 100%;
+    margin-bottom: 20px;
+  }
 }
 </style>
