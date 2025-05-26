@@ -317,7 +317,9 @@ class PathMappingService {
             "app>LPPAYCA_V300.lc": "MEMBERS>MobileWeb로그인>로그인",
             "app>LPCSTGA_V110.lc": "고객센터>분실신고해제>분실신고내역",
             "app>LPCSTHA_V110.lc": "고객센터>재발급신청>카드선택",
-            "로카페이>결제>바코드결제>바코드_인증후": "로카페이>결제>현장결제>바코드_인증후"
+            "로카페이>결제>바코드결제>바코드_인증후": "로카페이>결제>현장결제>바코드_인증후",
+            "front>lid>auth>sso>login" : "회원>로그인>로그인페이지",
+            "spa>local>gde-search" : "로컬>로카지도>검색",
         };
       this.loaded = true;
     }
