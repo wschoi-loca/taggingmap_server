@@ -77,7 +77,15 @@
                   </thead>
                   <tbody>
                     <tr v-for="(row, index) in editData" :key="index">
-                      <td>{{ row.SHOT_NUMBER }}</td>
+                      <td>
+                        <input 
+                          type="number" 
+                          v-model="row.SHOT_NUMBER" 
+                          class="cell-input shot-number-input"
+                          min="0"
+                          @input="validateShotNumber(index)"
+                        />
+                      </td>
                       <td v-for="column in editColumns" :key="`${index}-${column}`">
                         <input type="text" v-model="row[column]" class="cell-input" />
                       </td>
@@ -1335,10 +1343,27 @@ export default {
         }
       },
       
+      validateShotNumber(index) {
+        // 음수 방지
+        if (this.editData[index].SHOT_NUMBER < 0) {
+          this.editData[index].SHOT_NUMBER = 0;
+        }
+        // 중복 체크는 저장 시 일괄 처리
+      },
+
       // 변경사항 저장
       async saveChanges() {
         try {
           if (!this.taggingMaps || this.taggingMaps.length === 0) return;
+
+          // SHOT_NUMBER 중복 체크
+          const shotNumbers = this.editData.map(row => row.SHOT_NUMBER);
+          const hasDuplicates = shotNumbers.length !== new Set(shotNumbers).size;
+          if (hasDuplicates) {
+            alert('SHOT_NUMBER 값이 중복된 행이 있습니다. 모든 SHOT_NUMBER는 고유해야 합니다.');
+            this.isSaving = false;
+            return;
+          }
           
           this.isSaving = true;
           const taggingMapId = this.taggingMaps[0]._id;
