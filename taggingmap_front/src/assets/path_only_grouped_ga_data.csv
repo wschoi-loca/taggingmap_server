@@ -272,7 +272,7 @@ https://mweb2.lottecard.co.kr/app/LPMCDFM_V100.lc,MY>해외이용종합안내,ap
 https://mweb2.lottecard.co.kr/front/card/basic/credit/info/card-find-tab,카드안내>신용카드>안내>더많은카드검색,front>card>basic>credit>info>card-find-tab,23893
 https://locashop.lottecard.co.kr/order/sheet,띵샵>주문,order>sheet,23022
 https://mweb2.lottecard.co.kr/spa/my/recieve-statment-change,MY>명세서수령방법변경>명세서수령방법변경,spa>my>recieve-statment-change,22915
-https://selly.lottecard.co.kr/login,셀리>회원>로그인>로그인페이지,login,22768
+https://selly.lottecard.co.kr/login,회원>로그인>로그인페이지,login,22768
 https://mweb2.lottecard.co.kr/app/CertificationAuthActivity,로그인>인증서로그인>공동인증서선택,로그인>인증서로그인>공동인증서선택,22758
 https://mweb2.lottecard.co.kr/app/LPBNFBD_V600.lc,혜택>포인트사용_L.POINTCase>납부할결제대금입력,app>LPBNFBD_V600.lc,22416
 https://m.lottecard.co.kr/front/card/basic/credit/info/sub-main/,카드>카드안내>브랜드추천,front>card>basic>credit>info>sub-main,22142
@@ -346,7 +346,7 @@ https://locashop.lottecard.co.kr/display/brand,띵샵>전시>브랜드,display>b
 https://mweb2.lottecard.co.kr/app/BottomSheetNotiBoxApprovalDialog,로카알리미>알림함,메인>로카알리미>알림함,12440
 https://dars.lottecard.co.kr/spa/my/usage-limit-gate,DARS>MY>이용한도게이트페이지>이용한도게이트페이지,spa>my>usage-limit-gate,12401
 https://dars.lottecard.co.kr/app/LPMCDCB_V100.lc,DARS>MY>즉시결제,app>LPMCDCB_V100.lc,12333
-https://selly.lottecard.co.kr/front/main/,셀리>메인,front>main,12254
+https://selly.lottecard.co.kr/front/main/,메인,front>main,12254
 https://mweb2.lottecard.co.kr/spa/my/account-change-cert,MY>결제계좌조회/변경>결제계좌조회/변경공동인증,spa>my>account-change-cert,12127
 https://mweb2.lottecard.co.kr/app/LPPAYCA_V100.lc,정기결제>안심쇼핑>안심쇼핑_미가입,app>LPPAYCA_V100.lc,12078
 https://mweb2.lottecard.co.kr/app/LPCUFAA_V100.lc,생활편의>큐핏>큐핏,app>LPCUFAA_V100.lc,12049
