@@ -62,6 +62,7 @@
             </div>
             
             <!-- 데이터 편집 영역 -->
+            <!-- 데이터 편집 영역 -->
             <div class="edit-data-section">
               <h4>데이터 편집</h4>
               <div class="table-container">
@@ -84,7 +85,7 @@
                       @end="onRowDragEnd"
                       item-key="SHOT_NUMBER"
                     >
-                    <template v-slot:item="{element: row, index}">
+                      <template v-slot:item="{element: row, index}">
                         <tr>
                           <td>
                             <span class="row-drag-handle" style="cursor:grab;">&#9776;</span>
