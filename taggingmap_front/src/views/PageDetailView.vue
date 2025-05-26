@@ -64,7 +64,7 @@
         <!-- 데이터 편집 영역 (오른쪽) -->
         <div class="edit-data-section">
           <h4>데이터 편집</h4>
-          <!-- 로그 파싱 섹션 추가 -->
+          <!-- 로그 파싱 섹션 -->
           <div class="log-parsing-section">
             <h5>로그 파싱</h5>
             <div class="parsing-options">
@@ -85,9 +85,8 @@
               <div class="option-group">
                 <label>로그 형식</label>
                 <select v-model="logFormat">
-                  <option value="default">기본 형식 (key=value)</option>
-                  <option value="json">JSON</option>
-                  <option value="custom">사용자 정의</option>
+                  <option value="android">안드로이드</option>
+                  <option value="ios">iOS</option>
                 </select>
               </div>
             </div>
@@ -95,7 +94,7 @@
             <div v-if="parsingMethod === 'text'" class="log-input-area">
               <textarea 
                 v-model="logText" 
-                placeholder="여기에 로그를 붙여넣으세요. 예: NAME=홈화면 VALUE=Main SCREEN_ID=home"
+                placeholder="여기에 로그를 붙여넣으세요. 안드로이드 또는 iOS 로그 형식에 맞게 입력해주세요."
                 rows="5"
               ></textarea>
             </div>
@@ -522,13 +521,14 @@ export default {
       editData: [],
       // 로그 파싱 관련
       parsingMethod: 'text',
-      logFormat: 'default',
+      logFormat: 'android', // 기본값을 'android'로 변경
       logText: '',
       logFileName: '',
       logFileContent: '',
     }
   },
   computed: {
+  
     // 파싱 버튼 활성화 여부
     canParse() {
       if (this.parsingMethod === 'text') {
@@ -1535,7 +1535,7 @@ export default {
       triggerLogFileSelect() {
         this.$refs.logFileInput.click();
       },
-      
+
       // 로그 파일 변경 처리
       handleLogFileChange(event) {
         const file = event.target.files[0];
@@ -1562,16 +1562,10 @@ export default {
           let parsedData = [];
           
           // 로그 형식에 따라 파싱
-          switch (this.logFormat) {
-            case 'json':
-              parsedData = this.parseJsonLog(logContent);
-              break;
-            case 'custom':
-              parsedData = this.parseCustomLog(logContent);
-              break;
-            default:
-              parsedData = this.parseDefaultLog(logContent);
-              break;
+          if (this.logFormat === 'android') {
+            parsedData = this.parseAndroidLog(logContent);
+          } else if (this.logFormat === 'ios') {
+            parsedData = this.parseIOSLog(logContent);
           }
           
           if (parsedData.length === 0) {
@@ -1590,99 +1584,231 @@ export default {
           
         } catch (error) {
           console.error('로그 파싱 중 오류 발생:', error);
-          alert('로그 파싱 중 오류가 발생했습니다. 로그 형식을 확인해주세요.');
+          alert(`로그 파싱 중 오류가 발생했습니다: ${error.message}`);
         }
       },
       
-      // 기본 형식 로그 파싱 (key=value)
-      parseDefaultLog(logContent) {
-        const lines = logContent.split('\n').filter(line => line.trim() !== '');
+      // 안드로이드 로그 파싱
+      parseAndroidLog(logText) {
+        const rows = [];
+        const lines = logText.split('\n').filter(line => line.trim());
         
-        return lines.map((line, index) => {
-          const pairs = line.split(/\s+/).filter(pair => pair.includes('='));
-          const row = { uniqueId: this.nextUniqueId++, SHOT_NUMBER: this.editData.length + index };
-          
-          pairs.forEach(pair => {
-            const [key, ...values] = pair.split('=');
-            const value = values.join('='); // '=' 문자가 값에 포함될 수 있으므로
+        // logcat 로그에서 JSON 데이터 추출
+        for (const line of lines) {
+          try {
+            // 로그에서 JSON 문자열 부분 추출
+            const jsonStartIndex = line.indexOf('{"log_body"');
+            if (jsonStartIndex === -1) continue;
             
-            if (key && value !== undefined) {
-              // 컬럼이 존재하지 않으면 추가
-              if (!this.editColumns.includes(key) && key !== 'SHOT_NUMBER') {
-                this.editColumns.push(key);
-              }
-              row[key] = value;
-            }
-          });
-          
-          return row;
-        });
-      },
-      
-      // JSON 형식 로그 파싱
-      parseJsonLog(logContent) {
-        try {
-          let jsonData = JSON.parse(logContent);
-          
-          // 배열이 아니면 배열로 변환
-          if (!Array.isArray(jsonData)) {
-            jsonData = [jsonData];
-          }
-          
-          return jsonData.map((item, index) => {
-            const row = { uniqueId: this.nextUniqueId++, SHOT_NUMBER: this.editData.length + index };
+            const jsonStr = line.substring(jsonStartIndex);
+            const logData = JSON.parse(jsonStr);
             
-            Object.entries(item).forEach(([key, value]) => {
-              // 중첩된 객체는 JSON 문자열로 변환
-              if (typeof value === 'object' && value !== null) {
-                value = JSON.stringify(value);
+            if (!logData.log_body || !logData.log_body.length) continue;
+            
+            for (const event of logData.log_body) {
+              // 기본 데이터 준비
+              let pagetitle = "";
+              let url = "";
+              
+              if (logData.dt) {
+                pagetitle = logData.dt;
+              } else if (logData.screen_name) {
+                pagetitle = logData.screen_name;
               }
               
-              // 컬럼이 존재하지 않으면 추가
-              if (!this.editColumns.includes(key) && key !== 'SHOT_NUMBER') {
-                this.editColumns.push(key);
+              if (logData.dl) {
+                url = logData.dl;
               }
-              row[key] = String(value);
-            });
+              
+              const time = logData.timestamp || new Date().toISOString();
+              
+              // 행 데이터 생성
+              if (event.eventParams) {
+                const row = {
+                  uniqueId: this.nextUniqueId++,
+                  SHOT_NUMBER: this.editData.length + rows.length,
+                  EVENTNAME: event.en || '',
+                  PAGEPATH: url,
+                  PAGETITLE: pagetitle,
+                  TIME: this.formatTime(time),
+                  SOURCE: 'AUTO'  // 자동 파싱이므로 AUTO 표시
+                };
+                
+                // 추가 파라미터 처리
+                this.processEventParams(row, event.eventParams);
+                
+                // 상품 정보 처리
+                if (event.eventParams.items && Array.isArray(event.eventParams.items)) {
+                  for (const item of event.eventParams.items) {
+                    if (item.item_id) row.ITEM_ID = item.item_id;
+                    if (item.item_name) row.ITEM_NAME = item.item_name;
+                    if (item.price) row.PRICE = item.price;
+                    if (item.coupon) row.COUPON_YN = item.coupon;
+                    if (item.discount) row.DISCOUNT = item.discount;
+                    if (item.item_brand) row.ITEM_BRAND = item.item_brand;
+                  }
+                }
+                
+                // LABEL_TEXT가 없으면 기본값 설정
+                if (!row['LABEL_TEXT']) {
+                  row['LABEL_TEXT'] = '(라벨 없음)';
+                }
+                
+                rows.push(row);
+              }
+            }
+          } catch (error) {
+            console.error('안드로이드 로그 파싱 중 오류:', error, line);
+            // 오류가 있는 라인은 건너뛰고 다음 라인 파싱 계속
+          }
+        }
+        
+        return rows;
+      },
+      
+      // iOS 로그 파싱
+      parseIOSLog(logText) {
+        const rows = [];
+        
+        try {
+          // iOS 로그는 일반적으로 JSON 형식이므로 바로 파싱
+          const jsonObjects = this.extractJsonObjects(logText);
+          
+          for (const logData of jsonObjects) {
+            if (!logData.log_body || !logData.log_body.length) continue;
             
-            return row;
-          });
+            for (const event of logData.log_body) {
+              // 기본 데이터 준비
+              let pagetitle = "";
+              let url = "";
+              
+              if (logData.dt) {
+                pagetitle = logData.dt;
+              } else if (logData.screen_name) {
+                pagetitle = logData.screen_name;
+              }
+              
+              if (logData.dl) {
+                url = logData.dl;
+              }
+              
+              const time = logData.timestamp || new Date().toISOString();
+              
+              // 행 데이터 생성
+              if (event.eventParams) {
+                const row = {
+                  uniqueId: this.nextUniqueId++,
+                  SHOT_NUMBER: this.editData.length + rows.length,
+                  EVENTNAME: event.en || '',
+                  PAGEPATH: url,
+                  PAGETITLE: pagetitle,
+                  TIME: this.formatTime(time),
+                  SOURCE: 'AUTO'  // 자동 파싱이므로 AUTO 표시
+                };
+                
+                // 추가 파라미터 처리
+                this.processEventParams(row, event.eventParams);
+                
+                // 상품 정보 처리
+                if (event.eventParams.items && Array.isArray(event.eventParams.items)) {
+                  for (const item of event.eventParams.items) {
+                    if (item.item_id) row.ITEM_ID = item.item_id;
+                    if (item.item_name) row.ITEM_NAME = item.item_name;
+                    if (item.price) row.PRICE = item.price;
+                    if (item.coupon) row.COUPON_YN = item.coupon;
+                    if (item.discount) row.DISCOUNT = item.discount;
+                    if (item.item_brand) row.ITEM_BRAND = item.item_brand;
+                  }
+                }
+                
+                // LABEL_TEXT가 없으면 기본값 설정
+                if (!row['LABEL_TEXT']) {
+                  row['LABEL_TEXT'] = '(라벨 없음)';
+                }
+                
+                rows.push(row);
+              }
+            }
+          }
         } catch (error) {
-          console.error('JSON 파싱 오류:', error);
-          throw new Error('JSON 형식이 올바르지 않습니다.');
+          console.error('iOS 로그 파싱 중 오류:', error);
+          throw new Error(`iOS 로그 파싱 실패: ${error.message}`);
+        }
+        
+        return rows;
+      },
+
+      // 시간 형식 변환
+      formatTime(timeStr) {
+        try {
+          const date = new Date(timeStr);
+          return date.toLocaleString('ko-KR', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+          });
+        } catch (e) {
+          return timeStr; // 변환 실패 시 원본 반환
+        }
+      },
+  
+        // 이벤트 파라미터 처리
+      processEventParams(targetRow, eventParams) {
+        // 객체 형태의 eventParams 처리
+        if (eventParams && typeof eventParams === 'object' && !Array.isArray(eventParams)) {
+          for (const [key, value] of Object.entries(eventParams)) {
+            // items 배열은 별도 처리
+            if (key === 'items') continue;
+            
+            // 중첩된 객체는 JSON 문자열로 변환
+            if (typeof value === 'object' && value !== null) {
+              targetRow[key.toUpperCase()] = JSON.stringify(value);
+            } else {
+              targetRow[key.toUpperCase()] = String(value);
+            }
+          }
         }
       },
       
-      // 사용자 정의 형식 로그 파싱 (간단 구현)
-      parseCustomLog(logContent) {
-        // 기본 구현은 쉼표로 구분된 값으로 가정
-        const lines = logContent.split('\n').filter(line => line.trim() !== '');
-        
-        // 첫 번째 줄을 헤더로 사용
-        const headers = lines[0].split(',').map(h => h.trim());
-        
-        return lines.slice(1).map((line, index) => {
-          const values = line.split(',').map(v => v.trim());
-          const row = { uniqueId: this.nextUniqueId++, SHOT_NUMBER: this.editData.length + index };
+       // JSON 객체 추출
+      extractJsonObjects(text) {
+        const jsonObjects = [];
+        try {
+          // 전체 텍스트가 단일 JSON인 경우
+          const fullJson = JSON.parse(text);
+          if (fullJson) {
+            jsonObjects.push(fullJson);
+            return jsonObjects;
+          }
+        } catch (e) {
+          // 단일 JSON이 아니면 여러 JSON 객체를 찾기
+          const jsonRegex = /\{(?:[^{}]|(?:\{(?:[^{}]|(?:\{[^{}]*\}))*\}))*\}/g;
+          const matches = text.match(jsonRegex);
           
-          headers.forEach((header, i) => {
-            if (header && header !== 'SHOT_NUMBER') {
-              // 컬럼이 존재하지 않으면 추가
-              if (!this.editColumns.includes(header)) {
-                this.editColumns.push(header);
+          if (matches) {
+            for (const match of matches) {
+              try {
+                const json = JSON.parse(match);
+                if (json && json.log_body) {
+                  jsonObjects.push(json);
+                }
+              } catch (e) {
+                // 파싱 실패한 JSON은 무시
               }
-              row[header] = values[i] || '';
             }
-          });
-          
-          return row;
-        });
+          }
+        }
+        return jsonObjects;
       },
-      
+
       // 파싱된 데이터를 테이블에 추가
-      addParsedDataToTable(parsedData) {
+      addParsedDataToTable(parsedRows) {
         // 컬럼 추가 (기존에 없는 컬럼)
-        parsedData.forEach(row => {
+        parsedRows.forEach(row => {
           Object.keys(row).forEach(key => {
             if (key !== 'uniqueId' && key !== 'SHOT_NUMBER' && !this.editColumns.includes(key)) {
               this.editColumns.push(key);
@@ -1691,7 +1817,7 @@ export default {
         });
         
         // 모든 행의 데이터 추가
-        this.editData.push(...parsedData);
+        this.editData.push(...parsedRows);
         
         // SHOT_NUMBER 재조정
         this.updateShotNumbers();
