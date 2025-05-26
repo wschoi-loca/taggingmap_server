@@ -64,6 +64,59 @@
         <!-- 데이터 편집 영역 (오른쪽) -->
         <div class="edit-data-section">
           <h4>데이터 편집</h4>
+          <!-- 로그 파싱 섹션 추가 -->
+          <div class="log-parsing-section">
+            <h5>로그 파싱</h5>
+            <div class="parsing-options">
+              <div class="option-group">
+                <label>입력 방식</label>
+                <div class="radio-group">
+                  <label class="radio-label">
+                    <input type="radio" v-model="parsingMethod" value="text" checked>
+                    직접 입력
+                  </label>
+                  <label class="radio-label">
+                    <input type="radio" v-model="parsingMethod" value="file">
+                    파일 업로드
+                  </label>
+                </div>
+              </div>
+              
+              <div class="option-group">
+                <label>로그 형식</label>
+                <select v-model="logFormat">
+                  <option value="default">기본 형식 (key=value)</option>
+                  <option value="json">JSON</option>
+                  <option value="custom">사용자 정의</option>
+                </select>
+              </div>
+            </div>
+            
+            <div v-if="parsingMethod === 'text'" class="log-input-area">
+              <textarea 
+                v-model="logText" 
+                placeholder="여기에 로그를 붙여넣으세요. 예: NAME=홈화면 VALUE=Main SCREEN_ID=home"
+                rows="5"
+              ></textarea>
+            </div>
+            
+            <div v-else class="log-file-upload">
+              <input type="file" ref="logFileInput" @change="handleLogFileChange" accept=".txt,.log,.json">
+              <button class="upload-btn" @click="triggerLogFileSelect">파일 선택</button>
+              <span v-if="logFileName" class="file-name">{{ logFileName }}</span>
+            </div>
+            
+            <div class="parsing-actions">
+              <button class="parse-btn" @click="parseLog" :disabled="!canParse">
+                파싱하여 데이터 추가
+              </button>
+              <button class="clear-btn" @click="clearLogInput">
+                입력 지우기
+              </button>
+            </div>
+          </div>
+          
+          <div class="divider"></div>
           <div class="table-container">
             <!-- 테이블은 일반 테이블로 구현 -->
             <table class="edit-table">
@@ -466,10 +519,24 @@ export default {
       editImage: null,
       editImageFile: null,
       editColumns: [],
-      editData: []
+      editData: [],
+      // 로그 파싱 관련
+      parsingMethod: 'text',
+      logFormat: 'default',
+      logText: '',
+      logFileName: '',
+      logFileContent: '',
     }
   },
   computed: {
+    // 파싱 버튼 활성화 여부
+    canParse() {
+      if (this.parsingMethod === 'text') {
+        return this.logText.trim() !== '';
+      } else {
+        return this.logFileContent !== '';
+      }
+    },
     
     // URL 경로에서 PAGETITLE 형식 계산 (기존 코드)
     pagetitle() {
@@ -1463,6 +1530,179 @@ export default {
           row.SHOT_NUMBER = idx;
         });
       },
+
+      // 로그 파일 선택 트리거
+      triggerLogFileSelect() {
+        this.$refs.logFileInput.click();
+      },
+      
+      // 로그 파일 변경 처리
+      handleLogFileChange(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        this.logFileName = file.name;
+        
+        const reader = new FileReader();
+        reader.onload = e => {
+          this.logFileContent = e.target.result;
+        };
+        reader.readAsText(file);
+      },
+      
+      // 로그 파싱
+      parseLog() {
+        try {
+          const logContent = this.parsingMethod === 'text' ? this.logText : this.logFileContent;
+          if (!logContent.trim()) {
+            alert('파싱할 로그 내용이 없습니다.');
+            return;
+          }
+          
+          let parsedData = [];
+          
+          // 로그 형식에 따라 파싱
+          switch (this.logFormat) {
+            case 'json':
+              parsedData = this.parseJsonLog(logContent);
+              break;
+            case 'custom':
+              parsedData = this.parseCustomLog(logContent);
+              break;
+            default:
+              parsedData = this.parseDefaultLog(logContent);
+              break;
+          }
+          
+          if (parsedData.length === 0) {
+            alert('파싱할 데이터가 없거나 형식이 올바르지 않습니다.');
+            return;
+          }
+          
+          // 파싱된 데이터 추가
+          this.addParsedDataToTable(parsedData);
+          
+          // 성공 메시지
+          alert(`${parsedData.length}개의 데이터가 성공적으로 파싱되어 추가되었습니다.`);
+          
+          // 입력 초기화
+          this.clearLogInput();
+          
+        } catch (error) {
+          console.error('로그 파싱 중 오류 발생:', error);
+          alert('로그 파싱 중 오류가 발생했습니다. 로그 형식을 확인해주세요.');
+        }
+      },
+      
+      // 기본 형식 로그 파싱 (key=value)
+      parseDefaultLog(logContent) {
+        const lines = logContent.split('\n').filter(line => line.trim() !== '');
+        
+        return lines.map((line, index) => {
+          const pairs = line.split(/\s+/).filter(pair => pair.includes('='));
+          const row = { uniqueId: this.nextUniqueId++, SHOT_NUMBER: this.editData.length + index };
+          
+          pairs.forEach(pair => {
+            const [key, ...values] = pair.split('=');
+            const value = values.join('='); // '=' 문자가 값에 포함될 수 있으므로
+            
+            if (key && value !== undefined) {
+              // 컬럼이 존재하지 않으면 추가
+              if (!this.editColumns.includes(key) && key !== 'SHOT_NUMBER') {
+                this.editColumns.push(key);
+              }
+              row[key] = value;
+            }
+          });
+          
+          return row;
+        });
+      },
+      
+      // JSON 형식 로그 파싱
+      parseJsonLog(logContent) {
+        try {
+          let jsonData = JSON.parse(logContent);
+          
+          // 배열이 아니면 배열로 변환
+          if (!Array.isArray(jsonData)) {
+            jsonData = [jsonData];
+          }
+          
+          return jsonData.map((item, index) => {
+            const row = { uniqueId: this.nextUniqueId++, SHOT_NUMBER: this.editData.length + index };
+            
+            Object.entries(item).forEach(([key, value]) => {
+              // 중첩된 객체는 JSON 문자열로 변환
+              if (typeof value === 'object' && value !== null) {
+                value = JSON.stringify(value);
+              }
+              
+              // 컬럼이 존재하지 않으면 추가
+              if (!this.editColumns.includes(key) && key !== 'SHOT_NUMBER') {
+                this.editColumns.push(key);
+              }
+              row[key] = String(value);
+            });
+            
+            return row;
+          });
+        } catch (error) {
+          console.error('JSON 파싱 오류:', error);
+          throw new Error('JSON 형식이 올바르지 않습니다.');
+        }
+      },
+      
+      // 사용자 정의 형식 로그 파싱 (간단 구현)
+      parseCustomLog(logContent) {
+        // 기본 구현은 쉼표로 구분된 값으로 가정
+        const lines = logContent.split('\n').filter(line => line.trim() !== '');
+        
+        // 첫 번째 줄을 헤더로 사용
+        const headers = lines[0].split(',').map(h => h.trim());
+        
+        return lines.slice(1).map((line, index) => {
+          const values = line.split(',').map(v => v.trim());
+          const row = { uniqueId: this.nextUniqueId++, SHOT_NUMBER: this.editData.length + index };
+          
+          headers.forEach((header, i) => {
+            if (header && header !== 'SHOT_NUMBER') {
+              // 컬럼이 존재하지 않으면 추가
+              if (!this.editColumns.includes(header)) {
+                this.editColumns.push(header);
+              }
+              row[header] = values[i] || '';
+            }
+          });
+          
+          return row;
+        });
+      },
+      
+      // 파싱된 데이터를 테이블에 추가
+      addParsedDataToTable(parsedData) {
+        // 컬럼 추가 (기존에 없는 컬럼)
+        parsedData.forEach(row => {
+          Object.keys(row).forEach(key => {
+            if (key !== 'uniqueId' && key !== 'SHOT_NUMBER' && !this.editColumns.includes(key)) {
+              this.editColumns.push(key);
+            }
+          });
+        });
+        
+        // 모든 행의 데이터 추가
+        this.editData.push(...parsedData);
+        
+        // SHOT_NUMBER 재조정
+        this.updateShotNumbers();
+      },
+      
+      // 로그 입력 초기화
+      clearLogInput() {
+        this.logText = '';
+        this.logFileName = '';
+        this.logFileContent = '';
+      }
   }
 }
 </script>
@@ -2261,5 +2501,144 @@ input[type="file"] {
     margin-right: 0 !important;
     margin-bottom: 20px !important;
   }
+}
+
+/* 로그 파싱 섹션 스타일 */
+.log-parsing-section {
+  background-color: #f9f9f9;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+}
+
+.log-parsing-section h5 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #333;
+  font-size: 16px;
+}
+
+.parsing-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-bottom: 15px;
+}
+
+.option-group {
+  flex: 1;
+  min-width: 200px;
+}
+
+.option-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.radio-group {
+  display: flex;
+  gap: 15px;
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+
+.log-input-area textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 14px;
+  resize: vertical;
+}
+
+.log-file-upload {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.log-file-upload input[type="file"] {
+  display: none;
+}
+
+.upload-btn {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.upload-btn:hover {
+  background-color: #5a6268;
+}
+
+.file-name {
+  font-size: 14px;
+  color: #555;
+}
+
+.parsing-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.parse-btn {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.parse-btn:hover:not(:disabled) {
+  background-color: #0056b3;
+}
+
+.parse-btn:disabled {
+  background-color: #b3d7ff;
+  cursor: not-allowed;
+}
+
+.clear-btn {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.clear-btn:hover {
+  background-color: #5a6268;
+}
+
+.divider {
+  height: 1px;
+  background-color: #e0e0e0;
+  margin: 20px 0;
+}
+
+select {
+  width: 100%;
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #ced4da;
+  background-color: white;
 }
 </style>
