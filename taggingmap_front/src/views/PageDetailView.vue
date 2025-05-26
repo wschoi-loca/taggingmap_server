@@ -69,20 +69,6 @@
             <h5>로그 파싱</h5>
             <div class="parsing-options">
               <div class="option-group">
-                <label>입력 방식</label>
-                <div class="radio-group">
-                  <label class="radio-label">
-                    <input type="radio" v-model="parsingMethod" value="text" checked>
-                    직접 입력
-                  </label>
-                  <label class="radio-label">
-                    <input type="radio" v-model="parsingMethod" value="file">
-                    파일 업로드
-                  </label>
-                </div>
-              </div>
-              
-              <div class="option-group">
                 <label>로그 형식</label>
                 <select v-model="logFormat">
                   <option value="android">안드로이드</option>
@@ -91,18 +77,12 @@
               </div>
             </div>
             
-            <div v-if="parsingMethod === 'text'" class="log-input-area">
+            <div class="log-input-area">
               <textarea 
                 v-model="logText" 
                 placeholder="여기에 로그를 붙여넣으세요. 안드로이드 또는 iOS 로그 형식에 맞게 입력해주세요."
                 rows="5"
               ></textarea>
-            </div>
-            
-            <div v-else class="log-file-upload">
-              <input type="file" ref="logFileInput" @change="handleLogFileChange" accept=".txt,.log,.json">
-              <button class="upload-btn" @click="triggerLogFileSelect">파일 선택</button>
-              <span v-if="logFileName" class="file-name">{{ logFileName }}</span>
             </div>
             
             <div class="parsing-actions">
@@ -114,8 +94,9 @@
               </button>
             </div>
           </div>
-          
+
           <div class="divider"></div>
+          
           <div class="table-container">
             <!-- 테이블은 일반 테이블로 구현 -->
             <table class="edit-table">
