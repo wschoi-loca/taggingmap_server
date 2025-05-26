@@ -105,7 +105,15 @@
                 <tr>
                   <th></th>
                   <th>SHOT_NUMBER</th>
-                  <th v-for="column in editColumns" :key="column">{{ column }}</th>
+                  <th v-for="column in editColumns" :key="column" class="column-header">
+                    {{ column }}
+                    <button 
+                      class="remove-column-btn" 
+                      @click="removeColumn(column)" 
+                      title="컬럼 삭제"
+                      v-if="!isRequiredColumn(column)"
+                    >×</button>
+                  </th>
                   <th class="column-add-cell">
                     <button class="add-column-btn" @click="addColumn" title="컬럼 추가">+</button>
                   </th>
@@ -288,20 +296,8 @@
           <table>
             <thead>
               <tr>
-                <th></th>
                 <th>SHOT_NUMBER</th>
-                <th v-for="column in editColumns" :key="column" class="column-header">
-                  {{ column }}
-                  <button 
-                    class="remove-column-btn" 
-                    @click="removeColumn(column)" 
-                    title="컬럼 삭제"
-                    v-if="!isRequiredColumn(column)"
-                  >×</button>
-                </th>
-                <th class="column-add-cell">
-                  <button class="add-column-btn" @click="addColumn" title="컬럼 추가">+</button>
-                </th>
+                <th v-for="column in sortedColumns" :key="column">{{ column }}</th>
               </tr>
             </thead>
             <tbody>
@@ -1802,6 +1798,7 @@ export default {
       clearLogInput() {
         this.logText = '';
       },
+
       // 컬럼 삭제
       removeColumn(columnName) {
         if (this.isRequiredColumn(columnName)) {
@@ -2197,7 +2194,7 @@ input[type="file"] {
 
 .cell-input {
   width: 100%;
-  padding: 0px;
+  padding: 0.5px;
   border: 1px solid #ddd;
   border-radius: 4px;
   background-color: #f8f9fa;
