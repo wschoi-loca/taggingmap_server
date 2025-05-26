@@ -1436,8 +1436,27 @@ export default {
           this.isSaving = false;
         }
       },
-      onRowDragEnd() {
-        // 드래그 후 SHOT_NUMBER 자동 재정렬
+      // 행 이동
+      moveRow(index, direction) {
+        if (direction === 'up' && index > 0) {
+          // 위로 이동
+          const temp = this.editData[index];
+          this.editData.splice(index, 1);
+          this.editData.splice(index - 1, 0, temp);
+          // SHOT_NUMBER 업데이트
+          this.updateShotNumbers();
+        } else if (direction === 'down' && index < this.editData.length - 1) {
+          // 아래로 이동
+          const temp = this.editData[index];
+          this.editData.splice(index, 1);
+          this.editData.splice(index + 1, 0, temp);
+          // SHOT_NUMBER 업데이트
+          this.updateShotNumbers();
+        }
+      },
+      
+      // SHOT_NUMBER 업데이트
+      updateShotNumbers() {
         this.editData.forEach((row, idx) => {
           row.SHOT_NUMBER = idx;
         });
