@@ -27,7 +27,7 @@
     "vue-cli-service": "^5.0.0",
     "vue-google-oauth2": "^1.5.10",
     "vue3-google-oauth2": "^1.0.7",
-    "vuedraggable": "^2.24.3",
+    "vuedraggable": "^4.1.0",
     "vuex": "^4.1.0"
   },
   "engines": {

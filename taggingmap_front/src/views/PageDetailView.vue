@@ -303,7 +303,7 @@
 import axios from 'axios';
 // PageDetailView.vue의 data와 created, computed 섹션 수정
 import PathMappingService from '@/services/PathMappingService';
-import draggable from 'vuedraggable';
+import { VueDraggableNext } from 'vuedraggable';
 
 export default {
   name: 'PageDetailView',
@@ -312,7 +312,7 @@ export default {
     pathMatch: Array
   },
   components: {
-    draggable,
+    draggable: VueDraggableNext ,
   },
   data() {
     return {
