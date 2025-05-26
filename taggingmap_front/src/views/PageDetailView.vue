@@ -241,7 +241,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="data in taggingMaps[0].eventParams" :key="data.SHOT_NUMBER">
+              <tr v-for="data in sortedEventParams" :key="data.SHOT_NUMBER">
                 <td>{{ data.SHOT_NUMBER }}</td>
                 <td v-for="column in sortedColumns" :key="`${data.SHOT_NUMBER}-${column}`">
                   {{ data[column] || '-' }}
@@ -555,7 +555,15 @@ export default {
         }
       }
       return filters;
-    }
+    },
+
+    sortedEventParams() {
+      if (!this.taggingMaps || this.taggingMaps.length === 0 || !this.taggingMaps[0].eventParams) return [];
+      // SHOT_NUMBER 기준 오름차순 정렬
+      return [...this.taggingMaps[0].eventParams].sort(
+        (a, b) => Number(a.SHOT_NUMBER) - Number(b.SHOT_NUMBER)
+      );
+    },
   },
   async created() {
     try {
