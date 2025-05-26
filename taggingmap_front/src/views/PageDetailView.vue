@@ -82,10 +82,9 @@
                       :animation="150"
                       handle=".row-drag-handle"
                       @end="onRowDragEnd"
-                      tag="tr"
                       item-key="SHOT_NUMBER"
                     >
-                      <template #item="{element: row, index}">
+                    <template v-slot:item="{element: row, index}">
                         <tr>
                           <td>
                             <span class="row-drag-handle" style="cursor:grab;">&#9776;</span>
@@ -308,7 +307,7 @@
 import axios from 'axios';
 // PageDetailView.vue의 data와 created, computed 섹션 수정
 import PathMappingService from '@/services/PathMappingService';
-import { VueDraggableNext } from 'vuedraggable';
+import draggable from 'vuedraggable';
 
 export default {
   name: 'PageDetailView',
@@ -317,7 +316,7 @@ export default {
     pathMatch: Array
   },
   components: {
-    draggable: VueDraggableNext ,
+  draggable
   },
   data() {
     return {
