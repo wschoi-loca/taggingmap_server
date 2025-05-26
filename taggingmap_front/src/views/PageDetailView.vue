@@ -68,7 +68,6 @@
                 <table class="edit-table">
                   <thead>
                     <tr>
-                      <th></th>
                       <th>SHOT_NUMBER</th>
                       <th v-for="column in editColumns" :key="column">{{ column }}</th>
                       <th class="column-add-cell">
