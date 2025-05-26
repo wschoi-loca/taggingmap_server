@@ -1078,6 +1078,13 @@ function 태깅맵_DB노출() {
         highlightGtmElements("visibility");
         var jsonData = extractGtmData("visibility", 'rdp');
         
+        // eventParams가 비어있는지 확인
+        if (jsonData.length === 0) {
+            console.warn("추출된 이벤트 파라미터가 없어 DB에 저장하지 않습니다.");
+            alert("추출된 태깅 요소가 없어 DB에 저장하지 않습니다.");
+            return; // 함수 종료
+        }
+        
         html2canvas(document.querySelector(captureAreaId), {
             backgroundColor: null,
             useCORS: true,
@@ -1101,6 +1108,13 @@ function 태깅맵_DB클릭() {
         var timestamp = getCurrentTimestamp();
         highlightGtmElements("click");
         var jsonData = extractGtmData("click", 'rdp');
+        
+        // eventParams가 비어있는지 확인
+        if (jsonData.length === 0) {
+            console.warn("추출된 이벤트 파라미터가 없어 DB에 저장하지 않습니다.");
+            alert("추출된 태깅 요소가 없어 DB에 저장하지 않습니다.");
+            return; // 함수 종료
+        }
         
         html2canvas(document.querySelector(captureAreaId), {
             backgroundColor: null,
@@ -1209,4 +1223,66 @@ function 태깅맵_GA클릭_오버레이() {
             }, 'image/png');
         });
     }).catch(error => console.error('Error in 태깅맵_GA클릭_오버레이:', error));
+}
+
+function 태깅맵_DB노출_오버레이() {
+    태깅맵_지우기();
+    ensureLibrariesLoaded().then(function() {
+        var timestamp = getCurrentTimestamp();
+        highlightGtmElementsOverlay("visibility");
+        var jsonData = extractGtmData("visibility", 'rdp');
+        
+        // eventParams가 비어있는지 확인
+        if (jsonData.length === 0) {
+            console.warn("추출된 이벤트 파라미터가 없어 DB에 저장하지 않습니다.");
+            alert("추출된 태깅 요소가 없어 DB에 저장하지 않습니다.");
+            return; // 함수 종료
+        }
+        
+        html2canvas(document.querySelector(captureAreaId), {
+            backgroundColor: null,
+            useCORS: true,
+            allowTaint: true,
+            ignoreElements: function(element) { 
+                return element.classList && element.classList.contains('gnb-wrapper'); 
+            }
+        }).then(function(canvas) {
+            canvas.toBlob(function(blob) {
+                // 로컬 다운로드 및 서버 업로드
+                downloadBlob(blob, timestamp + '_visibility_' + transformHref(document.location.href) + '.png');
+                uploadDataDirectToServer(jsonData, blob, 'visibility', timestamp);
+            }, 'image/png');
+        });
+    }).catch(error => console.error('Error in 태깅맵_DB노출_오버레이:', error));
+}
+
+function 태깅맵_DB클릭_오버레이() {
+    태깅맵_지우기();
+    ensureLibrariesLoaded().then(function() {
+        var timestamp = getCurrentTimestamp();
+        highlightGtmElementsOverlay("click");
+        var jsonData = extractGtmData("click", 'rdp');
+        
+        // eventParams가 비어있는지 확인
+        if (jsonData.length === 0) {
+            console.warn("추출된 이벤트 파라미터가 없어 DB에 저장하지 않습니다.");
+            alert("추출된 태깅 요소가 없어 DB에 저장하지 않습니다.");
+            return; // 함수 종료
+        }
+        
+        html2canvas(document.querySelector(captureAreaId), {
+            backgroundColor: null,
+            useCORS: true,
+            allowTaint: true,
+            ignoreElements: function(element) { 
+                return element.classList && element.classList.contains('gnb-wrapper'); 
+            }
+        }).then(function(canvas) {
+            canvas.toBlob(function(blob) {
+                // 로컬 다운로드 및 서버 업로드
+                downloadBlob(blob, timestamp + '_click_' + transformHref(document.location.href) + '.png');
+                uploadDataDirectToServer(jsonData, blob, 'click', timestamp);
+            }, 'image/png');
+        });
+    }).catch(error => console.error('Error in 태깅맵_DB클릭_오버레이:', error));
 }

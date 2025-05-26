@@ -31,7 +31,6 @@ class PathMappingService {
             "event>detail": "띵샵>이벤트>상세",
             "app>LPMCDCB_V230.lc": "MY>즉시결제",
             "메인>카드매니저>메인-카드매니저": "메인>카드매니저>메인-카드매니저",
-            "front>benefit>forest-tour": "혜택>쿠팡띵줍박스",
             "spa>my>usage-billing": "MY>이용대금명세서>이용대금명세서",
             "front>satellite>main>discovery": "발견>메인",
             "메인>로카알리미>알림함": "로카알리미>알림함",
