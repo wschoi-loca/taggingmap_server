@@ -4,7 +4,7 @@
       <div class="container">
         <h1 class="app-title">태깅맵 시스템</h1>
         <nav class="main-nav">
-          <router-link to="/" class="nav-link">홈</router-link>
+          <router-link to="/" class="nav-link">태깅맵 리스트</router-link>
           <span class="nav-separator">|</span>
           <router-link to="/upload" class="nav-link">태깅맵 업로드</router-link>
         </nav>
@@ -17,7 +17,7 @@
     
     <footer class="app-footer">
       <div class="container">
-        <p>&copy; 2025 태깅맵 시스템</p>
+        <p>&copy; 태깅맵 시스템</p>
       </div>
     </footer>
   </div>
