@@ -75,25 +75,35 @@
                       </th>
                     </tr>
                   </thead>
-                  <tbody>
-                    <tr v-for="(row, index) in editData" :key="index">
-                      <td>
-                        <input 
-                          type="number" 
-                          v-model="row.SHOT_NUMBER" 
-                          class="cell-input shot-number-input"
-                          min="0"
-                          @input="validateShotNumber(index)"
-                        />
-                      </td>
-                      <td v-for="column in editColumns" :key="`${index}-${column}`">
-                        <input type="text" v-model="row[column]" class="cell-input" />
-                      </td>
-                      <td class="action-cell">
-                        <button class="remove-row-btn" @click="removeRow(index)" title="로우 삭제">×</button>
-                      </td>
-                    </tr>
-                  </tbody>
+                  <tbody is="draggable"
+                      v-model="editData"
+                      :animation="150"
+                      handle=".row-drag-handle"
+                      tag="tbody"
+                      @end="onRowDragEnd"
+                >
+                  <tr v-for="(row, index) in editData" :key="index">
+                    <td>
+                      <!-- 드래그 핸들 추가 -->
+                      <span class="row-drag-handle" style="cursor:grab;">&#9776;</span>
+                    </td>
+                    <td>
+                      <input 
+                        type="number" 
+                        v-model="row.SHOT_NUMBER" 
+                        class="cell-input shot-number-input"
+                        min="0"
+                        @input="validateShotNumber(index)"
+                      />
+                    </td>
+                    <td v-for="column in editColumns" :key="`${index}-${column}`">
+                      <input type="text" v-model="row[column]" class="cell-input" />
+                    </td>
+                    <td class="action-cell">
+                      <button class="remove-row-btn" @click="removeRow(index)" title="로우 삭제">×</button>
+                    </td>
+                  </tr>
+                </tbody>
                 </table>
                 <div class="add-row-container">
                   <button class="add-row-btn" @click="addRow">+ 로우 추가</button>
@@ -293,12 +303,16 @@
 import axios from 'axios';
 // PageDetailView.vue의 data와 created, computed 섹션 수정
 import PathMappingService from '@/services/PathMappingService';
+import draggable from 'vuedraggable';
 
 export default {
   name: 'PageDetailView',
   props: {
     subdomain: String,
     pathMatch: Array
+  },
+  components: {
+    draggable,
   },
   data() {
     return {
@@ -1416,7 +1430,13 @@ export default {
         } finally {
           this.isSaving = false;
         }
-      }
+      },
+      onRowDragEnd() {
+        // 드래그 후 SHOT_NUMBER 자동 재정렬
+        this.editData.forEach((row, idx) => {
+          row.SHOT_NUMBER = idx;
+        });
+      },
   }
 }
 </script>
@@ -2137,5 +2157,15 @@ input[type="file"] {
 .delete-confirm-button:disabled {
   background-color: #e9a0a8;
   cursor: not-allowed;
+}
+
+.row-drag-handle {
+  cursor: grab;
+  font-size: 18px;
+  color: #888;
+  margin-right: 8px;
+}
+.row-drag-handle:active {
+  cursor: grabbing;
 }
 </style>
