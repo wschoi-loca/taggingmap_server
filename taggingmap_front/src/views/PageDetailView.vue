@@ -1730,14 +1730,20 @@ button:hover {
  
 .image-preview {
   margin-bottom: 15px;
+  width: 100%;
+  height: 100%; /* 고정 높이 설정 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid #ddd;
+  border-radius: 4px;
 }
 
 .image-preview img {
-  max-width: 100%;
-  max-height: 400px;
-  object-fit: contain;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  width: 100%; /* 가로 크기 100%로 설정 */
+  height: 100%; /* 높이도 100%로 설정 */
+  object-fit: cover; /* 비율을 유지하면서 영역을 꽉 채움 */
 }
 
 input[type="file"] {
