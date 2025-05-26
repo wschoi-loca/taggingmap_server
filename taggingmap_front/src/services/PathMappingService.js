@@ -152,7 +152,7 @@ class PathMappingService {
             "app>LPBNFCD_V100.lc": "혜택>TOUCH>TOUCH혜택찾기",
             "app>LPMCDFM_V100.lc": "MY>해외이용종합안내",
             "spa>my>recieve-statment-change": "MY>명세서 수령방법 변경>명세서 수령방법 변경",
-            "login": "셀리>회원>로그인>로그인페이지",
+            "login": "회원>로그인>로그인페이지",
             "로그인>인증서로그인>공동인증서선택": "로그인>인증서로그인>공동인증서선택",
             "app>LPBNFBD_V600.lc": "혜택>포인트사용_L.POINTCase>납부할결제대금입력",
             "spa>my>virtual-account": "MY>가상계좌신청.조회>가상계좌신청.조회",
