@@ -66,6 +66,7 @@
             <div class="edit-data-section">
               <h4>데이터 편집</h4>
               <div class="table-container">
+                <!-- 테이블은 일반 테이블로 구현 -->
                 <table class="edit-table">
                   <thead>
                     <tr>
@@ -78,38 +79,38 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <draggable
-                      v-model="editData"
-                      :animation="150"
-                      handle=".row-drag-handle"
-                      @end="onRowDragEnd"
-                      item-key="SHOT_NUMBER"
-                    >
-                      <template v-slot:item="{element: row, index}">
-                        <tr>
-                          <td>
-                            <span class="row-drag-handle" style="cursor:grab;">&#9776;</span>
-                          </td>
-                          <td>
-                            <input 
-                              type="number" 
-                              v-model="row.SHOT_NUMBER" 
-                              class="cell-input shot-number-input"
-                              min="0"
-                              @input="validateShotNumber(index)"
-                            />
-                          </td>
-                          <td v-for="column in editColumns" :key="`${index}-${column}`">
-                            <input type="text" v-model="row[column]" class="cell-input" />
-                          </td>
-                          <td class="action-cell">
-                            <button class="remove-row-btn" @click="removeRow(index)" title="로우 삭제">×</button>
-                          </td>
-                        </tr>
-                      </template>
-                    </draggable>
+                    <tr v-for="(row, index) in editData" :key="row.uniqueId || index">
+                      <td>
+                        <span class="row-drag-handle" style="cursor:grab;">&#9776;</span>
+                      </td>
+                      <td>
+                        <input 
+                          type="number" 
+                          v-model.number="row.SHOT_NUMBER" 
+                          class="cell-input shot-number-input"
+                          min="0"
+                          @input="validateShotNumber(index)"
+                        />
+                      </td>
+                      <td v-for="column in editColumns" :key="`${index}-${column}`">
+                        <input type="text" v-model="row[column]" class="cell-input" />
+                      </td>
+                      <td class="action-cell">
+                        <button class="remove-row-btn" @click="removeRow(index)" title="로우 삭제">×</button>
+                      </td>
+                    </tr>
                   </tbody>
                 </table>
+
+                <!-- 숨겨진 draggable로 데이터만 관리 -->
+                <draggable
+                  v-model="editData"
+                  :animation="150"
+                  handle=".row-drag-handle"
+                  @end="onRowDragEnd"
+                  style="display: none;"
+                >
+                </draggable>
                 <div class="add-row-container">
                   <button class="add-row-btn" @click="addRow">+ 로우 추가</button>
                 </div>
