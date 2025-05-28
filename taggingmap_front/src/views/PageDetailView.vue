@@ -2889,8 +2889,8 @@ select {
   height: 70vh;
   background-color: #f5f5f5;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: flex-start;     /* 위쪽 정렬 */
+  justify-content: flex-start; /* 왼쪽 정렬 */
 }
 
 .image-zoom-container img {
@@ -2899,6 +2899,7 @@ select {
   object-fit: contain;
   position: relative;
   transition: transform 0.1s ease-out;
+  transform-origin: top left !important;
   cursor: grab;
 }
 
