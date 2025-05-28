@@ -135,16 +135,6 @@
 
     <!-- 필터 섹션 -->
     <div class="filter-section">
-      <div class="filter-header">
-        <h3>필터</h3>
-        <button 
-          class="share-filter-btn"
-          @click="shareFilters"
-          title="현재 필터 설정 공유"
-        >
-          <i class="fas fa-share-alt"></i> 필터 공유
-        </button>
-      </div>
       <!-- 이벤트 유형 필터 -->
       <div class="filter-group">
         <label>이벤트 유형:</label>
@@ -170,6 +160,15 @@
             {{ formatTimestamp(time.timestamp) }}{{ formatEventNames(time.eventNames) }}
           </option>
         </select>
+      </div>
+      <div class="filter-header">
+        <button 
+          class="share-filter-btn"
+          @click="shareFilters"
+          title="현재 필터 설정 공유"
+        >
+          <i class="fas fa-share-alt"></i> 필터 공유
+        </button>
       </div>
       <!-- 컬럼별 필터 버튼 -->
       <div class="filter-group advanced-search-group">
