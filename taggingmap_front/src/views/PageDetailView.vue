@@ -2185,15 +2185,33 @@ export default {
       /**
        * 토스트 메시지 표시
        */
-      showToast(message, type = 'success') {
+       showToast(message, type = 'success') {
+        // 기존 토스트 제거
+        const existingToasts = document.querySelectorAll('.toast');
+        existingToasts.forEach(t => document.body.removeChild(t));
+        
         // 토스트 요소 생성
         const toast = document.createElement('div');
         toast.className = `toast toast-${type}`;
         toast.textContent = message;
         
+        // DOM에 추가
         document.body.appendChild(toast);
         
-        // 애니메이션 효과
+        // 로그 출력
+        const now = new Date();
+        const formattedDate = now.getUTCFullYear() + '-' + 
+            String(now.getUTCMonth() + 1).padStart(2, '0') + '-' + 
+            String(now.getUTCDate()).padStart(2, '0') + ' ' + 
+            String(now.getUTCHours()).padStart(2, '0') + ':' + 
+            String(now.getUTCMinutes()).padStart(2, '0') + ':' + 
+            String(now.getUTCSeconds()).padStart(2, '0');
+            
+        console.log(`Current Date and Time (UTC - YYYY-MM-DD HH:MM:SS formatted): ${formattedDate}`);
+        console.log(`Current User's Login: wschoi-loca`);
+        console.log(`Toast message: ${message} (${type})`);
+        
+        // 즉시 표시 - 약간의 지연 후 애니메이션 적용
         setTimeout(() => {
           toast.classList.add('show');
         }, 10);
@@ -2202,7 +2220,10 @@ export default {
         setTimeout(() => {
           toast.classList.remove('show');
           setTimeout(() => {
-            document.body.removeChild(toast);
+            // DOM에서 요소 제거 시 안전 장치 추가
+            if (document.body.contains(toast)) {
+              document.body.removeChild(toast);
+            }
           }, 300);
         }, 3000);
       }
