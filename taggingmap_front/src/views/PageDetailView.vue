@@ -474,7 +474,7 @@ export default {
           : '90vh', // 기본값
         width: "100%",  
         minHeight: '300px',
-        overflow: 'hidden',
+        overflow: 'visible',
         background: '#eee',
         display: 'flex',
         alignItems: "flex-start",
@@ -2920,7 +2920,7 @@ select {
 
 .image-zoom-container {
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   width: 100%;
   height: 70vh;
   background-color: #f5f5f5;
@@ -3019,7 +3019,7 @@ select {
   min-height: 220px;
 }
 .zoomable-image-wrapper {
-  overflow: hidden;
+  overflow: visible;
   width: 100%;
   height: 95vh;
   min-height: 200px;
