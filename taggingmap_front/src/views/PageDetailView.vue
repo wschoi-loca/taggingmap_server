@@ -338,7 +338,7 @@
                   <i class="fas fa-search-minus"></i>
                 </button>
                 <span class="zoom-level">{{ Math.round(zoomLevel * 100) }}%</span>
-                <button @click="zoomIn" class="zoom-btn" :disabled="zoomLevel >= 3">
+                <button @click="zoomIn" class="zoom-btn" :disabled="zoomLevel >= 7">
                   <i class="fas fa-search-plus"></i>
                 </button>
                 <button @click="resetZoom" class="zoom-btn reset">
@@ -1965,15 +1965,13 @@ export default {
       
       // 확대
       zoomIn() {
-        if (this.zoomLevel < 3) {
-          this.zoomLevel += 0.1;
-        }
+        if (this.zoomLevel < 7) this.zoomLevel = Math.min(7, this.zoomLevel + 0.2); // 500%
       },
       
       // 축소
       zoomOut() {
         if (this.zoomLevel > 0.5) {
-          this.zoomLevel -= 0.1;
+          this.zoomLevel -= 0.2;
         }
       },
       
@@ -2056,7 +2054,7 @@ export default {
       endDrag() {
         this.isDragging = false;
       },
-      
+
       // 휠 스크롤 이벤트 처리
       handleWheel(e) {
         if (e.ctrlKey || e.metaKey) return;
