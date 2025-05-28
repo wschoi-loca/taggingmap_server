@@ -362,7 +362,7 @@ export default {
   },
 
   // 라이프사이클 훅 - beforeDestroy
-  beforeDestroy() {
+  beforeUnmount() {
     // 기존 코드가 있다면 유지...
     
     // 이벤트 리스너 제거 (5번 항목)
