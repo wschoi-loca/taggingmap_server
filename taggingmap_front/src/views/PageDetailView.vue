@@ -284,7 +284,7 @@
                 <i class="fas fa-search-minus"></i>
               </button>
               <span class="zoom-level">{{ Math.round(zoomLevel * 100) }}%</span>
-              <button @click="zoomIn" class="zoom-btn" :disabled="zoomLevel >= 3">
+              <button @click="zoomIn" class="zoom-btn" :disabled="zoomLevel >= 7">
                 <i class="fas fa-search-plus"></i>
               </button>
               <button @click="resetZoom" class="zoom-btn reset">
