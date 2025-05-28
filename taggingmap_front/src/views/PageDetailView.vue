@@ -466,6 +466,8 @@ export default {
       dragOrigin: { x: 0, y: 0 },
       naturalWidth: 0,
       naturalHeight: 0,
+      imageOffsetX: 0,
+      imageOffsetY: 0,
     }
   },
   computed: {
@@ -498,6 +500,7 @@ export default {
         userSelect: "none",
         pointerEvents: "auto",
         transition: this.isDragging ? "none" : "transform 0.12s, left 0.12s, top 0.12s",
+        cursor: this.isDragging ? 'grabbing' : 'grab',  // 추가: 드래그 중이면 grabbing, 아니면 grab
       };
     },
   
@@ -1927,15 +1930,37 @@ export default {
       endDrag() {
         this.isDragging = false;
       },
+      // 휠 이벤트 핸들러 수정
       handleWheel(event) {
-        if (event.deltaY > 0 && this.zoomLevel > 0.05) { // 최소 0.05까지
-          // 축소 로직
-          const step = this.zoomLevel > 1 ? 0.1 : 0.05;
-          this.zoomLevel = Math.max(0.05, this.zoomLevel - step);
-        } else if (event.deltaY < 0 && this.zoomLevel < 7) {
-          // 확대 로직...
+        // Ctrl 키가 눌려있으면 확대/축소, 아니면 이미지 이동
+        if (event.ctrlKey) {
+          // 확대/축소 기능 (기존 기능)
+          event.preventDefault(); // 페이지 스크롤 방지
+          
+          if (event.deltaY > 0 && this.zoomLevel > 0.05) {
+            // 축소
+            const step = this.zoomLevel > 1 ? 0.1 : 0.05;
+            this.zoomLevel = Math.max(0.05, this.zoomLevel - step);
+          } else if (event.deltaY < 0 && this.zoomLevel < 7) {
+            // 확대
+            const step = this.zoomLevel < 1 ? 0.05 : 0.1;
+            this.zoomLevel = Math.min(7, this.zoomLevel + step);
+          }
+        } else {
+          // 이미지 이동 기능 (휠로 이미지 스크롤)
+          event.preventDefault();
+          
+          // 수직 스크롤
+          if (event.deltaY !== 0) {
+            this.imageOffsetY -= event.deltaY;
+          }
+          
+          // 수평 스크롤 (Shift+휠 또는 수평 휠 이벤트)
+          if (event.deltaX !== 0 || event.shiftKey) {
+            const deltaX = event.deltaX !== 0 ? event.deltaX : event.deltaY;
+            this.imageOffsetX -= deltaX;
+          }
         }
-        // ...
       },
       fixPanBounds() {
         // zoomLevel이 바뀐 뒤에도 pan이 한계 넘지 않도록 보정
@@ -3052,7 +3077,13 @@ select {
   justify-content: flex-start;  /* 왼쪽 정렬 */
   position: relative;
   user-select: none;
+  cursor: grab; /* 드래그 가능함을 나타내는 손 모양 커서 */
 }
+
+.zoomable-image-wrapper:active {
+  cursor: grabbing; /* 드래그 중인 상태의 커서 */
+}
+
 .zoomable-image {
   position: relative;
   left: 0;
@@ -3062,6 +3093,11 @@ select {
   user-select: none;
   pointer-events: auto;
 }
+
+.zoomable-image:active {
+  cursor: grabbing; /* 드래그 중인 상태의 커서 */
+}
+
 .absolute-top-right {
   position: absolute;
   top: 10px;
