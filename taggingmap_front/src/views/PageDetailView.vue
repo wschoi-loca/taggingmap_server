@@ -1,412 +1,291 @@
 <template>
   <div class="page-detail">
-    <div class="page-detail">
-      <!-- 제목과 수정/삭제 버튼을 함께 배치한 헤더 섹션 -->
-      <div class="header-section">
-        <h1>{{ formattedPagetitle }}</h1>
-        <div class="header-buttons">
-          <button v-if="taggingMaps.length > 0" 
-            class="edit-btn" 
-            @click="startEdit">
-            태깅맵 수정
-          </button>
-          <button v-if="taggingMaps.length > 0" 
-            class="delete-btn" 
-            @click="confirmDelete">
-            태깅맵 삭제
+    <!-- 헤더 섹션 -->
+    <div class="header-section">
+      <h1>{{ formattedPagetitle }}</h1>
+      <div class="header-buttons">
+        <button v-if="taggingMaps.length > 0" class="edit-btn" @click="startEdit">태깅맵 수정</button>
+        <button v-if="taggingMaps.length > 0" class="delete-btn" @click="confirmDelete">태깅맵 삭제</button>
+      </div>
+    </div>
+    
+    <!-- 삭제 확인 모달 -->
+    <div v-if="showDeleteModal" class="modal-overlay">
+      <div class="modal-content delete-modal">
+        <div class="modal-header">
+          <h3>태깅맵 삭제 확인</h3>
+          <button class="close-button" @click="showDeleteModal = false">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p class="warning-text">이 태깅맵 데이터를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.</p>
+          <p>다음 데이터가 함께 삭제됩니다:</p>
+          <ul class="delete-info">
+            <li>MongoDB의 태깅맵 데이터</li>
+            <li>Cloudinary에 저장된 이미지</li>
+          </ul>
+        </div>
+        <div class="modal-footer">
+          <button class="cancel-button" @click="showDeleteModal = false">취소</button>
+          <button class="delete-confirm-button" @click="deleteTaggingMap" :disabled="isDeleting">
+            <span v-if="isDeleting">삭제 중...</span>
+            <span v-else>삭제</span>
           </button>
         </div>
       </div>
-      
-<!-- 삭제 확인 모달 -->
-<div v-if="showDeleteModal" class="modal-overlay">
-  <div class="modal-content delete-modal">
-    <div class="modal-header">
-      <h3>태깅맵 삭제 확인</h3>
-      <button class="close-button" @click="showDeleteModal = false">&times;</button>
     </div>
-    <div class="modal-body">
-      <p class="warning-text">이 태깅맵 데이터를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.</p>
-      <p>다음 데이터가 함께 삭제됩니다:</p>
-      <ul class="delete-info">
-        <li>MongoDB의 태깅맵 데이터</li>
-        <li>Cloudinary에 저장된 이미지</li>
-      </ul>
-    </div>
-    <div class="modal-footer">
-      <button class="cancel-button" @click="showDeleteModal = false">취소</button>
-      <button class="delete-confirm-button" @click="deleteTaggingMap" :disabled="isDeleting">
-        <span v-if="isDeleting">삭제 중...</span>
-        <span v-else>삭제</span>
-      </button>
-    </div>
-  </div>
-</div>
 
-  <!-- 수정 모달 -->
-  <div v-if="isEditing" class="modal-overlay">
-    <div class="modal-content edit-modal">
-      <div class="modal-header">
-        <h3>태깅맵 수정</h3>
-        <button class="close-button" @click="cancelEdit">&times;</button>
-      </div>
-      <div class="modal-body horizontal-layout">
-        <!-- 스크린샷 교체 영역 (왼쪽) -->
-        <div class="edit-image-section">
-          <h4>스크린샷</h4>
-          <div class="image-preview">
-            <img :src="editImage || taggingMaps[0].image" alt="Screenshot" />
-          </div>
-          <input type="file" ref="imageInput" accept="image/*" @change="handleImageChange" />
-          <button class="change-image-btn" @click="triggerImageSelect">이미지 변경</button>
+    <!-- 수정 모달 -->
+    <div v-if="isEditing" class="modal-overlay">
+      <div class="modal-content edit-modal">
+        <div class="modal-header">
+          <h3>태깅맵 수정</h3>
+          <button class="close-button" @click="cancelEdit">&times;</button>
         </div>
-        
-        <!-- 데이터 편집 영역 (오른쪽) -->
-        <div class="edit-data-section">
-          <h4>데이터 편집</h4>
-          <!-- 로그 파싱 섹션 -->
-          <div class="log-parsing-section">
-            <h5>로그 파싱</h5>
-            <div class="parsing-options">
-              <div class="option-group">
-                <label>로그 형식</label>
-                <select v-model="logFormat">
-                  <option value="android">안드로이드</option>
-                  <option value="ios">iOS</option>
-                </select>
+        <div class="modal-body horizontal-layout">
+          <!-- 스크린샷 교체 영역 (왼쪽) -->
+          <div class="edit-image-section">
+            <h4>스크린샷</h4>
+            <div class="image-preview">
+              <img :src="editImage || taggingMaps[0].image" alt="Screenshot" />
+            </div>
+            <input type="file" ref="imageInput" accept="image/*" @change="handleImageChange" />
+            <button class="change-image-btn" @click="triggerImageSelect">이미지 변경</button>
+          </div>
+          <!-- 데이터 편집 영역 (오른쪽) -->
+          <div class="edit-data-section">
+            <h4>데이터 편집</h4>
+            <!-- 로그 파싱 섹션 -->
+            <div class="log-parsing-section">
+              <h5>로그 파싱</h5>
+              <div class="parsing-options">
+                <div class="option-group">
+                  <label>로그 형식</label>
+                  <select v-model="logFormat">
+                    <option value="android">안드로이드</option>
+                    <option value="ios">iOS</option>
+                  </select>
+                </div>
+              </div>
+              <div class="log-input-area">
+                <textarea 
+                  v-model="logText" 
+                  placeholder="여기에 로그를 붙여넣으세요. 안드로이드 또는 iOS 로그 형식에 맞게 입력해주세요."
+                  rows="5"
+                ></textarea>
+              </div>
+              <div class="parsing-actions">
+                <button class="parse-btn" @click="parseLog" :disabled="!canParse">파싱하여 데이터 추가</button>
+                <button class="clear-btn" @click="clearLogInput">입력 지우기</button>
               </div>
             </div>
-            
-            <div class="log-input-area">
-              <textarea 
-                v-model="logText" 
-                placeholder="여기에 로그를 붙여넣으세요. 안드로이드 또는 iOS 로그 형식에 맞게 입력해주세요."
-                rows="5"
-              ></textarea>
-            </div>
-            
-            <div class="parsing-actions">
-              <button class="parse-btn" @click="parseLog" :disabled="!canParse">
-                파싱하여 데이터 추가
-              </button>
-              <button class="clear-btn" @click="clearLogInput">
-                입력 지우기
-              </button>
-            </div>
-          </div>
-
-          <div class="divider"></div>
-          
-          <div class="table-container">
-            <!-- 테이블은 일반 테이블로 구현 -->
-            <table class="edit-table">
-              <!-- 테이블 내용 (변경 없음) -->
-              <thead>
-                <tr>
-                  <th></th>
-                  <th>SHOT_NUMBER</th>
-                  <th v-for="column in editColumns" :key="column" class="column-header">
-                    {{ column }}
-                    <button 
-                      class="remove-column-btn" 
-                      @click="removeColumn(column)" 
-                      title="컬럼 삭제"
-                      v-if="!isRequiredColumn(column)"
-                    >×</button>
-                  </th>
-                  <th class="column-add-cell">
-                    <button class="add-column-btn" @click="addColumn" title="컬럼 추가">+</button>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(row, index) in editData" :key="row.uniqueId || index">
-                  <!-- 행 내용 (변경 없음) -->
-                  <td class="move-buttons-cell">
-                    <button 
-                      class="move-up-btn" 
-                      @click="moveRow(index, 'up')" 
-                      :disabled="index === 0"
-                      title="위로 이동"
-                    >↑</button>
-                    <button 
-                      class="move-down-btn" 
-                      @click="moveRow(index, 'down')" 
-                      :disabled="index === editData.length-1"
-                      title="아래로 이동"
-                    >↓</button>
-                  </td>
-                  <td>
-                    <input 
-                      type="number" 
-                      v-model.number="row.SHOT_NUMBER" 
-                      class="cell-input shot-number-input"
-                      min="0"
-                      @input="validateShotNumber(index)"
-                    />
-                  </td>
-                  <td v-for="column in editColumns" :key="`${index}-${column}`">
-                    <input type="text" v-model="row[column]" class="cell-input" />
-                  </td>
-                  <td class="action-cell">
-                    <button class="remove-row-btn" @click="removeRow(index)" title="로우 삭제">×</button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-
-            <div class="add-row-container">
-              <button class="add-row-btn" @click="addRow">+ 로우 추가</button>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="cancel-button" @click="cancelEdit">취소</button>
-        <button class="save-button" @click="saveChanges" :disabled="isSaving">
-          <span v-if="isSaving">저장 중...</span>
-          <span v-else>저장</span>
-        </button>
-      </div>
-    </div>
-  </div>
-
-      <!-- 필터 섹션 -->
-      <div class="filter-section">
-        <!-- 이벤트 유형 필터 -->
-        <div class="filter-group">
-          <label>이벤트 유형:</label>
-          <div class="button-group">
-            <button 
-              :class="['filter-button', selectedEventType === 'visibility' ? 'active' : '']"
-              @click="selectEventType('visibility')"
-              :disabled="loading"
-            >
-              노출
-            </button>
-            <button 
-              :class="['filter-button', selectedEventType === 'click' ? 'active' : '']"
-              @click="selectEventType('click')"
-              :disabled="loading"
-            >
-              클릭
-            </button>
-          </div>
-        </div>
-        
-        <!-- URL 필터 -->
-        <div class="filter-group">
-          <label for="url-select">URL:</label>
-          <select 
-          id="url-select" 
-          v-model="selectedUrl" 
-          @change="handleUrlChange"
-          :disabled="!selectedEventType || urls.length === 0"
-          >
-            <option value="">URL 선택</option>
-            <option v-for="url in urls" :key="url.url" :value="url.url">
-              {{ url.url }}
-            </option>
-          </select>
-        </div>
-        
-        <!-- 타임스탬프 필터 -->
-        <div class="filter-group">
-          <label for="time-select">타임스탬프:</label>
-          <select 
-            id="time-select" 
-            v-model="selectedTimestamp"
-            @change="handleTimestampChange"
-            :disabled="!selectedUrl || times.length === 0"
-          >
-            <option value="">타임스탬프 선택</option>
-            <option v-for="time in times" :key="time.timestamp" :value="time.timestamp">
-              {{ formatTimestamp(time.timestamp) }}{{ formatEventNames(time.eventNames) }}
-            </option>
-          </select>
-        </div>
-        
-        <!-- 고급 검색 버튼 추가 -->
-        <div class="filter-group advanced-search-group">
-          <button 
-            class="advanced-search-btn"
-            @click="toggleAdvancedSearch"
-            :disabled="loading"
-          >
-            컬럼별 필터
-          </button>
-          <small v-if="hasActiveAdvancedFilters" class="active-filters-indicator">
-            필터 적용됨
-          </small>
-        </div>
-      </div>
-
-      <!-- 적용된 필터 표시 영역 (필터 섹션 바로 아래) -->
-      <div v-if="hasActiveAdvancedFilters" class="active-filters">
-        <span class="filter-label">적용된 필터:</span>
-        <div class="filter-tags">
-          <div 
-            v-for="(value, key) in displayedAdvancedFilters" 
-            :key="key" 
-            class="filter-tag"
-          >
-            {{ key }}: {{ value.anyValue ? '아무 값' : value.value }}
-            <button @click="removeAdvancedFilter(key)" class="remove-filter">&times;</button>
-          </div>
-        </div>
-        <button class="clear-filters" @click="clearAllAdvancedFilters">모든 필터 지우기</button>
-      </div>
-
-      <!-- 로딩 상태 -->
-      <div v-if="loading" class="loading">
-        <div class="spinner"></div>
-        <p>데이터를 불러오는 중입니다...</p>
-      </div>
-      
-      <!-- 에러 상태 -->
-      <div v-else-if="error" class="error">
-        <p>{{ error }}</p>
-        <button @click="fetchPageData">다시 시도</button>
-      </div>
-      
-      <!-- 데이터 없음 상태 -->
-      <div v-else-if="taggingMaps.length === 0" class="no-data">
-        <p>선택한 조건에 맞는 데이터가 없습니다.</p>
-      </div>
-      
-      <!-- 데이터 표시 -->
-      <div v-else class="content-section">
-        <!-- 이미지 섹션 -->
-        <div class="image-section">
-          <div class="image-container">
-            <div class="zoom-controls absolute-top-right">
-              <button @click="zoomOut" class="zoom-btn" :disabled="zoomLevel <= 0.5">
-                <i class="fas fa-search-minus"></i>
-              </button>
-              <span class="zoom-level">{{ Math.round(zoomLevel * 100) }}%</span>
-              <button @click="zoomIn" class="zoom-btn" :disabled="zoomLevel >= 7">
-                <i class="fas fa-search-plus"></i>
-              </button>
-              <button @click="resetZoom" class="zoom-btn reset">
-                <i class="fas fa-sync-alt"></i>
-              </button>
-            </div>
-            <div
-              class="zoomable-image-wrapper"
-              ref="zoomWrapper"
-              @mousedown="startDrag"
-              @mousemove="drag"
-              @mouseup="endDrag"
-              @mouseleave="endDrag"
-              @touchstart="startDrag"
-              @touchmove="drag"
-              @touchend="endDrag"
-              :style="{ cursor: isDragging ? 'grabbing' : (zoomLevel !== 1 ? 'grab' : 'auto') }"
-            >
-              <img
-                v-if="taggingMaps.length > 0 && taggingMaps[0].image"
-                :src="taggingMaps[0].image"
-                alt="태깅맵 이미지"
-                class="zoomable-image"
-                :style="zoomedImageStyle"
-                ref="zoomImage"
-                @wheel.prevent="handleWheel"
-              />
-              <p v-else class="no-image">이미지가 없습니다</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- 이미지 확대 모달 -->
-        <div class="modal-overlay" v-if="showImageModal" @click.self="closeImageModal">
-          <div class="image-modal">
-            <div class="modal-header">
-              <h3>이미지 확대</h3>
-              <button class="close-button" @click="closeImageModal">&times;</button>
-            </div>
-            <div class="modal-body">
-              <div class="image-zoom-container" ref="zoomContainer">
-                <img 
-                  :src="taggingMaps[0].image" 
-                  alt="태깅맵 이미지 확대" 
-                  ref="zoomImage"
-                  :style="{ transform: `scale(${zoomLevel})`, transformOrigin: 'top left' }"
-                />
-              </div>
-              <div class="zoom-controls">
-                <button @click="zoomOut" class="zoom-btn" :disabled="zoomLevel <= 0.5">
-                  <i class="fas fa-search-minus"></i>
-                </button>
-                <span class="zoom-level">{{ Math.round(zoomLevel * 100) }}%</span>
-                <button @click="zoomIn" class="zoom-btn" :disabled="zoomLevel >= 7">
-                  <i class="fas fa-search-plus"></i>
-                </button>
-                <button @click="resetZoom" class="zoom-btn reset">
-                  <i class="fas fa-sync-alt"></i>
-                </button>
+            <div class="divider"></div>
+            <div class="table-container">
+              <table class="edit-table">
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th>SHOT_NUMBER</th>
+                    <th v-for="column in editColumns" :key="column" class="column-header">
+                      {{ column }}
+                      <button 
+                        class="remove-column-btn" 
+                        @click="removeColumn(column)" 
+                        title="컬럼 삭제"
+                        v-if="!isRequiredColumn(column)"
+                      >×</button>
+                    </th>
+                    <th class="column-add-cell">
+                      <button class="add-column-btn" @click="addColumn" title="컬럼 추가">+</button>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(row, index) in editData" :key="row.uniqueId || index">
+                    <td class="move-buttons-cell">
+                      <button class="move-up-btn" @click="moveRow(index, 'up')" :disabled="index === 0" title="위로 이동">↑</button>
+                      <button class="move-down-btn" @click="moveRow(index, 'down')" :disabled="index === editData.length-1" title="아래로 이동">↓</button>
+                    </td>
+                    <td>
+                      <input type="number" v-model.number="row.SHOT_NUMBER" class="cell-input shot-number-input" min="0" @input="validateShotNumber(index)" />
+                    </td>
+                    <td v-for="column in editColumns" :key="`${index}-${column}`">
+                      <input type="text" v-model="row[column]" class="cell-input" />
+                    </td>
+                    <td class="action-cell">
+                      <button class="remove-row-btn" @click="removeRow(index)" title="로우 삭제">×</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="add-row-container">
+                <button class="add-row-btn" @click="addRow">+ 로우 추가</button>
               </div>
             </div>
           </div>
         </div>
-        
-        <div class="data-section">
-          <!-- 전체 표 보기 버튼 추가 -->
-          <div class="section-header">
-            <button class="view-full-btn" @click="openTableModal">
-              전체 표 새 창에서 보기
-            </button>
-          </div>
-          <table>
-            <thead>
-              <tr>
-                <th>SHOT_NUMBER</th>
-                <th v-for="column in sortedColumns" :key="column">{{ column }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="data in sortedEventParams" :key="data.SHOT_NUMBER">
-                <td>{{ data.SHOT_NUMBER }}</td>
-                <td v-for="column in sortedColumns" :key="`${data.SHOT_NUMBER}-${column}`">
-                  {{ data[column] || '-' }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="modal-footer">
+          <button class="cancel-button" @click="cancelEdit">취소</button>
+          <button class="save-button" @click="saveChanges" :disabled="isSaving">
+            <span v-if="isSaving">저장 중...</span>
+            <span v-else>저장</span>
+          </button>
         </div>
       </div>
     </div>
-  </div>
-  <!-- 고급 검색 모달 -->
-  <div v-if="showAdvancedSearch" class="modal-overlay" @click.self="toggleAdvancedSearch">
-    <div class="modal-content advanced-search-modal">
-      <div class="modal-header">
-        <h3>고급 검색</h3>
-        <button class="close-button" @click="toggleAdvancedSearch">&times;</button>
+
+    <!-- 필터 섹션 -->
+    <div class="filter-section">
+      <!-- 이벤트 유형 필터 -->
+      <div class="filter-group">
+        <label>이벤트 유형:</label>
+        <div class="button-group">
+          <button :class="['filter-button', selectedEventType === 'visibility' ? 'active' : '']" @click="selectEventType('visibility')" :disabled="loading">노출</button>
+          <button :class="['filter-button', selectedEventType === 'click' ? 'active' : '']" @click="selectEventType('click')" :disabled="loading">클릭</button>
+        </div>
       </div>
-      <div class="modal-body">
-        <div class="search-fields">
-          <!-- 동적으로 검색 필드 생성 -->
-          <div v-for="field in searchFields" :key="field" class="field-filter">
-            <div class="field-name">{{ field }}:</div>
-            <div class="field-options">
-              <label class="checkbox-label">
-                <input type="checkbox" v-model="advancedFilters.fields[field].anyValue"> 
-                아무값이나
-              </label>
-              <input 
-                type="text" 
-                v-model="advancedFilters.fields[field].value" 
-                :disabled="advancedFilters.fields[field].anyValue"
-                placeholder="포함 조건 입력"
-              >
-            </div>
+      <!-- URL 필터 -->
+      <div class="filter-group">
+        <label for="url-select">URL:</label>
+        <select id="url-select" v-model="selectedUrl" @change="handleUrlChange" :disabled="!selectedEventType || urls.length === 0">
+          <option value="">URL 선택</option>
+          <option v-for="url in urls" :key="url.url" :value="url.url">{{ url.url }}</option>
+        </select>
+      </div>
+      <!-- 타임스탬프 필터 -->
+      <div class="filter-group">
+        <label for="time-select">타임스탬프:</label>
+        <select id="time-select" v-model="selectedTimestamp" @change="handleTimestampChange" :disabled="!selectedUrl || times.length === 0">
+          <option value="">타임스탬프 선택</option>
+          <option v-for="time in times" :key="time.timestamp" :value="time.timestamp">
+            {{ formatTimestamp(time.timestamp) }}{{ formatEventNames(time.eventNames) }}
+          </option>
+        </select>
+      </div>
+      <!-- 고급 검색 버튼 -->
+      <div class="filter-group advanced-search-group">
+        <button class="advanced-search-btn" @click="toggleAdvancedSearch" :disabled="loading">컬럼별 필터</button>
+        <small v-if="hasActiveAdvancedFilters" class="active-filters-indicator">필터 적용됨</small>
+      </div>
+    </div>
+
+    <!-- 적용된 필터 표시 -->
+    <div v-if="hasActiveAdvancedFilters" class="active-filters">
+      <span class="filter-label">적용된 필터:</span>
+      <div class="filter-tags">
+        <div v-for="(value, key) in displayedAdvancedFilters" :key="key" class="filter-tag">
+          {{ key }}: {{ value.anyValue ? '아무 값' : value.value }}
+          <button @click="removeAdvancedFilter(key)" class="remove-filter">&times;</button>
+        </div>
+      </div>
+      <button class="clear-filters" @click="clearAllAdvancedFilters">모든 필터 지우기</button>
+    </div>
+
+    <!-- 로딩/에러/데이터 없음/데이터 표시 -->
+    <div v-if="loading" class="loading">
+      <div class="spinner"></div>
+      <p>데이터를 불러오는 중입니다...</p>
+    </div>
+    <div v-else-if="error" class="error">
+      <p>{{ error }}</p>
+      <button @click="fetchPageData">다시 시도</button>
+    </div>
+    <div v-else-if="taggingMaps.length === 0" class="no-data">
+      <p>선택한 조건에 맞는 데이터가 없습니다.</p>
+    </div>
+    <div v-else class="content-section">
+      <!-- 이미지 섹션 -->
+      <div class="image-section">
+        <div class="image-container">
+          <div class="zoom-controls absolute-top-right">
+            <button @click="zoomOut" class="zoom-btn" :disabled="zoomLevel <= 0.5">
+              <i class="fas fa-search-minus"></i>
+            </button>
+            <span class="zoom-level">{{ Math.round(zoomLevel * 100) }}%</span>
+            <button @click="zoomIn" class="zoom-btn" :disabled="zoomLevel >= 7">
+              <i class="fas fa-search-plus"></i>
+            </button>
+            <button class="zoom-btn reset" @click="resetZoom">
+              <i class="fas fa-sync-alt"></i>
+            </button>
+          </div>
+          <div
+            class="zoomable-image-wrapper"
+            ref="zoomWrapper"
+            @mousedown="startDrag"
+            @mousemove="drag"
+            @mouseup="endDrag"
+            @mouseleave="endDrag"
+            @touchstart="startDrag"
+            @touchmove="drag"
+            @touchend="endDrag"
+            :style="{ cursor: isDragging ? 'grabbing' : (zoomLevel !== 1 ? 'grab' : 'auto') }"
+          >
+            <img
+              v-if="taggingMaps.length > 0 && taggingMaps[0].image"
+              :src="taggingMaps[0].image"
+              alt="태깅맵 이미지"
+              class="zoomable-image"
+              :style="zoomedImageStyle"
+              ref="zoomImage"
+              @wheel.prevent="handleWheel"
+              @load="onImageLoad"
+            />
+            <p v-else class="no-image">이미지가 없습니다</p>
           </div>
         </div>
       </div>
-      
-      <div class="modal-footer">
-        <button class="reset-button" @click="resetAdvancedFilters">초기화</button>
-        <button class="apply-button" @click="applyAdvancedSearch">적용</button>
+      <!-- 데이터 섹션 -->
+      <div class="data-section">
+        <div class="section-header">
+          <button class="view-full-btn" @click="openTableModal">전체 표 새 창에서 보기</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>SHOT_NUMBER</th>
+              <th v-for="column in sortedColumns" :key="column">{{ column }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="data in sortedEventParams" :key="data.SHOT_NUMBER">
+              <td>{{ data.SHOT_NUMBER }}</td>
+              <td v-for="column in sortedColumns" :key="`${data.SHOT_NUMBER}-${column}`">
+                {{ data[column] || '-' }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <!-- 고급 검색 모달 -->
+    <div v-if="showAdvancedSearch" class="modal-overlay" @click.self="toggleAdvancedSearch">
+      <div class="modal-content advanced-search-modal">
+        <div class="modal-header">
+          <h3>고급 검색</h3>
+          <button class="close-button" @click="toggleAdvancedSearch">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="search-fields">
+            <div v-for="field in searchFields" :key="field" class="field-filter">
+              <div class="field-name">{{ field }}:</div>
+              <div class="field-options">
+                <label class="checkbox-label">
+                  <input type="checkbox" v-model="advancedFilters.fields[field].anyValue"> 아무값이나
+                </label>
+                <input 
+                  type="text" 
+                  v-model="advancedFilters.fields[field].value" 
+                  :disabled="advancedFilters.fields[field].anyValue"
+                  placeholder="포함 조건 입력"
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="reset-button" @click="resetAdvancedFilters">초기화</button>
+          <button class="apply-button" @click="applyAdvancedSearch">적용</button>
+        </div>
       </div>
     </div>
   </div>
@@ -585,12 +464,12 @@ export default {
   },
   computed: {
     zoomedImageStyle() {
+      if (!this.naturalWidth) return {};
       return {
-        transform: `scale(${this.zoomLevel}) translate(${this.panPosition.x / this.zoomLevel}px, ${this.panPosition.y / this.zoomLevel}px)`,
-        transition: this.isDragging ? "none" : "transform 0.16s",
-        'transform-origin': 'top left',
-        cursor: this.isDragging ? 'grabbing' : (this.zoomLevel !== 1 ? 'grab' : 'auto'),
-        userSelect: 'none'
+        width: `${this.naturalWidth * this.zoomLevel}px`,
+        height: `${this.naturalHeight * this.zoomLevel}px`,
+        maxWidth: "none",
+        maxHeight: "none"
       };
     },
   
@@ -2060,7 +1939,11 @@ export default {
         if (e.ctrlKey || e.metaKey) return;
         if (e.deltaY < 0) this.zoomIn();
         else this.zoomOut();
-      }
+      },
+      onImageLoad(e) {
+        this.naturalWidth = e.target.naturalWidth;
+        this.naturalHeight = e.target.naturalHeight;
+      },
   }
 }
 </script>
