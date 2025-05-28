@@ -2118,7 +2118,7 @@ export default {
           this.panPosition = { x: 0, y: 0 };
         }
       },
-      * 필터 공유 기능
+      /* 필터 공유 기능
       * 현재 페이지 URL과 필터 설정을 클립보드에 복사
       */
       shareFilters() {
