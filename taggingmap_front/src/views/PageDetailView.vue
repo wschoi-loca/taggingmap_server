@@ -471,7 +471,7 @@ export default {
       return {
         height: this.imageRealHeight
           ? this.imageRealHeight + 'px'
-          : '60vh', // 기본값
+          : '90vh', // 기본값
         width: "100%",  
         minHeight: '300px',
         overflow: 'hidden',
@@ -2998,7 +2998,7 @@ select {
   }
   
   .image-zoom-container {
-    height: 60vh;
+    height: 90vh;
   }
   
   .zoom-btn {
