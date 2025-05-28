@@ -218,18 +218,18 @@
             @touchstart="startDrag"
             @touchmove="drag"
             @touchend="endDrag"
-            :style="{ cursor: isDragging ? 'grabbing' : (zoomLevel !== 1 ? 'grab' : 'auto') }"
+            :style="imageWrapperStyle"
           >
             <img
-              v-if="taggingMaps.length > 0 && taggingMaps[0].image"
-              :src="taggingMaps[0].image"
-              alt="태깅맵 이미지"
-              class="zoomable-image"
-              :style="zoomedImageStyle"
-              ref="zoomImage"
-              @wheel.prevent="handleWheel"
-              @load="onImageLoad"
-              draggable="false"
+            v-if="taggingMaps.length > 0 && taggingMaps[0].image"
+            :src="taggingMaps[0].image"
+            alt="태깅맵 이미지"
+            class="zoomable-image"
+            :style="zoomedImageStyle"
+            ref="zoomImage"
+            @wheel.prevent="handleWheel"
+            @load="onImageLoad"
+            draggable="false"
             />
             <p v-else class="no-image">이미지가 없습니다</p>
           </div>
@@ -454,6 +454,7 @@ export default {
       // 로그 파싱 관련
       logFormat: 'android', // 기본값을 'android'로 변경
       logText: '',
+      imageRealHeight: 0,
       // 이미지 확대 관련
       showImageModal: false,
       zoomLevel: 1,
@@ -466,6 +467,21 @@ export default {
     }
   },
   computed: {
+    imageWrapperStyle() {
+      return {
+        height: this.imageRealHeight
+          ? this.imageRealHeight + 'px'
+          : '60vh', // 기본값
+        minHeight: '100px',
+        overflow: 'hidden',
+        background: '#eee',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+        userSelect: 'none',
+      };
+    },
     zoomedImageStyle() {
       // width/height와 left/top을 모두 panPosition, zoomLevel로 적용!
       return {
@@ -1886,6 +1902,7 @@ export default {
       onImageLoad(e) {
         this.naturalWidth = e.target.naturalWidth;
         this.naturalHeight = e.target.naturalHeight;
+        this.imageRealHeight = e.target.naturalHeight * this.zoomLevel;
       },
   }
 }
