@@ -581,10 +581,6 @@ export default {
       panPosition: { x: 0, y: 0 },
       isDragging: false,
       startDragPosition: { x: 0, y: 0 },
-      zoomLevel: 1,
-      panPosition: { x: 0, y: 0 },
-      isDragging: false,
-      startDragPosition: { x: 0, y: 0 },
     }
   },
   computed: {
@@ -2061,37 +2057,7 @@ export default {
         this.isDragging = false;
       },
       
-      zoomIn() {
-        if (this.zoomLevel < 3) this.zoomLevel = Math.min(3, this.zoomLevel + 0.1);
-      },
-      zoomOut() {
-        if (this.zoomLevel > 0.5) this.zoomLevel = Math.max(0.5, this.zoomLevel - 0.1);
-        if (this.zoomLevel === 1) this.panPosition = { x: 0, y: 0 };
-      },
-      resetZoom() {
-        this.zoomLevel = 1;
-        this.panPosition = { x: 0, y: 0 };
-      },
-      startDrag(e) {
-        if (this.zoomLevel === 1) return;
-        this.isDragging = true;
-        const event = e.touches ? e.touches[0] : e;
-        this.startDragPosition = {
-          x: event.pageX - this.panPosition.x,
-          y: event.pageY - this.panPosition.y,
-        };
-      },
-      drag(e) {
-        if (!this.isDragging) return;
-        const event = e.touches ? e.touches[0] : e;
-        this.panPosition = {
-          x: event.pageX - this.startDragPosition.x,
-          y: event.pageY - this.startDragPosition.y,
-        };
-      },
-      endDrag() {
-        this.isDragging = false;
-      },
+      // 휠 스크롤 이벤트 처리
       handleWheel(e) {
         if (e.ctrlKey || e.metaKey) return;
         if (e.deltaY < 0) this.zoomIn();
