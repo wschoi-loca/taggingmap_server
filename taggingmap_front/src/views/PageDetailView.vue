@@ -4,10 +4,6 @@
     <div class="header-section">
       <h1>{{ formattedPagetitle }}</h1>
       <div class="header-buttons">
-              <!-- 다운로드 버튼 추가 -->
-        <button class="zoom-btn download" @click="downloadTaggingMap" title="태깅맵 다운로드">
-          <i class="fas fa-download"></i>
-        </button>
         <button v-if="taggingMaps.length > 0" class="edit-btn" @click="startEdit">태깅맵 수정</button>
         <button v-if="taggingMaps.length > 0" class="delete-btn" @click="confirmDelete">태깅맵 삭제</button>
       </div>
@@ -302,8 +298,6 @@
 import axios from 'axios';
 // PageDetailView.vue의 data와 created, computed 섹션 수정
 import PathMappingService from '@/services/PathMappingService';
-import ExcelJS from 'exceljs';
-import FileSaver from 'file-saver';
 
 export default {
   name: 'PageDetailView',
@@ -476,8 +470,6 @@ export default {
       naturalHeight: 0,
       imageOffsetX: 0,
       imageOffsetY: 0,
-      isDownloading: false,
-      currentUser: 'LOCA-TAGGINGMAP', // 또는 실제 사용자 정보를 가져오는 로직
     }
   },
   computed: {
@@ -1931,7 +1923,7 @@ export default {
         
         // 초기 위치 조정 (중앙 정렬)
         this.resetImagePosition();
-      },
+      }
 
       // 이미지 위치 초기화 (중앙 정렬) 메서드
       resetImagePosition() {
@@ -2059,200 +2051,6 @@ export default {
           this.panPosition = { x: 0, y: 0 };
         }
       },
-      async downloadTaggingMap() {
-        try {
-          // 로딩 상태 표시 (옵션)
-          this.isDownloading = true;
-          
-          // 1. 새 엑셀 워크북 생성
-          const workbook = new ExcelJS.Workbook();
-          const worksheet = workbook.addWorksheet('태깅맵 데이터');
-          
-          // 2. 현재 시간 및 사용자 정보
-          const now = new Date();
-          const dateTime = now.toISOString().replace('T', ' ').substr(0, 19);
-          const userName = this.currentUser || 'wschoi-loca';
-          
-          // 3. 헤더 정보 추가
-          worksheet.mergeCells('A1:B1');
-          worksheet.getCell('A1').value = `태깅맵 데이터`;
-          worksheet.getCell('A1').font = { size: 16, bold: true };
-          
-          worksheet.mergeCells('A2:B2');
-          worksheet.getCell('A2').value = `다운로드 시간: ${dateTime} (UTC)`;
-          
-          worksheet.mergeCells('A3:B3');
-          worksheet.getCell('A3').value = `사용자: ${userName}`;
-          
-          // 4. 이미지 추가 준비
-          const imageRow = 5; // 이미지 시작 행
-          
-          if (this.taggingMaps.length > 0 && this.taggingMaps[0].image) {
-            try {
-              // 이미지 URL에서 base64 데이터 추출
-              const imgUrl = this.taggingMaps[0].image;
-              const response = await fetch(imgUrl);
-              const blob = await response.blob();
-              
-              // Blob을 base64로 변환
-              const reader = new FileReader();
-              reader.readAsDataURL(blob);
-              
-              reader.onload = async () => {
-                const base64data = reader.result.split(',')[1];
-                
-                // 이미지 ID 생성 및 추가
-                const imageId = workbook.addImage({
-                  base64: base64data,
-                  extension: 'png', // 이미지 형식에 맞게 조정
-                });
-                
-                // 이미지 삽입 (A5 셀부터 적당한 크기로)
-                worksheet.addImage(imageId, {
-                  tl: { col: 0, row: imageRow - 1 },
-                  br: { col: 4, row: imageRow + 15 }, // 이미지 크기 조정
-                  editAs: 'oneCell'
-                });
-                
-                // 5. 테이블 데이터 추가
-                // 테이블 헤더 행 (이미지 옆에 시작)
-                const tableStartCol = 5; // F열부터 테이블 시작
-                const tableStartRow = imageRow;
-                
-                // 헤더 추가
-                const headers = ['SHOT_NUMBER', ...this.sortedColumns];
-                headers.forEach((header, index) => {
-                  const cell = worksheet.getCell(tableStartRow, tableStartCol + index);
-                  cell.value = header;
-                  cell.font = { bold: true };
-                  cell.fill = {
-                    type: 'pattern',
-                    pattern: 'solid',
-                    fgColor: { argb: 'FFE0E0E0' }
-                  };
-                  cell.border = {
-                    top: { style: 'thin' },
-                    left: { style: 'thin' },
-                    bottom: { style: 'thin' },
-                    right: { style: 'thin' }
-                  };
-                });
-                
-                // 데이터 행 추가
-                this.sortedEventParams.forEach((row, rowIndex) => {
-                  const excelRow = tableStartRow + rowIndex + 1;
-                  
-                  // SHOT_NUMBER 열
-                  worksheet.getCell(excelRow, tableStartCol).value = row.SHOT_NUMBER;
-                  
-                  // 나머지 열
-                  this.sortedColumns.forEach((col, colIndex) => {
-                    worksheet.getCell(excelRow, tableStartCol + colIndex + 1).value = row[col] || '-';
-                  });
-                });
-                
-                // 모든 셀에 테두리 추가
-                for (let r = tableStartRow; r < tableStartRow + this.sortedEventParams.length + 1; r++) {
-                  for (let c = tableStartCol; c < tableStartCol + headers.length; c++) {
-                    worksheet.getCell(r, c).border = {
-                      top: { style: 'thin' },
-                      left: { style: 'thin' },
-                      bottom: { style: 'thin' },
-                      right: { style: 'thin' }
-                    };
-                  }
-                }
-                
-                // 열 너비 자동 조정
-                worksheet.columns.forEach(column => {
-                  column.width = 15;
-                });
-                
-                // 6. 엑셀 파일 생성 및 다운로드
-                const buffer = await workbook.xlsx.writeBuffer();
-                const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-                FileSaver.saveAs(blob, `태깅맵_데이터_${now.toISOString().substr(0, 10)}.xlsx`);
-                
-                // 로딩 상태 해제
-                this.isDownloading = false;
-              };
-            } catch (error) {
-              console.error('이미지 처리 중 오류:', error);
-              // 이미지 없이 테이블만 다운로드
-              this.downloadTableOnly();
-            }
-          } else {
-            // 이미지가 없는 경우 테이블만 다운로드
-            this.downloadTableOnly();
-          }
-        } catch (error) {
-          console.error('엑셀 다운로드 중 오류:', error);
-          this.isDownloading = false;
-          alert('파일 다운로드 중 오류가 발생했습니다.');
-        }
-      },
-      
-      // 이미지 없이 테이블만 다운로드하는 백업 함수
-      async downloadTableOnly() {
-        try {
-          const workbook = new ExcelJS.Workbook();
-          const worksheet = workbook.addWorksheet('태깅맵 데이터');
-          
-          // 현재 시간 및 사용자 정보
-          const now = new Date();
-          const dateTime = now.toISOString().replace('T', ' ').substr(0, 19);
-          const userName = this.currentUser || 'wschoi-loca';
-          
-          // 헤더 정보
-          worksheet.mergeCells('A1:C1');
-          worksheet.getCell('A1').value = `태깅맵 데이터 (이미지 없음)`;
-          worksheet.getCell('A1').font = { size: 16, bold: true };
-          
-          worksheet.mergeCells('A2:C2');
-          worksheet.getCell('A2').value = `다운로드 시간: ${dateTime} (UTC)`;
-          
-          worksheet.mergeCells('A3:C3');
-          worksheet.getCell('A3').value = `사용자: ${userName}`;
-          
-          // 테이블 헤더
-          const headers = ['SHOT_NUMBER', ...this.sortedColumns];
-          headers.forEach((header, index) => {
-            const cell = worksheet.getCell(5, index + 1);
-            cell.value = header;
-            cell.font = { bold: true };
-            cell.fill = {
-              type: 'pattern',
-              pattern: 'solid',
-              fgColor: { argb: 'FFE0E0E0' }
-            };
-          });
-          
-          // 데이터 행
-          this.sortedEventParams.forEach((row, rowIndex) => {
-            worksheet.getCell(rowIndex + 6, 1).value = row.SHOT_NUMBER;
-            
-            this.sortedColumns.forEach((col, colIndex) => {
-              worksheet.getCell(rowIndex + 6, colIndex + 2).value = row[col] || '-';
-            });
-          });
-          
-          // 열 너비 자동 조정
-          worksheet.columns.forEach(column => {
-            column.width = 15;
-          });
-          
-          // 엑셀 파일 생성 및 다운로드
-          const buffer = await workbook.xlsx.writeBuffer();
-          const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-          FileSaver.saveAs(blob, `태깅맵_데이터_${now.toISOString().substr(0, 10)}.xlsx`);
-          
-          this.isDownloading = false;
-        } catch (error) {
-          console.error('테이블 다운로드 중 오류:', error);
-          this.isDownloading = false;
-          alert('파일 다운로드 중 오류가 발생했습니다.');
-        }
-      }
   }
 }
 </script>
@@ -2310,22 +2108,6 @@ h1 {
 
 .checkbox-label input[type="checkbox"] {
   margin-right: 8px;
-}
-
-/* 다운로드 버튼 스타일 */
-.zoom-btn.download {
-  background-color: #4CAF50;
-  color: white;
-}
-
-.zoom-btn.download:hover {
-  background-color: #45a049;
-}
-
-/* 로딩 상태 표시 (옵션) */
-.zoom-btn.download.loading {
-  background-color: #cccccc;
-  cursor: wait;
 }
 
 .button-group {
