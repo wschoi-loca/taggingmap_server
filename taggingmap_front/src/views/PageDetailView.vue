@@ -1,4 +1,5 @@
 <template>
+  <div id="toast-container"></div>
   <div class="page-detail">
     <!-- 헤더 섹션 -->
     <div class="header-section">
@@ -3440,15 +3441,19 @@ select {
   position: fixed;
   top: 20px;
   right: 20px;
+  min-width: 250px;
   background-color: #333;
   color: white;
-  padding: 12px 20px;
+  padding: 15px 25px;
   border-radius: 4px;
-  z-index: 9999;
+  z-index: 999999; /* 매우 높은 z-index 값 */
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   transform: translateY(-20px);
   opacity: 0;
   transition: all 0.3s ease;
+  font-size: 16px;
+  font-weight: 500;
+  pointer-events: none; /* 클릭 이벤트 무시 */
 }
 
 .toast.show {
@@ -3458,10 +3463,12 @@ select {
 
 .toast-success {
   background-color: #4CAF50;
+  border-left: 5px solid #2E7D32;
 }
 
 .toast-error {
   background-color: #F44336;
+  border-left: 5px solid #B71C1C;
 }
 
 </style>
