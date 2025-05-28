@@ -1960,8 +1960,65 @@ export default {
         }
       },
       resetZoom() {
-        this.zoomLevel = 1;
-        this.panPosition = { x: 0, y: 0 };
+        // 모달과 이미지 요소 참조 가져오기
+        const modalEl = this.$refs.zoomWrapper;
+        const imageEl = this.$refs.zoomImage;
+        
+        if (!modalEl || !imageEl) {
+          // 요소가 없으면 기본값으로 설정
+          this.zoomLevel = 1;
+          this.panPosition = { x: 0, y: 0 };
+          return;
+        }
+        
+        // 이미지 원본 크기 확인
+        const imgWidth = this.naturalWidth || imageEl.naturalWidth;
+        const imgHeight = this.naturalHeight || imageEl.naturalHeight;
+        
+        // 모달 가로 길이
+        const modalWidth = modalEl.clientWidth;
+        
+        // 이미지와 모달의 가로 비율 계산
+        const widthRatio = imgWidth / modalWidth;
+        
+        // 비율에 따른 초기 배율 설정
+        if (widthRatio > 3) {
+          // 3배 이상 큰 경우 -> 30%로 설정
+          this.zoomLevel = 0.3;
+        } else if (widthRatio > 2) {
+          // 2배 이상 큰 경우 -> 50%로 설정
+          this.zoomLevel = 0.5;
+        } else if (widthRatio > 1.5) {
+          // 1.5배 이상 큰 경우 -> 70%로 설정
+          this.zoomLevel = 0.7;
+        } else {
+          // 그 외의 경우 -> 100% 유지
+          this.zoomLevel = 1;
+        }
+        
+        // 이미지 위치 초기화 (중앙 정렬)
+        const scaledWidth = imgWidth * this.zoomLevel;
+        const scaledHeight = imgHeight * this.zoomLevel;
+        
+        // 중앙 정렬을 위한 오프셋 계산
+        const offsetX = Math.max(0, (modalWidth - scaledWidth) / 2);
+        const offsetY = Math.max(0, (modalEl.clientHeight - scaledHeight) / 2);
+        
+        // 위치 업데이트
+        this.panPosition = { x: offsetX, y: offsetY };
+        
+        // 로그 출력 (요청한 형식대로)
+        const now = new Date();
+        const formattedDate = now.getUTCFullYear() + '-' + 
+            String(now.getUTCMonth() + 1).padStart(2, '0') + '-' + 
+            String(now.getUTCDate()).padStart(2, '0') + ' ' + 
+            String(now.getUTCHours()).padStart(2, '0') + ':' + 
+            String(now.getUTCMinutes()).padStart(2, '0') + ':' + 
+            String(now.getUTCSeconds()).padStart(2, '0');
+            
+        console.log(`Current Date and Time (UTC - YYYY-MM-DD HH:MM:SS formatted): ${formattedDate}`);
+        console.log(`Current User's Login: wschoi-loca`);
+        console.log(`Applied zoom level: ${this.zoomLevel * 100}% (width ratio: ${widthRatio.toFixed(2)})`);
       },
       // startDrag 메서드 수정
       startDrag(event) {
