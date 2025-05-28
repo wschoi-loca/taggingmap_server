@@ -270,7 +270,6 @@
             </tbody>
           </table>
         </div>
-      </div>
     </div>
     <!-- 고급 검색 모달 -->
     <div v-if="showAdvancedSearch" class="modal-overlay" @click.self="toggleAdvancedSearch">
@@ -3471,67 +3470,81 @@ select {
   transform: translateY(-20px);
 }
 
-/* 테이블 스크롤 컨테이너 */
+/* 전체 테이블 레이아웃 개선 */
+.sticky-table {
+  width: 100%;
+  border-collapse: separate; /* collapse에서 separate로 변경 */
+  border-spacing: 0; /* 셀 간격은 없애기 */
+  table-layout: fixed; /* 고정 레이아웃으로 변경 */
+}
+
+/* 첫 번째 열 (SHOT_NUMBER) 너비 지정 */
+.sticky-table th:first-child,
+.sticky-table td:first-child {
+  width: 150px; /* SHOT_NUMBER 열의 너비 설정 */
+  min-width: 150px;
+}
+
+/* 나머지 열 기본 너비 설정 */
+.sticky-table th:not(:first-child),
+.sticky-table td:not(:first-child) {
+  width: 180px; /* 기본 열 너비 */
+  min-width: 180px;
+}
+
+/* 셀 내용 처리 방식 */
+.sticky-table td, .sticky-table th {
+  white-space: nowrap; /* 텍스트 줄바꿈 방지 */
+  overflow: hidden;
+  text-overflow: ellipsis; /* 내용이 너무 길면 ... 표시 */
+  padding: 10px 15px;
+  border: 1px solid #ddd;
+}
+
+/* 테이블 스크롤 컨테이너 - 수정된 버전 */
 .table-scroll-container {
   width: 100%;
   overflow-x: auto;
+  overflow-y: auto; /* 세로 스크롤도 허용 */
+  max-height: 70vh; /* 테이블의 최대 높이 제한 */
   position: relative;
   border: 1px solid #e9ecef;
   border-radius: 4px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
-
-/* 스티키 테이블 스타일 */
-.sticky-table {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: auto;
-  white-space: nowrap;  /* 텍스트 줄바꿈 방지 */
+/* 스티키 헤더 (상단 고정) - 우선순위 높임 */
+.sticky-table thead tr th.sticky-header {
+  position: sticky !important;
+  top: 0 !important;
+  background-color: #f2f2f2 !important;
+  z-index: 10 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
 }
 
-/* 스티키 헤더 (상단 고정) */
-.sticky-header {
-  position: sticky;
-  top: 0;
-  background-color: #f2f2f2;
-  z-index: 10;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+/* 스티키 컬럼 (좌측 고정) - 우선순위 높임 */
+.sticky-table td.sticky-column,
+.sticky-table th.sticky-column {
+  position: sticky !important;
+  left: 0 !important;
+  background-color: #f8f9fa !important;
+  z-index: 5 !important;
+  border-right: 2px solid #e9ecef !important;
 }
 
-/* 스티키 컬럼 (좌측 고정) */
-.sticky-column {
-  position: sticky;
-  left: 0;
-  background-color: #f8f9fa;
-  z-index: 5;
-  border-right: 2px solid #e9ecef;
+/* 스티키 헤더이면서 스티키 컬럼인 경우 (좌상단 셀) - 우선순위 높임 */
+.sticky-table th.sticky-header.sticky-column {
+  z-index: 15 !important;
+  background-color: #f2f2f2 !important;
 }
 
-/* 스티키 헤더이면서 스티키 컬럼인 경우 (좌상단 셀) */
-.sticky-header.sticky-column {
-  z-index: 15;
-  background-color: #f2f2f2;
+/* 브라우저 호환성 개선 */
+.sticky-table thead {
+  position: relative; /* IE11 호환성 */
 }
 
-/* 셀 스타일 강화 */
+/* 모든 테이블 셀 기본 스타일 */
 .sticky-table th, .sticky-table td {
-  padding: 10px 15px;
-  border: 1px solid #ddd;
-}
-
-/* 짝수 행 배경색 */
-.sticky-table tbody tr:nth-child(even) {
-  background-color: #f8f9fa;
-}
-
-/* 행 호버 효과 */
-.sticky-table tbody tr:hover {
-  background-color: #e9ecef;
-}
-
-/* 스티키 컬럼 호버 시에도 배경색 유지 */
-.sticky-table tbody tr:hover .sticky-column {
-  background-color: #e9ecef;
+  background-clip: padding-box; /* 배경색이 테두리까지 확장되지 않도록 함 */
 }
 
 </style>
