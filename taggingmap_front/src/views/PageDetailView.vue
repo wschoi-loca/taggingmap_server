@@ -2907,6 +2907,7 @@ select {
 
 /* 이미지 확대 모달 스타일 */
 .image-modal {
+  position: fixed;
   background-color: white;
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
