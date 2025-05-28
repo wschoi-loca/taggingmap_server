@@ -26,7 +26,7 @@
           <p>다음 데이터가 함께 삭제됩니다:</p>
           <ul class="delete-info">
             <li>MongoDB의 태깅맵 데이터</li>
-            <li>Cloudinary에 저장된 이미지</li>
+            <li>Cloudinary에 저장된 태깅맵 이미지</li>
           </ul>
         </div>
         <div class="modal-footer">
@@ -321,10 +321,8 @@
 
 <script>
 import axios from 'axios';
+// PageDetailView.vue의 data와 created, computed 섹션 수정
 import PathMappingService from '@/services/PathMappingService';
-
-// axios 기본 타임아웃 설정
-axios.defaults.timeout = 60000; // 60초로 증가
 
 export default {
   name: 'PageDetailView',
@@ -334,27 +332,211 @@ export default {
   },
   components: {
   },
+  // 라이프사이클 훅 - mounted
+  mounted() {
+    // 기존 코드가 있다면 유지...
+    
+    // 창 크기 변경 시 스크롤 위치 업데이트 (5번 항목)
+    window.addEventListener('resize', this.updateScrollPosition);
+    
+    // 테이블 스크롤 이벤트 리스너 (6번 항목)
+    const container = this.$refs.tableScrollContainer;
+    if (container) {
+      container.addEventListener('scroll', this.updateScrollPosition);
+    }
+    
+    // 초기 스크롤 위치 설정 (5번 항목)
+    this.$nextTick(() => {
+      this.updateScrollPosition();
+    });
+  },
+
+  // 라이프사이클 훅 - updated
+  updated() {
+    // 기존 코드가 있다면 유지...
+    
+    // 데이터 변경 시 스크롤 위치 업데이트 (5번 항목)
+    this.$nextTick(() => {
+      this.updateScrollPosition();
+    });
+  },
+
+  // 라이프사이클 훅 - beforeDestroy
+  beforeUnmount() {
+    // 기존 코드가 있다면 유지...
+    
+    // 이벤트 리스너 제거 (5번 항목)
+    window.removeEventListener('resize', this.updateScrollPosition);
+    
+    // 테이블 스크롤 이벤트 리스너 제거 (6번 항목)
+    const container = this.$refs.tableScrollContainer;
+    if (container) {
+      container.removeEventListener('scroll', this.updateScrollPosition);
+    }
+  },
   data() {
     return {
-      // 페이지 로딩 상태
-      loading: true,
-      error: null,
-      
-      // 기본 데이터
-      pagetitle: '',
       taggingMaps: [],
       urls: [],
       times: [],
       pathMappings: {},
-      
-      // 필터 상태
-      selectedEventType: 'visibility',
+      selectedEventType: 'visibility', // 기본값을 'visibility'로 설정
       selectedUrl: '',
       selectedTimestamp: '',
-      isPopupFilter: false,
+      isPopupFilter: false, // 팝업 필터링 상태 (UI 요소는 제거했지만 기능은 유지)
+      loading: true,
+      error: null,
       preSelectedUrl: null,
-      preSelectedEventType: null,
+      preSelectedEventType: null, // 변수명 통일
       
+      // 컬럼 정렬 순서
+      columnOrder: [
+      "EVENTNAME",
+      "CATEGORY_DEPTH1",
+      "CATEGORY_DEPTH2",
+      "CATEGORY_DEPTH3",
+      "CATEGORY_DEPTH4",
+      "CATEGORY_DEPTH5",
+      "CATEGORY_DEPTH6",
+      "CATEGORY_DEPTH7",
+      "CATEGORY_DEPTH8",
+      "CATEGORY_DEPTH9",
+      "CATEGORY_DEPTH10",
+      "LABEL_TEXT",
+      "CONTENT_NM",
+      "PAGE_MKT_CONTS_ID",
+      "SUB_CTS_ID1",
+      "SUB_CTS_ID2",
+      "SUB_CTS_ID3",
+      "SUB_CTS_ID4",
+      "SUB_CTS_ID5",
+      "CONTENT_NM1",
+      "CONTENT_NM2",
+      "CONTENT_NM3",
+      "HORIZONTAL_INDEX",
+      "VERTICAL_INDEX",
+      "POPUP_MESSAGE",
+      "POPUP_BUTTON",
+      "POPUP_CLASS",
+      "AUTO_TAG_YN",
+      "PAGETITLE",
+      "ep_cd77_cur_page_title",
+      "PAGEPATH",
+      "CD123_CUR_PAGE_FULLURL",
+      "CTS_GROUP1",
+      "CTS_GROUP2",
+      "CTS_GROUP3",
+      "CTS_GROUP4",
+      "CTS_GROUP5",
+      "CTS_GROUP6",
+      "CTS_GROUP7",
+      "CTS_GROUP8",
+      "CTS_GROUP9",
+      "CTS_GROUP10",
+      "CTS_GROUP11",
+      "CTS_GROUP12",
+      "CTS_GROUP13",
+      "PAGE_DEPTH1",
+      "PAGE_DEPTH2",
+      "PAGE_DEPTH3",
+      "PAGE_DEPTH4",
+      "PAGE_DEPTH5",
+      "SEAK",
+      "SRCH_KEYWORD_TYPE",
+      "SEAK_SUS",
+      "SEAK_TP",
+      "CARD_NAME",
+      "CARD_CODE",
+      "PAGE_CARDAPL_CODE",
+      "PAGE_CARDAPL_KND",
+      "PAGE_FN_PD_NM",
+      "PAGE_FN_LOAN_AMT",
+      "PAGE_RVO_EGM_STT_RT",
+      "PAGE_RVO_EGM_STT_TE",
+      "PAGE_PD_APL_LVL",
+      "item_id",
+      "item_name",
+      "price",
+      "coupon_yn",
+      "discount",
+      "item_brand",
+      "CHANNEL_TYPE",
+      "EVENTCATEGORY",
+      "EVENTACTION",
+      "EVENTLABEL",
+      "CNO",
+      ],
+      // 삭제 기능 관련 추가
+      showDeleteModal: false,
+      isDeleting: false,
+      // 고급 검색 관련 추가
+      showAdvancedSearch: false,
+      searchFields: [
+        "EVENTNAME",
+        "LABEL_TEXT",
+        "PAGE_MKT_CONTS_ID",
+        "PAGEPATH",
+        "PAGETITLE",
+        "CATEGORY_DEPTH1",
+        "CATEGORY_DEPTH2",
+        "CATEGORY_DEPTH3",
+        "CATEGORY_DEPTH4",
+        "CATEGORY_DEPTH5",
+        "CATEGORY_DEPTH6",
+        "CATEGORY_DEPTH7",
+        "CATEGORY_DEPTH8",
+        "CATEGORY_DEPTH9",
+        "CATEGORY_DEPTH10",
+        "CONTENT_NM",
+        "SUB_CONTENT_ID",
+        "SUB_CTS_ID1",
+        "SUB_CTS_ID2",
+        "SUB_CTS_ID3",
+        "SUB_CTS_ID4",
+        "SUB_CTS_ID5",
+        "CONTENT_NM1",
+        "CONTENT_NM2",
+        "CONTENT_NM3",
+        "HORIZONTAL_INDEX",
+        "VERTICAL_INDEX",
+        "popup_message",
+        "popup_button",
+        "popup_class",
+        "AUTO_TAG_YN",
+        "TIME"
+        // 나머지 필드는 필요에 따라 추가
+      ],
+      advancedFilters: {
+        fields: {}
+      },
+      advancedSearchFilters: {
+        fields: {}
+      },
+      initialAdvancedFilters: {},
+      // 수정 관련 상태 변수
+      isEditing: false,
+      isSaving: false,
+      editImage: null,
+      editImageFile: null,
+      editColumns: [],
+      editData: [],
+      // 로그 파싱 관련
+      logFormat: 'android', // 기본값을 'android'로 변경
+      logText: '',
+      imageRealHeight: 0,
+      // 이미지 확대 관련
+      showImageModal: false,
+      zoomLevel: 1,
+      lastX: 0,
+      lastY: 0,
+      panPosition: { x: 0, y: 0 },
+      isDragging: false,
+      dragStart: { x: 0, y: 0 },
+      dragOrigin: { x: 0, y: 0 },
+      naturalWidth: 0,
+      naturalHeight: 0,
+      imageOffsetX: 0,
+      imageOffsetY: 0,
       // 토스트 상태 관리
       toast: {
         show: false,
@@ -362,48 +544,6 @@ export default {
         type: 'success',
         timer: null
       },
-      
-      // 삭제 관련
-      showDeleteModal: false,
-      isDeleting: false,
-      
-      // 고급 검색 관련
-      searchFields: ['LABEL_TEXT', 'EVENTNAME', 'ELEMENT_ID', 'ELEMENT_CLASS', 'PAGEPATH'],
-      showAdvancedSearch: false,
-      initialAdvancedFilters: {},
-      advancedFilters: {
-        fields: {}
-      },
-      advancedSearchFilters: {
-        fields: {}
-      },
-      
-      // 컬럼 정렬 순서
-      columnOrder: ['EVENTNAME', 'LABEL_TEXT', 'ELEMENT_ID', 'ELEMENT_CLASS', 'PAGETITLE', 'PAGEPATH', 'TIME'],
-      
-      // 수정 관련
-      isEditing: false,
-      editColumns: [],
-      editData: [],
-      editImage: null,
-      editImageFile: null,
-      isSaving: false,
-      
-      // 로그 파싱 관련
-      logFormat: 'android',
-      logText: '',
-      nextUniqueId: 1,
-      
-      // 이미지 관련
-      zoomLevel: 1,
-      panPosition: { x: 0, y: 0 },
-      isDragging: false,
-      lastX: 0,
-      lastY: 0,
-      naturalWidth: 0,
-      naturalHeight: 0,
-      showImageModal: false,
-      
       // 테이블 스크롤 상태
       scrollPosition: {
         current: 1,
@@ -412,15 +552,71 @@ export default {
       columnWidth: 180, // 기본 컬럼 너비 (픽셀)
       isScrollLeftEnd: true,
       isScrollRightEnd: false
-    };
+      }
   },
   computed: {
-    // 페이지 제목 포맷팅
+    imageWrapperStyle() {
+      return {
+        height: this.imageRealHeight
+          ? this.imageRealHeight + 'px'
+          : '90vh', // 기본값
+        width: "100%",  
+        minHeight: '300px',
+        overflow: 'visible',
+        background: '#eee',
+        display: 'flex',
+        alignItems: "flex-start",
+        justifyContent: "flex-start",
+        position: 'relative',
+        userSelect: 'none',
+      };
+    },
+    zoomedImageStyle() {
+      // width/height와 left/top을 모두 panPosition, zoomLevel로 적용!
+      return {
+        width: this.naturalWidth ? `${this.naturalWidth * this.zoomLevel}px` : "auto",
+        height: this.naturalHeight ? `${this.naturalHeight * this.zoomLevel}px` : "auto",
+        maxWidth: "none",
+        maxHeight: "none",
+        position: "relative",
+        left: `${this.panPosition.x}px`,
+        top: `${this.panPosition.y}px`,
+        userSelect: "none",
+        pointerEvents: "auto",
+        transition: this.isDragging ? "none" : "transform 0.12s, left 0.12s, top 0.12s",
+        cursor: this.isDragging ? 'grabbing' : 'grab',  // 추가: 드래그 중이면 grabbing, 아니면 grab
+      };
+    },
+  
+    // 파싱 버튼 활성화 여부
+    canParse() {
+      return this.logText.trim() !== '';
+    },
+    
+    // URL 경로에서 PAGETITLE 형식 계산 (기존 코드)
+    pagetitle() {
+      let path = this.subdomain || '';
+      
+      if (this.pathMatch && this.pathMatch.length > 0) {
+        path = path + '>' + this.pathMatch.join('>');
+      }
+      
+      return path;
+    },
+
+    // 사용자 친화적인 한글 제목을 포함하는 형식으로 PAGETITLE 포맷팅
+    // 수정된 formattedPagetitle 메서드 - 다양한 형식 고려
+    // 사용자 친화적인 한글 제목을 포함하는 형식으로 PAGETITLE 포맷팅
     formattedPagetitle() {
-      const englishTitle = this.pagetitle || '';
+      const englishTitle = this.pagetitle;
+      
+      console.log('현재 pagetitle:', englishTitle);
+      console.log('사용 가능한 매핑 키:', Object.keys(this.pathMappings));
+      
+      // 1. 직접 매치 시도
       let koreanTitle = this.pathMappings[englishTitle];
       
-      // 직접 매치가 안되면 부분 경로 매치 시도
+      // 2. 직접 매치가 안되면 부분 경로 매치 시도
       if (!koreanTitle && englishTitle) {
         // 경로의 각 부분을 분리
         const pathParts = englishTitle.split('>');
@@ -511,97 +707,39 @@ export default {
         (a, b) => Number(a.SHOT_NUMBER) - Number(b.SHOT_NUMBER)
       );
     },
-    
-    // 이미지 스타일 계산 (이미지 확대/축소 및 드래그를 위한)
-    zoomedImageStyle() {
-      return {
-        transform: `scale(${this.zoomLevel})`,
-        transformOrigin: 'top left',
-      };
-    },
-    
-    imageWrapperStyle() {
-      return {
-        transform: `translate(${this.panPosition.x}px, ${this.panPosition.y}px)`,
-      };
-    },
-    
-    // 로그 파싱 가능 여부
-    canParse() {
-      return this.logText.trim().length > 0;
-    }
   },
-  
-  // 라이프사이클 훅 - created
   async created() {
     try {
-      // 페이지 제목 추출 (URL에서)
-      if (this.pathMatch && this.pathMatch.length > 0) {
-        this.pagetitle = this.pathMatch[0];
-      } else if (this.$route.params.pagetitle) {
-        this.pagetitle = decodeURIComponent(this.$route.params.pagetitle);
-      }
-      
       // 경로 매핑 데이터 로드
       this.pathMappings = await PathMappingService.loadMappings();
       console.log("경로 매핑 데이터 로드 완료:", Object.keys(this.pathMappings).length);
-      
-      // URL 쿼리 파라미터 확인
-      const urlParam = this.$route.query.url;
-      const eventTypeParam = this.$route.query.eventType;
-      const isPopupParam = this.$route.query.isPopup;
-      
-      // 나머지 코드는 그대로...
-      if (urlParam) {
-        this.preSelectedUrl = decodeURIComponent(urlParam);
-      }
-      
-      if (eventTypeParam && ['visibility', 'click'].includes(eventTypeParam)) {
-        this.preSelectedEventType = eventTypeParam;
-        this.selectedEventType = eventTypeParam;
-      }
-      
-      if (isPopupParam === 'true') {
-        this.isPopupFilter = true;
-      }
-      
-      this.initAdvancedFilters();
-      this.fetchPageData();
-      
+      console.log("매핑 데이터 내용:", this.pathMappings);
     } catch (error) {
-      console.error('초기화 중 오류:', error);
-      this.error = '페이지 초기화 중 오류가 발생했습니다.';
-      this.loading = false; // 오류 발생 시 로딩 상태 해제
-    }
-  },
-  
-  // 라이프사이클 훅 - mounted
-  mounted() {
-    // 창 크기 변경 시 스크롤 위치 업데이트
-    window.addEventListener('resize', this.updateScrollPosition);
-    
-    // 테이블 스크롤 이벤트 리스너
-    const container = this.$refs.tableScrollContainer;
-    if (container) {
-      container.addEventListener('scroll', this.updateScrollPosition);
+      console.error('경로 매핑 데이터 로드 실패:', error);
+      this.pathMappings = {};
     }
     
-    // 초기 스크롤 위치 설정
-    this.$nextTick(() => {
-      this.updateScrollPosition();
-    });
-  },
-  
-  // 라이프사이클 훅 - beforeUnmount
-  beforeUnmount() {
-    // 이벤트 리스너 제거
-    window.removeEventListener('resize', this.updateScrollPosition);
+    // URL 쿼리 파라미터 확인
+    const urlParam = this.$route.query.url;
+    const eventTypeParam = this.$route.query.eventType;
+    const isPopupParam = this.$route.query.isPopup;
     
-    // 테이블 스크롤 이벤트 리스너 제거
-    const container = this.$refs.tableScrollContainer;
-    if (container) {
-      container.removeEventListener('scroll', this.updateScrollPosition);
+    // 나머지 코드는 그대로...
+    if (urlParam) {
+      this.preSelectedUrl = decodeURIComponent(urlParam);
     }
+    
+    if (eventTypeParam && ['visibility', 'click'].includes(eventTypeParam)) {
+      this.preSelectedEventType = eventTypeParam;
+      this.selectedEventType = eventTypeParam;
+    }
+    
+    if (isPopupParam === 'true') {
+      this.isPopupFilter = true;
+    }
+    
+    this.initAdvancedFilters();
+    this.fetchPageData();
   },
 
   watch: {
@@ -611,141 +749,211 @@ export default {
       this.fetchPageData();
     }
   },
-  
   methods: {
-    // 팝업 필터 변경 처리
-    async handlePopupFilterChange() {
-      this.selectedUrl = '';
-      this.selectedTimestamp = ''; // selectedTime -> selectedTimestamp 수정
-      this.taggingMaps = [];
-      await this.handleEventTypeChange(); // 메서드명 변경
-    },
-    
-    async fetchPageData() {
-      try {
-        this.loading = true;
-        this.error = null;
-        
-        // 사전 선택된 이벤트 타입이 있으면 적용
-        if (this.preSelectedEventType) {
-          this.selectedEventType = this.preSelectedEventType;
-        } else {
-          // 기본값은 visibility로 설정
-          this.selectedEventType = 'visibility';
-        }
-        
-        // URL 목록 가져오기
-        await this.handleEventTypeChange(true); // 자동 전환 플래그 추가
-      } catch (error) {
-        console.error('Error fetching page data:', error);
-        this.error = '페이지 데이터를 불러오는데 실패했습니다.';
-        this.loading = false;
-      }
-    },
-
-    // 이벤트 타입 변경 핸들러
-    selectEventType(eventType) {
-      if (this.selectedEventType === eventType) return;
-      this.selectedEventType = eventType;
-      this.handleEventTypeChange(false); // 자동 전환 없음
-    },
-
-    async handleEventTypeChange(autoSwitch = false) { 
-      try {
+      // 팝업 필터 변경 처리
+      async handlePopupFilterChange() {
         this.selectedUrl = '';
-        this.selectedTimestamp = '';
-        this.times = [];
+        this.selectedTimestamp = ''; // selectedTime -> selectedTimestamp 수정
         this.taggingMaps = [];
-        
-        const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
-        
-        // 쿼리 파라미터 구성 (고급 검색 필터 포함)
-        const params = {
-          isPopup: this.isPopupFilter
-        };
-        
-        // 고급 검색 필터가 적용된 경우 파라미터에 추가
-        if (this.hasActiveAdvancedFilters) {
-          for (const field in this.advancedSearchFilters.fields) {
-            const filter = this.advancedSearchFilters.fields[field];
-            if (filter.anyValue) {
-              params[`${field}_exists`] = 'true';
-            } else if (filter.value) {
-              params[field] = filter.value;
+        await this.handleEventTypeChange(); // 메서드명 변경
+      },
+      
+      async fetchPageData() {
+        try {
+          this.loading = true;
+          this.error = null;
+          
+          // 사전 선택된 이벤트 타입이 있으면 적용
+          if (this.preSelectedEventType) {
+            this.selectedEventType = this.preSelectedEventType;
+          } else {
+            // 기본값은 visibility로 설정
+            this.selectedEventType = 'visibility';
+          }
+          
+          // URL 목록 가져오기
+          await this.handleEventTypeChange(true); // 자동 전환 플래그 추가
+        } catch (error) {
+          console.error('Error fetching page data:', error);
+          this.error = '페이지 데이터를 불러오는데 실패했습니다.';
+          this.loading = false;
+        }
+      },
+
+      // 이벤트 타입 변경 핸들러
+      selectEventType(eventType) {
+        if (this.selectedEventType === eventType) return;
+        this.selectedEventType = eventType;
+        this.handleEventTypeChange(false); // 자동 전환 없음
+      },
+
+      async handleEventTypeChange(autoSwitch = false) { 
+        try {
+          this.selectedUrl = '';
+          this.selectedTimestamp = '';
+          this.times = [];
+          this.taggingMaps = [];
+          
+          const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
+          
+          // 쿼리 파라미터 구성 (고급 검색 필터 포함)
+          const params = {
+            isPopup: this.isPopupFilter
+          };
+          
+          // 고급 검색 필터가 적용된 경우 파라미터에 추가
+          if (this.hasActiveAdvancedFilters) {
+            for (const field in this.advancedSearchFilters.fields) {
+              const filter = this.advancedSearchFilters.fields[field];
+              if (filter.anyValue) {
+                params[`${field}_exists`] = 'true';
+              } else if (filter.value) {
+                params[field] = filter.value;
+              }
             }
           }
-        }
-        
-        // URL 목록 가져오기
-        const urlsResponse = await axios.get(
-          `${baseUrl}/api/urls/${this.pagetitle}/${this.selectedEventType}`,
-          { params }
-        );
-        
-        // null URL 필터링
-        this.urls = urlsResponse.data.filter(url => url.url !== null);
-        
-        // URLs이 없고, 현재 이벤트 타입이 visibility이며, 자동 전환이 활성화된 경우
-        if (this.urls.length === 0 && this.selectedEventType === 'visibility' && autoSwitch) {
-          console.log('No visibility data found, switching to click events');
-          this.selectedEventType = 'click';
           
-          // 클릭 이벤트로 다시 시도
-          const clickUrlsResponse = await axios.get(
-            `${baseUrl}/api/urls/${this.pagetitle}/click`,
+          // URL 목록 가져오기
+          const urlsResponse = await axios.get(
+            `${baseUrl}/api/urls/${this.pagetitle}/${this.selectedEventType}`,
             { params }
           );
           
           // null URL 필터링
-          this.urls = clickUrlsResponse.data.filter(url => url.url !== null);
-        }
-        
-        // 팝업 필터가 켜져 있고 URL 결과가 없을 경우 사용자에게 알림
-        if (this.urls.length === 0 && this.isPopupFilter) {
-          this.error = '선택한 페이지에 팝업 이벤트가 포함된 태깅맵이 없습니다.';
-          this.loading = false;
-          return;
-        }
+          this.urls = urlsResponse.data.filter(url => url.url !== null);
+          
+          // URLs이 없고, 현재 이벤트 타입이 visibility이며, 자동 전환이 활성화된 경우
+          if (this.urls.length === 0 && this.selectedEventType === 'visibility' && autoSwitch) {
+            console.log('No visibility data found, switching to click events');
+            this.selectedEventType = 'click';
             
-        // URL 선택 처리
-        if (this.urls.length > 0) {
-          if (this.preSelectedUrl && this.urls.find(u => u.url === this.preSelectedUrl)) {
-            this.selectedUrl = this.preSelectedUrl;
-          } else {
-            this.selectedUrl = this.urls[0].url;
+            // 클릭 이벤트로 다시 시도
+            const clickUrlsResponse = await axios.get(
+              `${baseUrl}/api/urls/${this.pagetitle}/click`,
+              { params }
+            );
+            
+            // null URL 필터링
+            this.urls = clickUrlsResponse.data.filter(url => url.url !== null);
           }
           
-          // 선택된 URL로 시간 목록 가져오기
-          await this.handleUrlChange();
-          
-          // 사전 선택된 URL 처리 후 변수 초기화
-          this.preSelectedUrl = null;
-          this.preSelectedEventType = null;
-        } else {
+          // 팝업 필터가 켜져 있고 URL 결과가 없을 경우 사용자에게 알림
+          if (this.urls.length === 0 && this.isPopupFilter) {
+            this.error = '선택한 페이지에 팝업 이벤트가 포함된 태깅맵이 없습니다.';
+            this.loading = false;
+            return;
+          }
+              
+          // URL 선택 처리
+          if (this.urls.length > 0) {
+            if (this.preSelectedUrl && this.urls.find(u => u.url === this.preSelectedUrl)) {
+              this.selectedUrl = this.preSelectedUrl;
+            } else {
+              this.selectedUrl = this.urls[0].url;
+            }
+            
+            // 선택된 URL로 시간 목록 가져오기
+            await this.handleUrlChange();
+            
+            // 사전 선택된 URL 처리 후 변수 초기화
+            this.preSelectedUrl = null;
+            this.preSelectedEventType = null;
+          } else {
+            this.loading = false;
+          }
+        } catch (error) {
+          console.error('Error fetching URLs:', error);
+          this.error = 'URL 목록을 불러오는데 실패했습니다.';
           this.loading = false;
         }
-      } catch (error) {
-        console.error('Error fetching URLs:', error);
-        this.error = 'URL 목록을 불러오는데 실패했습니다.';
-        this.loading = false;
-      }
-    },
-    
-    async handleUrlChange() {
-      try {
-        this.selectedTimestamp = '';
-        this.taggingMaps = [];
-        
-        const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
-        const encodedUrl = encodeURIComponent(this.selectedUrl);
-        
-        // 쿼리 파라미터 구성 (고급 검색 필터 포함)
-        const params = {
-          isPopup: this.isPopupFilter
-        };
-        
-        // 고급 검색 필터가 적용된 경우 파라미터에 추가
-        if (this.hasActiveAdvancedFilters) {
+      },
+      
+      async handleUrlChange() {
+        try {
+          this.selectedTimestamp = '';
+          this.taggingMaps = [];
+          
+          const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
+          const encodedUrl = encodeURIComponent(this.selectedUrl);
+          
+          // 쿼리 파라미터 구성 (고급 검색 필터 포함)
+          const params = {
+            isPopup: this.isPopupFilter
+          };
+          
+          // 고급 검색 필터가 적용된 경우 파라미터에 추가
+          if (this.hasActiveAdvancedFilters) {
+            for (const field in this.advancedSearchFilters.fields) {
+              const filter = this.advancedSearchFilters.fields[field];
+              if (filter.anyValue) {
+                params[`${field}_exists`] = 'true';
+              } else if (filter.value) {
+                params[field] = filter.value;
+              }
+            }
+          }
+          
+          // 시간 목록 가져오기 - 서버가 이제 eventNames를 포함해 반환
+          const timesResponse = await axios.get(
+            `${baseUrl}/api/times/${this.pagetitle}/${this.selectedEventType}/${encodedUrl}`,
+            { params }
+          );
+          
+          // 시간 데이터 처리
+          this.times = timesResponse.data.sort((a, b) => 
+            new Date(b.timestamp) - new Date(a.timestamp)
+          );
+          
+          console.log('Times loaded with event names:', this.times);
+          
+          // 기본 timestamp 설정 (최신 시간)
+          if (this.times.length > 0) {
+            // timestamp가 있는지 명시적으로 확인
+            const latestTime = this.times[0];
+            if (latestTime && latestTime.timestamp) {
+              this.selectedTimestamp = latestTime.timestamp;
+              console.log('Auto-selected timestamp:', this.selectedTimestamp);
+              
+              // 필터링된 데이터 가져오기
+              await this.fetchFilteredData();
+            } else {
+              console.error('Latest time object does not have timestamp:', latestTime);
+              this.loading = false;
+            }
+          } else {
+            this.loading = false;
+          }
+          
+        } catch (error) {
+          console.error('Error fetching times:', error);
+          this.error = '시간 목록을 불러오는데 실패했습니다.';
+          this.loading = false;
+        }
+      },
+      
+      // 타임스탬프 변경 핸들러 추가
+      async handleTimestampChange() {
+        if (!this.selectedTimestamp) return;
+        await this.fetchFilteredData();
+      },
+      
+      // 필터 조건이 적용된 URL 목록 로드 메서드 추가
+      async refreshUrlsWithFilters() {
+        try {
+          this.loading = true;
+          this.selectedUrl = '';
+          this.selectedTimestamp = '';
+          this.times = [];
+          this.taggingMaps = [];
+          
+          const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
+          
+          // URL 목록 요청 파라미터에 고급 검색 필터 추가
+          const params = {
+            isPopup: this.isPopupFilter
+          };
+          
+          // 고급 검색 필터 추가
           for (const field in this.advancedSearchFilters.fields) {
             const filter = this.advancedSearchFilters.fields[field];
             if (filter.anyValue) {
@@ -754,505 +962,507 @@ export default {
               params[field] = filter.value;
             }
           }
-        }
-        
-        // 시간 목록 가져오기 - 서버가 이제 eventNames를 포함해 반환
-        const timesResponse = await axios.get(
-          `${baseUrl}/api/times/${this.pagetitle}/${this.selectedEventType}/${encodedUrl}`,
-          { params }
-        );
-        
-        // 시간 데이터 처리
-        this.times = timesResponse.data.sort((a, b) => 
-          new Date(b.timestamp) - new Date(a.timestamp)
-        );
-        
-        console.log('Times loaded with event names:', this.times);
-        
-        // 기본 timestamp 설정 (최신 시간)
-        if (this.times.length > 0) {
-          // timestamp가 있는지 명시적으로 확인
-          const latestTime = this.times[0];
-          if (latestTime && latestTime.timestamp) {
-            this.selectedTimestamp = latestTime.timestamp;
-            console.log('Auto-selected timestamp:', this.selectedTimestamp);
+          
+          // 필터가 적용된 URL 목록 가져오기
+          const urlsResponse = await axios.get(
+            `${baseUrl}/api/urls/${this.pagetitle}/${this.selectedEventType}`,
+            { params }
+          );
+          
+          // null URL 필터링
+          this.urls = urlsResponse.data.filter(url => url.url !== null);
+          
+          // URL 선택 처리
+          if (this.urls.length > 0) {
+            this.selectedUrl = this.urls[0].url;
             
-            // 필터링된 데이터 가져오기
-            await this.fetchFilteredData();
+            // 선택된 URL로 필터링된 시간 목록 가져오기
+            await this.handleUrlChangeWithFilters();
           } else {
-            console.error('Latest time object does not have timestamp:', latestTime);
             this.loading = false;
           }
-        } else {
+        } catch (error) {
+          console.error('Error fetching filtered URLs:', error);
+          this.error = '필터링된 URL 목록을 불러오는데 실패했습니다.';
           this.loading = false;
         }
-        
-      } catch (error) {
-        console.error('Error fetching times:', error);
-        this.error = '시간 목록을 불러오는데 실패했습니다.';
-        this.loading = false;
-      }
-    },
-    
-    // 타임스탬프 변경 핸들러 추가
-    async handleTimestampChange() {
-      if (!this.selectedTimestamp) return;
-      await this.fetchFilteredData();
-    },
-    
-    // 필터 조건이 적용된 URL 목록 로드 메서드 추가
-    async refreshUrlsWithFilters() {
-      try {
-        this.loading = true;
+      },
+      
+      // 이벤트 이름 목록을 포맷팅하는 함수
+      formatEventNames(eventNames) {
+        if (!eventNames || eventNames.length === 0) return '';
+        return ` | ${eventNames.join(' | ')}`;
+      },
+
+      // 필터 조건이 적용된 타임스탬프 목록 로드 메서드
+      async handleUrlChangeWithFilters() {
+        try {
+          this.selectedTimestamp = '';
+          this.taggingMaps = [];
+          
+          const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
+          const encodedUrl = encodeURIComponent(this.selectedUrl);
+          
+          // 타임스탬프 목록 요청 파라미터에 고급 검색 필터 추가
+          const params = {
+            isPopup: this.isPopupFilter
+          };
+          
+          // 고급 검색 필터 추가
+          for (const field in this.advancedSearchFilters.fields) {
+            const filter = this.advancedSearchFilters.fields[field];
+            if (filter.anyValue) {
+              params[`${field}_exists`] = 'true';
+            } else if (filter.value) {
+              params[field] = filter.value;
+            }
+          }
+          
+          // 필터가 적용된 시간 목록 가져오기
+          // 서버에서 이제 timestamp와 eventNames를 포함하여 반환
+          const timesResponse = await axios.get(
+            `${baseUrl}/api/times/${this.pagetitle}/${this.selectedEventType}/${encodedUrl}`,
+            { params }
+          );
+          
+          // 시간 데이터 처리 - 서버에서 반환된 형태 그대로 사용
+          // (각 항목은 timestamp와 eventNames 배열을 포함)
+          const timesData = timesResponse.data;
+          
+          // 시간 목록 정렬 (최신순)
+          this.times = timesData.sort((a, b) => 
+            new Date(b.timestamp) - new Date(a.timestamp)
+          );
+          
+          console.log('Filtered times loaded with event names:', this.times);
+          
+          // 기본 timestamp 설정 (최신 시간)
+          if (this.times.length > 0) {
+            const latestTime = this.times[0];
+            if (latestTime && latestTime.timestamp) {
+              this.selectedTimestamp = latestTime.timestamp;
+              
+              // 필터링된 데이터 가져오기
+              await this.fetchFilteredData();
+            } else {
+              this.loading = false;
+            }
+          } else {
+            this.loading = false;
+          }
+          
+        } catch (error) {
+          console.error('Error fetching filtered times:', error);
+          this.error = '필터링된 시간 목록을 불러오는데 실패했습니다.';
+          this.loading = false;
+        }
+      },
+      
+      resetFilters() {
+        this.urls = [];
+        this.times = [];
+        this.selectedEventType = 'visibility'; // 기본값 변경
         this.selectedUrl = '';
         this.selectedTimestamp = '';
-        this.times = [];
+        this.isPopupFilter = false;
         this.taggingMaps = [];
-        
-        const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
-        
-        // URL 목록 요청 파라미터에 고급 검색 필터 추가
-        const params = {
-          isPopup: this.isPopupFilter
-        };
-        
-        // 고급 검색 필터 추가
-        for (const field in this.advancedSearchFilters.fields) {
-          const filter = this.advancedSearchFilters.fields[field];
-          if (filter.anyValue) {
-            params[`${field}_exists`] = 'true';
-          } else if (filter.value) {
-            params[field] = filter.value;
-          }
-        }
-        
-        // 필터가 적용된 URL 목록 가져오기
-        const urlsResponse = await axios.get(
-          `${baseUrl}/api/urls/${this.pagetitle}/${this.selectedEventType}`,
-          { params }
-        );
-        
-        // null URL 필터링
-        this.urls = urlsResponse.data.filter(url => url.url !== null);
-        
-        // URL 선택 처리
-        if (this.urls.length > 0) {
-          this.selectedUrl = this.urls[0].url;
+        // 고급 검색 필터도 초기화
+        this.advancedSearchFilters.fields = JSON.parse(JSON.stringify(this.initialAdvancedFilters));
+      },
+      
+      // 타임스탬프 포맷팅 함수
+      formatTimestamp(timestamp) {
+        if (!timestamp) return '';
+        try {
+          const date = new Date(timestamp);
           
-          // 선택된 URL로 필터링된 시간 목록 가져오기
-          await this.handleUrlChangeWithFilters();
-        } else {
-          this.loading = false;
-        }
-      } catch (error) {
-        console.error('Error fetching filtered URLs:', error);
-        this.error = '필터링된 URL 목록을 불러오는데 실패했습니다.';
-        this.loading = false;
-      }
-    },
-    
-    // 이벤트 이름 목록을 포맷팅하는 함수
-    formatEventNames(eventNames) {
-      if (!eventNames || eventNames.length === 0) return '';
-      return ` | ${eventNames.join(' | ')}`;
-    },
-
-    // 필터 조건이 적용된 타임스탬프 목록 로드 메서드
-    async handleUrlChangeWithFilters() {
-      try {
-        this.selectedTimestamp = '';
-        this.taggingMaps = [];
-        
-        const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
-        const encodedUrl = encodeURIComponent(this.selectedUrl);
-        
-        // 타임스탬프 목록 요청 파라미터에 고급 검색 필터 추가
-        const params = {
-          isPopup: this.isPopupFilter
-        };
-        
-        // 고급 검색 필터 추가
-        for (const field in this.advancedSearchFilters.fields) {
-          const filter = this.advancedSearchFilters.fields[field];
-          if (filter.anyValue) {
-            params[`${field}_exists`] = 'true';
-          } else if (filter.value) {
-            params[field] = filter.value;
+          // 유효한 날짜인지 확인
+          if (isNaN(date.getTime())) {
+            return timestamp;
           }
-        }
-        
-        // 필터가 적용된 시간 목록 가져오기
-        // 서버에서 이제 timestamp와 eventNames를 포함하여 반환
-        const timesResponse = await axios.get(
-          `${baseUrl}/api/times/${this.pagetitle}/${this.selectedEventType}/${encodedUrl}`,
-          { params }
-        );
-        
-        // 시간 데이터 처리 - 서버에서 반환된 형태 그대로 사용
-        // (각 항목은 timestamp와 eventNames 배열을 포함)
-        const timesData = timesResponse.data;
-        
-        // 시간 목록 정렬 (최신순)
-        this.times = timesData.sort((a, b) => 
-          new Date(b.timestamp) - new Date(a.timestamp)
-        );
-        
-        console.log('Filtered times loaded with event names:', this.times);
-        
-        // 기본 timestamp 설정 (최신 시간)
-        if (this.times.length > 0) {
-          const latestTime = this.times[0];
-          if (latestTime && latestTime.timestamp) {
-            this.selectedTimestamp = latestTime.timestamp;
-            
-            // 필터링된 데이터 가져오기
-            await this.fetchFilteredData();
-          } else {
-            this.loading = false;
-          }
-        } else {
-          this.loading = false;
-        }
-        
-      } catch (error) {
-        console.error('Error fetching filtered times:', error);
-        this.error = '필터링된 시간 목록을 불러오는데 실패했습니다.';
-        this.loading = false;
-      }
-    },
-    
-    resetFilters() {
-      this.urls = [];
-      this.times = [];
-      this.selectedEventType = 'visibility'; // 기본값 변경
-      this.selectedUrl = '';
-      this.selectedTimestamp = '';
-      this.isPopupFilter = false;
-      this.taggingMaps = [];
-      // 고급 검색 필터도 초기화
-      this.advancedSearchFilters.fields = JSON.parse(JSON.stringify(this.initialAdvancedFilters));
-    },
-    
-    // 타임스탬프 포맷팅 함수
-    formatTimestamp(timestamp) {
-      if (!timestamp) return '';
-      try {
-        const date = new Date(timestamp);
-        
-        // 유효한 날짜인지 확인
-        if (isNaN(date.getTime())) {
+          
+          // 날짜와 시간 포맷팅 (YYYY-MM-DD HH:MM:SS)
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          const hours = String(date.getHours()).padStart(2, '0');
+          const minutes = String(date.getMinutes()).padStart(2, '0');
+          const seconds = String(date.getSeconds()).padStart(2, '0');
+          
+          return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        } catch (error) {
+          console.error('Error formatting timestamp:', error);
           return timestamp;
         }
-        
-        // 날짜와 시간 포맷팅 (YYYY-MM-DD HH:MM:SS)
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        const seconds = String(date.getSeconds()).padStart(2, '0');
-        
-        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-      } catch (error) {
-        console.error('Error formatting timestamp:', error);
-        return timestamp;
-      }
-    },
-    
-    // 모달 대신 새 창에서 이미지 보기
-    openImageModal() {
-      if (!this.taggingMaps || this.taggingMaps.length === 0) return;
+      },
       
-      const imageUrl = this.taggingMaps[0].image;
-      if (!imageUrl) return;
+      // 모달 대신 새 창에서 이미지 보기
+      openImageModal() {
+        if (!this.taggingMaps || this.taggingMaps.length === 0) return;
+        
+        const imageUrl = this.taggingMaps[0].image;
+        if (!imageUrl) return;
+        
+        // 새 창으로 이미지 열기
+        const newWindow = window.open('', '_blank', 'width=1000,height=800');
+        newWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>원본 이미지</title>
+            <style>
+              body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
+              .container { max-width: 100%; text-align: center; }
+              img { max-width: 100%; height: auto; }
+              h1 { margin-bottom: 20px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h1>원본 이미지</h1>
+              <img src="${imageUrl}" alt="원본 이미지" />
+            </div>
+          </body>
+          </html>
+        `);
+        newWindow.document.close();
+      },
       
-      // 새 창으로 이미지 열기
-      const newWindow = window.open('', '_blank', 'width=1000,height=800');
-      newWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>원본 이미지</title>
-          <style>
-            body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
-            .container { max-width: 100%; text-align: center; }
-            img { max-width: 100%; height: auto; }
-            h1 { margin-bottom: 20px; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <h1>원본 이미지</h1>
-            <img src="${imageUrl}" alt="원본 이미지" />
-          </div>
-        </body>
-        </html>
-      `);
-      newWindow.document.close();
-    },
-    
-    // 삭제 확인 모달 표시
-    confirmDelete() {
-      this.showDeleteModal = true;
-    },
-    
-    // 태깅맵 삭제 처리
-    async deleteTaggingMap() {
-      try {
-        if (!this.taggingMaps || this.taggingMaps.length === 0 || !this.taggingMaps[0]._id) {
-          this.showDeleteModal = false;
-          this.$router.push('/');
-          return;
-        }
+      // 모달 대신 새 창에서 표 보기
+      /*openTableModal() {
+        if (!this.taggingMaps || this.taggingMaps.length === 0 || !this.sortedColumns) return;
         
-        this.isDeleting = true;
-        const taggingMapId = this.taggingMaps[0]._id;
-        const imageUrl = this.taggingMaps[0].image || '';
+        // 테이블 HTML 생성
+        let tableHTML = `
+          <table style="width:100%; border-collapse: collapse; margin-top: 20px;">
+            <thead>
+              <tr>
+                <th style="border:1px solid #ddd; padding:8px; background-color:#f2f2f2;">SHOT_NUMBER</th>
+        `;
         
-        const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
-        const response = await axios.delete(`${baseUrl}/api/taggingmaps/${taggingMapId}`, {
-          data: {
-            imageUrl: imageUrl
-          }
+        // 테이블 헤더 추가
+        this.sortedColumns.forEach(column => {
+          tableHTML += `<th style="border:1px solid #ddd; padding:8px; background-color:#f2f2f2;">${column}</th>`;
         });
         
-        if (response.status === 200) {
-          // 삭제 성공
-          this.showDeleteModal = false;
+        tableHTML += `</tr></thead><tbody>`;
+        
+        // 테이블 본문 추가
+        this.taggingMaps[0].eventParams.forEach(data => {
+          tableHTML += `<tr><td style="border:1px solid #ddd; padding:8px;">${data.SHOT_NUMBER || '-'}</td>`;
           
-          // 성공 메시지 표시 (알림 라이브러리가 있다면 사용)
-          alert('태깅맵이 성공적으로 삭제되었습니다.');
+          this.sortedColumns.forEach(column => {
+            tableHTML += `<td style="border:1px solid #ddd; padding:8px;">${data[column] || '-'}</td>`;
+          });
           
-          // 메인 페이지로 이동
-          this.$router.push('/');
-        } else {
-          throw new Error(`삭제 요청 실패: ${response.status}`);
-        }
-      } catch (error) {
-        console.error('태깅맵 삭제 중 오류 발생:', error);
-        alert(`삭제 실패: ${error.message}`);
-      } finally {
-        this.isDeleting = false;
-        this.showDeleteModal = false;
-      }
-    },
-    
-    // 고급 검색 필드 초기화
-    initAdvancedFilters() {
-      const initialFields = {};
-      this.searchFields.forEach(field => {
-        initialFields[field] = { anyValue: false, value: '' };
-      });
-      
-      this.initialAdvancedFilters = JSON.parse(JSON.stringify(initialFields));
-      this.advancedFilters.fields = JSON.parse(JSON.stringify(initialFields));
-      this.advancedSearchFilters.fields = JSON.parse(JSON.stringify(initialFields));
-    },
-    
-    // 고급 검색 모달 토글
-    toggleAdvancedSearch() {
-      this.showAdvancedSearch = !this.showAdvancedSearch;
-      
-      // 모달이 열릴 때 현재 적용된 필터로 초기화
-      if (this.showAdvancedSearch) {
-        // 깊은 복사로 필드 필터 초기화
-        this.advancedFilters.fields = JSON.parse(JSON.stringify(this.initialAdvancedFilters));
-        
-        // 현재 적용된 필터가 있으면 설정
-        for (const field in this.advancedSearchFilters.fields) {
-          if (this.advancedFilters.fields[field]) {
-            this.advancedFilters.fields[field] = { 
-              ...this.advancedSearchFilters.fields[field] 
-            };
-          }
-        }
-      }
-    },
-    
-    // 고급 검색 필터 초기화
-    resetAdvancedFilters() {
-      this.advancedFilters.fields = JSON.parse(JSON.stringify(this.initialAdvancedFilters));
-    },
-    
-    // 고급 검색 적용 - 수정됨
-    applyAdvancedSearch() {
-      // 깊은 복사로 현재 필터 상태 저장
-      this.advancedSearchFilters.fields = JSON.parse(JSON.stringify(this.advancedFilters.fields));
-      
-      // 모달 닫기
-      this.showAdvancedSearch = false;
-      
-      // 필터 조건이 변경되었으므로 URL 목록부터 다시 로드
-      this.refreshUrlsWithFilters();
-    },
-    
-    // 필터 제거 - 수정됨
-    removeAdvancedFilter(key) {
-      if (this.advancedSearchFilters.fields[key]) {
-        this.advancedSearchFilters.fields[key] = { anyValue: false, value: '' };
-      }
-      
-      // 필터가 변경되었으므로 URL 목록부터 다시 로드
-      this.refreshUrlsWithFilters();
-    },
-    
-    // 모든 필터 초기화 - 수정됨
-    clearAllAdvancedFilters() {
-      for (const key in this.advancedSearchFilters.fields) {
-        this.advancedSearchFilters.fields[key] = { anyValue: false, value: '' };
-      }
-      
-      // 필터가 초기화되었으므로 URL 목록부터 다시 로드
-      this.refreshUrlsWithFilters();
-    },
-    
-    // 필터링된 데이터 가져오기
-    async fetchFilteredData() {
-      try {
-        if (!this.selectedEventType || !this.selectedUrl || !this.selectedTimestamp) {
-          this.loading = false; // 조건 불충족 시 로딩 종료
-          return;
-        }
-        
-        this.loading = true;
-        console.log('Fetching filtered data...'); // 디버깅 로그 추가
-        
-        const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
-        let url = this.selectedUrl;
-        
-        // URL 디코딩 처리
-        while (url.includes('%')) {
-          const decodedUrl = decodeURIComponent(url);
-          if (decodedUrl === url) break;
-          url = decodedUrl;
-        }
-        
-        // 기본 파라미터 설정
-        const params = {
-          pagetitle: this.pagetitle,
-          eventtype: this.selectedEventType,
-          url: url,
-          timestamp: this.selectedTimestamp,
-          isPopup: this.isPopupFilter
-        };
-        
-        // 고급 검색 필터 추가
-        for (const field in this.advancedSearchFilters.fields) {
-          const filter = this.advancedSearchFilters.fields[field];
-          if (filter.anyValue) {
-            params[`${field}_exists`] = 'true';
-          } else if (filter.value) {
-            params[field] = filter.value;
-          }
-        }
-        
-        console.log('API 요청 파라미터:', params); // 디버깅 로그 추가
-        
-        // 필터링된 데이터 가져오기
-        const filteredResponse = await axios.get(`${baseUrl}/api/taggingmaps/filtered`, {
-          params,
-          timeout: 60000
+          tableHTML += `</tr>`;
         });
         
-        console.log('API 응답 받음:', filteredResponse.status); // 디버깅 로그 추가
+        tableHTML += `</tbody></table>`;
         
-        // 응답 데이터 확인
-        if (!filteredResponse.data) {
-          console.error('응답 데이터가 없음');
-          this.taggingMaps = [];
-          this.error = '데이터를 가져올 수 없습니다.';
-        } else {
-          console.log('데이터 길이:', Array.isArray(filteredResponse.data) ? filteredResponse.data.length : 'Not an array');
-          this.taggingMaps = filteredResponse.data;
-        }
-        
-      } catch (error) {
-        console.error('Error fetching filtered data:', error);
-        this.error = '필터링된 데이터를 불러오는데 실패했습니다.';
-      } finally {
-        // finally 블록에서 항상 로딩 상태 해제
-        console.log('로딩 상태 해제');
-        this.loading = false;
-      }
-    },
+        // 새 창으로 테이블 열기
+        const newWindow = window.open('', '_blank', 'width=1200,height=800');
+        newWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>전체 데이터 표</title>
+            <style>
+              body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
+              .container { width: 100%; overflow-x: auto; }
+              h1 { margin-bottom: 20px; }
+              table { border-collapse: collapse; width: 100%; }
+              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+              th { position: sticky; top: 0; background-color: #f2f2f2; }
+              tr:nth-child(even) { background-color: #f8f9fa; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h1>전체 데이터 표</h1>
+              ${tableHTML}
+            </div>
+          </body>
+          </html>
+        `);
+        newWindow.document.close();
+      },*/
 
-    startEdit() {
-      if (!this.taggingMaps || this.taggingMaps.length === 0) return;
+      // 삭제 확인 모달 표시
+      confirmDelete() {
+        this.showDeleteModal = true;
+      },
       
-      // 현재 컬럼 목록 복사
-      this.editColumns = [...this.sortedColumns];
+      // 태깅맵 삭제 처리
+      async deleteTaggingMap() {
+        try {
+          if (!this.taggingMaps || this.taggingMaps.length === 0 || !this.taggingMaps[0]._id) {
+            this.showDeleteModal = false;
+            this.$router.push('/');
+            return;
+          }
+          
+          this.isDeleting = true;
+          const taggingMapId = this.taggingMaps[0]._id;
+          const imageUrl = this.taggingMaps[0].image || '';
+          
+          const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
+          const response = await axios.delete(`${baseUrl}/api/taggingmaps/${taggingMapId}`, {
+            data: {
+              imageUrl: imageUrl
+            }
+          });
+          
+          if (response.status === 200) {
+            // 삭제 성공
+            this.showDeleteModal = false;
+            
+            // 성공 메시지 표시 (알림 라이브러리가 있다면 사용)
+            alert('태깅맵이 성공적으로 삭제되었습니다.');
+            
+            // 메인 페이지로 이동
+            this.$router.push('/');
+          } else {
+            throw new Error(`삭제 요청 실패: ${response.status}`);
+          }
+        } catch (error) {
+          console.error('태깅맵 삭제 중 오류 발생:', error);
+          alert(`삭제 실패: ${error.message}`);
+        } finally {
+          this.isDeleting = false;
+          this.showDeleteModal = false;
+        }
+      },
       
-      // 깊은 복사로 데이터 복사
-      this.editData = JSON.parse(JSON.stringify(this.taggingMaps[0].eventParams));
+      // 고급 검색 필드 초기화
+      initAdvancedFilters() {
+        const initialFields = {};
+        this.searchFields.forEach(field => {
+          initialFields[field] = { anyValue: false, value: '' };
+        });
+        
+        this.initialAdvancedFilters = JSON.parse(JSON.stringify(initialFields));
+        this.advancedFilters.fields = JSON.parse(JSON.stringify(initialFields));
+        this.advancedSearchFilters.fields = JSON.parse(JSON.stringify(initialFields));
+      },
       
-      // 수정 모드 활성화
-      this.isEditing = true;
-    },
-    
-    // 수정 취소
-    cancelEdit() {
-      if(confirm('수정을 취소하시겠습니까? 변경된 내용은 저장되지 않습니다.')) {
-        this.isEditing = false;
-        this.editImage = null;
-        this.editImageFile = null;
-        this.editColumns = [];
-        this.editData = [];
-      }
-    },
-    
-    // 이미지 선택 창 열기
-    triggerImageSelect() {
-      this.$refs.imageInput.click();
-    },
-    
-    // 이미지 변경 처리
-    handleImageChange(event) {
-      const file = event.target.files[0];
-      if (!file) return;
+      // 고급 검색 모달 토글
+      toggleAdvancedSearch() {
+        this.showAdvancedSearch = !this.showAdvancedSearch;
+        
+        // 모달이 열릴 때 현재 적용된 필터로 초기화
+        if (this.showAdvancedSearch) {
+          // 깊은 복사로 필드 필터 초기화
+          this.advancedFilters.fields = JSON.parse(JSON.stringify(this.initialAdvancedFilters));
+          
+          // 현재 적용된 필터가 있으면 설정
+          for (const field in this.advancedSearchFilters.fields) {
+            if (this.advancedFilters.fields[field]) {
+              this.advancedFilters.fields[field] = { 
+                ...this.advancedSearchFilters.fields[field] 
+              };
+            }
+          }
+        }
+      },
       
-      this.editImageFile = file;
+      // 고급 검색 필터 초기화
+      resetAdvancedFilters() {
+        this.advancedFilters.fields = JSON.parse(JSON.stringify(this.initialAdvancedFilters));
+      },
       
-      // 이미지 미리보기
-      const reader = new FileReader();
-      reader.onload = e => {
-        this.editImage = e.target.result;
-      };
-      reader.readAsDataURL(file);
-    },
-    
-    // 컬럼 추가
-    addColumn() {
-      const newColumn = prompt('새 컬럼 이름을 입력하세요:');
-      if (!newColumn || newColumn.trim() === '') return;
+      // 고급 검색 적용 - 수정됨
+      applyAdvancedSearch() {
+        // 깊은 복사로 현재 필터 상태 저장
+        this.advancedSearchFilters.fields = JSON.parse(JSON.stringify(this.advancedFilters.fields));
+        
+        // 모달 닫기
+        this.showAdvancedSearch = false;
+        
+        // 필터 조건이 변경되었으므로 URL 목록부터 다시 로드
+        this.refreshUrlsWithFilters();
+      },
       
-      const formattedColumn = newColumn.trim().toUpperCase();
+      // 필터 제거 - 수정됨
+      removeAdvancedFilter(key) {
+        if (this.advancedSearchFilters.fields[key]) {
+          this.advancedSearchFilters.fields[key] = { anyValue: false, value: '' };
+        }
+        
+        // 필터가 변경되었으므로 URL 목록부터 다시 로드
+        this.refreshUrlsWithFilters();
+      },
       
-      // 중복 확인
-      if (this.editColumns.includes(formattedColumn)) {
-        alert(`'${formattedColumn}' 컬럼이 이미 존재합니다.`);
-        return;
-      }
+      // 모든 필터 초기화 - 수정됨
+      clearAllAdvancedFilters() {
+        for (const key in this.advancedSearchFilters.fields) {
+          this.advancedSearchFilters.fields[key] = { anyValue: false, value: '' };
+        }
+        
+        // 필터가 초기화되었으므로 URL 목록부터 다시 로드
+        this.refreshUrlsWithFilters();
+      },
+      
+      // 필터링된 데이터 가져오기
+      async fetchFilteredData() {
+        try {
+          if (!this.selectedEventType || !this.selectedUrl || !this.selectedTimestamp) {
+            this.loading = false;
+            return;
+          }
+          
+          this.loading = true;
+          
+          const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
+          let url = this.selectedUrl;
+          
+          // URL 디코딩 처리
+          while (url.includes('%')) {
+            const decodedUrl = decodeURIComponent(url);
+            if (decodedUrl === url) break;
+            url = decodedUrl;
+          }
+          
+          // 기본 파라미터 설정
+          const params = {
+            pagetitle: this.pagetitle,
+            eventtype: this.selectedEventType,
+            url: url,
+            timestamp: this.selectedTimestamp,
+            isPopup: this.isPopupFilter
+          };
+          
+          // 고급 검색 필터 추가
+          for (const field in this.advancedSearchFilters.fields) {
+            const filter = this.advancedSearchFilters.fields[field];
+            if (filter.anyValue) {
+              params[`${field}_exists`] = 'true';
+            } else if (filter.value) {
+              params[field] = filter.value;
+            }
+          }
+          
+          // 필터링된 데이터 가져오기
+          const filteredResponse = await axios.get(`${baseUrl}/api/taggingmaps/filtered`, {
+            params,
+            timeout: 30000
+          });
+          
+          this.taggingMaps = filteredResponse.data;
+          
+          // 데이터가 로드된 후 콘솔에 사용 가능한 키 출력 (디버깅용)
+          if (this.taggingMaps.length > 0 && this.taggingMaps[0].eventParams && this.taggingMaps[0].eventParams.length > 0) {
+            console.log('Available columns:', Object.keys(this.taggingMaps[0].eventParams[0]));
+          }
+          
+          this.loading = false;
+          
+        } catch (error) {
+          console.error('Error fetching filtered data:', error);
+          this.error = '필터링된 데이터를 불러오는데 실패했습니다.';
+          this.loading = false;
+        }
+      },
+      startEdit() {
+        if (!this.taggingMaps || this.taggingMaps.length === 0) return;
+        
+        // 현재 컬럼 목록 복사
+        this.editColumns = [...this.sortedColumns];
+        
+        // 깊은 복사로 데이터 복사
+        this.editData = JSON.parse(JSON.stringify(this.taggingMaps[0].eventParams));
+        
+        // 수정 모드 활성화
+        this.isEditing = true;
+      },
+      
+      // 수정 취소
+      cancelEdit() {
+        if(confirm('수정을 취소하시겠습니까? 변경된 내용은 저장되지 않습니다.')) {
+          this.isEditing = false;
+          this.editImage = null;
+          this.editImageFile = null;
+          this.editColumns = [];
+          this.editData = [];
+        }
+      },
+      
+      // 이미지 선택 창 열기
+      triggerImageSelect() {
+        this.$refs.imageInput.click();
+      },
+      
+      // 이미지 변경 처리
+      handleImageChange(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        this.editImageFile = file;
+        
+        // 이미지 미리보기
+        const reader = new FileReader();
+        reader.onload = e => {
+          this.editImage = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      },
       
       // 컬럼 추가
-      this.editColumns.push(formattedColumn);
+      addColumn() {
+        const newColumn = prompt('새 컬럼 이름을 입력하세요:');
+        if (!newColumn || newColumn.trim() === '') return;
+        
+        const formattedColumn = newColumn.trim().toUpperCase();
+        
+        // 중복 확인
+        if (this.editColumns.includes(formattedColumn)) {
+          alert(`'${formattedColumn}' 컬럼이 이미 존재합니다.`);
+          return;
+        }
+        
+        // 컬럼 추가
+        this.editColumns.push(formattedColumn);
+        
+        // 모든 로우에 새 컬럼 추가
+        this.editData.forEach(row => {
+          row[formattedColumn] = '';
+        });
+      },
       
-      // 모든 로우에 새 컬럼 추가
-      this.editData.forEach(row => {
-        row[formattedColumn] = '';
-      });
-    },
-    
-    // 로우 추가
-    addRow() {
-      if (this.editData.length === 0) {
-        // 데이터가 없는 경우 초기 로우 생성
-        const currentTime = new Date().toISOString();
+      // 로우 추가
+      addRow() {
+        if (this.editData.length === 0) {
+          // 데이터가 없는 경우 초기 로우 생성
+          const currentTime = new Date().toISOString();
+          const newRow = {
+            SHOT_NUMBER: 0,
+            EVENTNAME: this.selectedEventType === 'visibility' ? 'cts_view' : 'cts_click',
+            PAGETITLE: this.taggingMaps[0]?.PAGETITLE || '',
+            PAGEPATH: this.taggingMaps[0]?.URL || '',
+            TIME: this.formatTime(currentTime)
+          };
+          
+          // 모든 컬럼 초기화
+          this.editColumns.forEach(column => {
+            if (!['SHOT_NUMBER', 'EVENTNAME', 'PAGETITLE', 'PAGEPATH', 'TIME'].includes(column)) {
+              newRow[column] = '';
+            }
+          });
+          
+          this.editData.push(newRow);
+          return;
+        }
+        
+        // 마지막 로우 가져오기
+        const lastRow = this.editData[this.editData.length - 1];
+        
+        // 새 로우 생성
         const newRow = {
-          SHOT_NUMBER: 0,
-          EVENTNAME: this.selectedEventType === 'visibility' ? 'cts_view' : 'cts_click',
-          PAGETITLE: this.taggingMaps[0]?.PAGETITLE || '',
-          PAGEPATH: this.taggingMaps[0]?.URL || '',
-          TIME: this.formatTime(currentTime)
+          SHOT_NUMBER: parseInt(lastRow.SHOT_NUMBER) + 1,
+          EVENTNAME: lastRow.EVENTNAME || '',
+          PAGETITLE: lastRow.PAGETITLE || '',
+          PAGEPATH: lastRow.PAGEPATH || '',
+          TIME: lastRow.TIME || ''
         };
         
         // 모든 컬럼 초기화
@@ -1262,884 +1472,859 @@ export default {
           }
         });
         
+        // 로우 추가
         this.editData.push(newRow);
-        return;
-      }
+      },
       
-      // 마지막 로우 가져오기
-      const lastRow = this.editData[this.editData.length - 1];
-      
-      // 새 로우 생성
-      const newRow = {
-        SHOT_NUMBER: parseInt(lastRow.SHOT_NUMBER) + 1,
-        EVENTNAME: lastRow.EVENTNAME || '',
-        PAGETITLE: lastRow.PAGETITLE || '',
-        PAGEPATH: lastRow.PAGEPATH || '',
-        TIME: lastRow.TIME || ''
-      };
-      
-      // 모든 컬럼 초기화
-      this.editColumns.forEach(column => {
-        if (!['SHOT_NUMBER', 'EVENTNAME', 'PAGETITLE', 'PAGEPATH', 'TIME'].includes(column)) {
-          newRow[column] = '';
+      // 로우 삭제
+      removeRow(index) {
+        if (confirm('이 행을 삭제하시겠습니까?')) {
+          this.editData.splice(index, 1);
+          
+          // SHOT_NUMBER 재정렬
+          this.editData.forEach((row, idx) => {
+            row.SHOT_NUMBER = idx;
+          });
         }
-      });
+      },
       
-      // 로우 추가
-      this.editData.push(newRow);
-    },
-    
-    // 로우 삭제
-    removeRow(index) {
-      if (confirm('이 행을 삭제하시겠습니까?')) {
-        this.editData.splice(index, 1);
-        
-        // SHOT_NUMBER 재정렬
+      validateShotNumber(index) {
+        // 음수 방지
+        if (this.editData[index].SHOT_NUMBER < 0) {
+          this.editData[index].SHOT_NUMBER = 0;
+        }
+        // 중복 체크는 저장 시 일괄 처리
+      },
+
+      // 변경사항 저장
+      async saveChanges() {
+        try {
+          if (!this.taggingMaps || this.taggingMaps.length === 0) return;
+
+          // SHOT_NUMBER 중복 체크
+          const shotNumbers = this.editData.map(row => row.SHOT_NUMBER);
+          const hasDuplicates = shotNumbers.length !== new Set(shotNumbers).size;
+          if (hasDuplicates) {
+            alert('SHOT_NUMBER 값이 중복된 행이 있습니다. 모든 SHOT_NUMBER는 고유해야 합니다.');
+            this.isSaving = false;
+            return;
+          }
+          
+          this.isSaving = true;
+          const taggingMapId = this.taggingMaps[0]._id;
+          
+          const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
+          const formData = new FormData();
+          
+          // 데이터 추가
+          formData.append('eventParams', JSON.stringify(this.editData));
+          
+          // 이미지가 변경된 경우 추가
+          if (this.editImageFile) {
+            formData.append('image', this.editImageFile);
+          }
+          
+          // 태깅맵 업데이트 요청
+          const response = await axios.put(`${baseUrl}/api/taggingmaps/${taggingMapId}`, formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data'
+            }
+          });
+          
+          if (response.status === 200) {
+            // 수정 성공
+            alert('태깅맵이 성공적으로 수정되었습니다.');
+            this.isEditing = false;
+            
+            // 수정 상태 초기화
+            this.editImage = null;
+            this.editImageFile = null;
+            this.editColumns = [];
+            this.editData = [];
+            
+            // 현재 페이지 리로드
+            this.fetchFilteredData();
+          } else {
+            throw new Error('수정 요청이 실패했습니다.');
+          }
+        } catch (error) {
+          console.error('태깅맵 수정 중 오류:', error);
+          alert(`수정 실패: ${error.message}`);
+        } finally {
+          this.isSaving = false;
+        }
+      },
+      // 행 이동
+      moveRow(index, direction) {
+        if (direction === 'up' && index > 0) {
+          // 위로 이동
+          const temp = this.editData[index];
+          this.editData.splice(index, 1);
+          this.editData.splice(index - 1, 0, temp);
+          // SHOT_NUMBER 업데이트
+          this.updateShotNumbers();
+        } else if (direction === 'down' && index < this.editData.length - 1) {
+          // 아래로 이동
+          const temp = this.editData[index];
+          this.editData.splice(index, 1);
+          this.editData.splice(index + 1, 0, temp);
+          // SHOT_NUMBER 업데이트
+          this.updateShotNumbers();
+        }
+      },
+      
+      // SHOT_NUMBER 업데이트
+      updateShotNumbers() {
         this.editData.forEach((row, idx) => {
           row.SHOT_NUMBER = idx;
         });
-      }
-    },
-    
-    validateShotNumber(index) {
-      // 음수 방지
-      if (this.editData[index].SHOT_NUMBER < 0) {
-        this.editData[index].SHOT_NUMBER = 0;
-      }
-      // 중복 체크는 저장 시 일괄 처리
-    },
+      },
 
-    // 변경사항 저장
-    async saveChanges() {
-      try {
-        if (!this.taggingMaps || this.taggingMaps.length === 0) return;
+      // 로그 파일 선택 트리거
+      triggerLogFileSelect() {
+        this.$refs.logFileInput.click();
+      },
 
-        // SHOT_NUMBER 중복 체크
-        const shotNumbers = this.editData.map(row => row.SHOT_NUMBER);
-        const hasDuplicates = shotNumbers.length !== new Set(shotNumbers).size;
-        if (hasDuplicates) {
-          alert('SHOT_NUMBER 값이 중복된 행이 있습니다. 모든 SHOT_NUMBER는 고유해야 합니다.');
-          this.isSaving = false;
-          return;
-        }
+      // 로그 파일 변경 처리
+      handleLogFileChange(event) {
+        const file = event.target.files[0];
+        if (!file) return;
         
-        this.isSaving = true;
-        const taggingMapId = this.taggingMaps[0]._id;
+        this.logFileName = file.name;
         
-        const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
-        const formData = new FormData();
-        
-        // 데이터 추가
-        formData.append('eventParams', JSON.stringify(this.editData));
-        
-        // 이미지가 변경된 경우 추가
-        if (this.editImageFile) {
-          formData.append('image', this.editImageFile);
-        }
-        
-        // 태깅맵 업데이트 요청
-        const response = await axios.put(`${baseUrl}/api/taggingmaps/${taggingMapId}`, formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
-        });
-        
-        if (response.status === 200) {
-          // 수정 성공
-          alert('태깅맵이 성공적으로 수정되었습니다.');
-          this.isEditing = false;
-          
-          // 수정 상태 초기화
-          this.editImage = null;
-          this.editImageFile = null;
-          this.editColumns = [];
-          this.editData = [];
-          
-          // 현재 페이지 리로드
-          this.fetchFilteredData();
-        } else {
-          throw new Error('수정 요청이 실패했습니다.');
-        }
-      } catch (error) {
-        console.error('태깅맵 수정 중 오류:', error);
-        alert(`수정 실패: ${error.message}`);
-      } finally {
-        this.isSaving = false;
-      }
-    },
-    
-    // 행 이동
-    moveRow(index, direction) {
-      if (direction === 'up' && index > 0) {
-        // 위로 이동
-        const temp = this.editData[index];
-        this.editData.splice(index, 1);
-        this.editData.splice(index - 1, 0, temp);
-        // SHOT_NUMBER 업데이트
-        this.updateShotNumbers();
-      } else if (direction === 'down' && index < this.editData.length - 1) {
-        // 아래로 이동
-        const temp = this.editData[index];
-        this.editData.splice(index, 1);
-        this.editData.splice(index + 1, 0, temp);
-        // SHOT_NUMBER 업데이트
-        this.updateShotNumbers();
-      }
-    },
-    
-    // SHOT_NUMBER 업데이트
-    updateShotNumbers() {
-      this.editData.forEach((row, idx) => {
-        row.SHOT_NUMBER = idx;
-      });
-    },
-
-    // 로그 파일 선택 트리거
-    triggerLogFileSelect() {
-      this.$refs.logFileInput.click();
-    },
-
-    // 로그 파일 변경 처리
-    handleLogFileChange(event) {
-      const file = event.target.files[0];
-      if (!file) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+          this.logFileContent = e.target.result;
+        };
+        reader.readAsText(file);
+      },
       
-      this.logFileName = file.name;
-      
-      const reader = new FileReader();
-      reader.onload = e => {
-        this.logFileContent = e.target.result;
-      };
-      reader.readAsText(file);
-    },
-    
-    // 로그 파싱 (수정)
-    parseLog() {
-      try {
-        if (!this.logText.trim()) {
-          alert('파싱할 로그 내용이 없습니다.');
-          return;
-        }
-        
-        let parsedData = [];
-        
-        // 로그 형식에 따라 파싱
-        if (this.logFormat === 'android') {
-          parsedData = this.parseAndroidLog(this.logText);
-        } else if (this.logFormat === 'ios') {
-          parsedData = this.parseIOSLog(this.logText);
-        }
-        
-        if (parsedData.length === 0) {
-          alert('파싱할 데이터가 없거나 형식이 올바르지 않습니다.');
-          return;
-        }
-        
-        // 파싱된 데이터 추가
-        this.addParsedDataToTable(parsedData);
-        
-        // 입력 초기화
-        this.clearLogInput();
-        
-      } catch (error) {
-        console.error('로그 파싱 중 오류 발생:', error);
-        alert(`로그 파싱 중 오류가 발생했습니다: ${error.message}`);
-      }
-    },
-    
-    // 안드로이드 로그 파싱
-    parseAndroidLog(logText) {
-      const rows = [];
-      const lines = logText.split('\n').filter(line => line.trim());
-      
-      // logcat 로그에서 JSON 데이터 추출
-      for (const line of lines) {
+      // 로그 파싱 (수정)
+      parseLog() {
         try {
-          // 로그에서 JSON 문자열 부분 추출
-          const jsonStartIndex = line.indexOf('{"log_body"');
-          if (jsonStartIndex === -1) continue;
+          if (!this.logText.trim()) {
+            alert('파싱할 로그 내용이 없습니다.');
+            return;
+          }
           
-          const jsonStr = line.substring(jsonStartIndex);
-          const logData = JSON.parse(jsonStr);
+          let parsedData = [];
           
-          if (!logData.log_body || !logData.log_body.length) continue;
+          // 로그 형식에 따라 파싱
+          if (this.logFormat === 'android') {
+            parsedData = this.parseAndroidLog(this.logText);
+          } else if (this.logFormat === 'ios') {
+            parsedData = this.parseIOSLog(this.logText);
+          }
           
-          for (const event of logData.log_body) {
-            // 기본 데이터 준비
-            let pagetitle = "";
-            let url = "";
+          if (parsedData.length === 0) {
+            alert('파싱할 데이터가 없거나 형식이 올바르지 않습니다.');
+            return;
+          }
+          
+          // 파싱된 데이터 추가
+          this.addParsedDataToTable(parsedData);
+          
+          // 성공 메시지
+          //alert(`${parsedData.length}개의 데이터가 성공적으로 파싱되어 추가되었습니다.`);
+          
+          // 입력 초기화
+          this.clearLogInput();
+          
+        } catch (error) {
+          console.error('로그 파싱 중 오류 발생:', error);
+          alert(`로그 파싱 중 오류가 발생했습니다: ${error.message}`);
+        }
+      },
+  
+      
+      // 안드로이드 로그 파싱
+      parseAndroidLog(logText) {
+        const rows = [];
+        const lines = logText.split('\n').filter(line => line.trim());
+        
+        // logcat 로그에서 JSON 데이터 추출
+        for (const line of lines) {
+          try {
+            // 로그에서 JSON 문자열 부분 추출
+            const jsonStartIndex = line.indexOf('{"log_body"');
+            if (jsonStartIndex === -1) continue;
             
-            if (logData.dt) {
-              pagetitle = logData.dt;
-            } else if (logData.screen_name) {
-              pagetitle = logData.screen_name;
-            }
+            const jsonStr = line.substring(jsonStartIndex);
+            const logData = JSON.parse(jsonStr);
             
-            if (logData.dl) {
-              url = logData.dl;
-            }
+            if (!logData.log_body || !logData.log_body.length) continue;
             
-            const time = logData.timestamp || new Date().toISOString();
-            
-            // 행 데이터 생성
-            if (event.eventParams) {
-              const row = {
-                uniqueId: this.nextUniqueId++,
-                SHOT_NUMBER: this.editData.length + rows.length,
-                EVENTNAME: event.en || '',
-                PAGEPATH: url,
-                PAGETITLE: pagetitle,
-                TIME: this.formatTime(time),
-                SOURCE: 'AUTO'  // 자동 파싱이므로 AUTO 표시
-              };
+            for (const event of logData.log_body) {
+              // 기본 데이터 준비
+              let pagetitle = "";
+              let url = "";
               
-              // 추가 파라미터 처리
-              this.processEventParams(row, event.eventParams);
-              
-              // 상품 정보 처리
-              if (event.eventParams.items && Array.isArray(event.eventParams.items)) {
-                for (const item of event.eventParams.items) {
-                  if (item.item_id) row.ITEM_ID = item.item_id;
-                  if (item.item_name) row.ITEM_NAME = item.item_name;
-                  if (item.price) row.PRICE = item.price;
-                  if (item.coupon) row.COUPON_YN = item.coupon;
-                  if (item.discount) row.DISCOUNT = item.discount;
-                  if (item.item_brand) row.ITEM_BRAND = item.item_brand;
-                }
+              if (logData.dt) {
+                pagetitle = logData.dt;
+              } else if (logData.screen_name) {
+                pagetitle = logData.screen_name;
               }
               
-              rows.push(row);
+              if (logData.dl) {
+                url = logData.dl;
+              }
+              
+              const time = logData.timestamp || new Date().toISOString();
+              
+              // 행 데이터 생성
+              if (event.eventParams) {
+                const row = {
+                  uniqueId: this.nextUniqueId++,
+                  SHOT_NUMBER: this.editData.length + rows.length,
+                  EVENTNAME: event.en || '',
+                  PAGEPATH: url,
+                  PAGETITLE: pagetitle,
+                  TIME: this.formatTime(time),
+                  SOURCE: 'AUTO'  // 자동 파싱이므로 AUTO 표시
+                };
+                
+                // 추가 파라미터 처리
+                this.processEventParams(row, event.eventParams);
+                
+                // 상품 정보 처리
+                if (event.eventParams.items && Array.isArray(event.eventParams.items)) {
+                  for (const item of event.eventParams.items) {
+                    if (item.item_id) row.ITEM_ID = item.item_id;
+                    if (item.item_name) row.ITEM_NAME = item.item_name;
+                    if (item.price) row.PRICE = item.price;
+                    if (item.coupon) row.COUPON_YN = item.coupon;
+                    if (item.discount) row.DISCOUNT = item.discount;
+                    if (item.item_brand) row.ITEM_BRAND = item.item_brand;
+                  }
+                }
+                
+                rows.push(row);
+              }
+            }
+          } catch (error) {
+            console.error('안드로이드 로그 파싱 중 오류:', error, line);
+            // 오류가 있는 라인은 건너뛰고 다음 라인 파싱 계속
+          }
+        }
+        
+        return rows;
+      },
+      
+      // iOS 로그 파싱
+      parseIOSLog(logText) {
+        const rows = [];
+        
+        try {
+          // iOS 로그는 일반적으로 JSON 형식이므로 바로 파싱
+          const jsonObjects = this.extractJsonObjects(logText);
+          
+          for (const logData of jsonObjects) {
+            if (!logData.log_body || !logData.log_body.length) continue;
+            
+            for (const event of logData.log_body) {
+              // 기본 데이터 준비
+              let pagetitle = "";
+              let url = "";
+              
+              if (logData.dt) {
+                pagetitle = logData.dt;
+              } else if (logData.screen_name) {
+                pagetitle = logData.screen_name;
+              }
+              
+              if (logData.dl) {
+                url = logData.dl;
+              }
+              
+              const time = logData.timestamp || new Date().toISOString();
+              
+              // 행 데이터 생성
+              if (event.eventParams) {
+                const row = {
+                  uniqueId: this.nextUniqueId++,
+                  SHOT_NUMBER: this.editData.length + rows.length,
+                  EVENTNAME: event.en || '',
+                  PAGEPATH: url,
+                  PAGETITLE: pagetitle,
+                  TIME: this.formatTime(time),
+                  SOURCE: 'AUTO'  // 자동 파싱이므로 AUTO 표시
+                };
+                
+                // 추가 파라미터 처리
+                this.processEventParams(row, event.eventParams);
+                
+                // 상품 정보 처리
+                if (event.eventParams.items && Array.isArray(event.eventParams.items)) {
+                  for (const item of event.eventParams.items) {
+                    if (item.item_id) row.ITEM_ID = item.item_id;
+                    if (item.item_name) row.ITEM_NAME = item.item_name;
+                    if (item.price) row.PRICE = item.price;
+                    if (item.coupon) row.COUPON_YN = item.coupon;
+                    if (item.discount) row.DISCOUNT = item.discount;
+                    if (item.item_brand) row.ITEM_BRAND = item.item_brand;
+                  }
+                }
+                
+                // LABEL_TEXT가 없으면 기본값 설정
+                if (!row['LABEL_TEXT']) {
+                  row['LABEL_TEXT'] = '(라벨 없음)';
+                }
+                
+                rows.push(row);
+              }
             }
           }
         } catch (error) {
-          console.error('안드로이드 로그 파싱 중 오류:', error, line);
-          // 오류가 있는 라인은 건너뛰고 다음 라인 파싱 계속
+          console.error('iOS 로그 파싱 중 오류:', error);
+          throw new Error(`iOS 로그 파싱 실패: ${error.message}`);
         }
-      }
-      
-      return rows;
-    },
-    
-    // iOS 로그 파싱
-    parseIOSLog(logText) {
-      const rows = [];
-      
-      try {
-        // iOS 로그는 일반적으로 JSON 형식이므로 바로 파싱
-        const jsonObjects = this.extractJsonObjects(logText);
         
-        for (const logData of jsonObjects) {
-          if (!logData.log_body || !logData.log_body.length) continue;
-          
-          for (const event of logData.log_body) {
-            // 기본 데이터 준비
-            let pagetitle = "";
-            let url = "";
-            
-            if (logData.dt) {
-              pagetitle = logData.dt;
-            } else if (logData.screen_name) {
-              pagetitle = logData.screen_name;
-            }
-            
-            if (logData.dl) {
-              url = logData.dl;
-            }
-            
-            const time = logData.timestamp || new Date().toISOString();
-            
-            // 행 데이터 생성
-            if (event.eventParams) {
-              const row = {
-                uniqueId: this.nextUniqueId++,
-                SHOT_NUMBER: this.editData.length + rows.length,
-                EVENTNAME: event.en || '',
-                PAGEPATH: url,
-                PAGETITLE: pagetitle,
-                TIME: this.formatTime(time),
-                SOURCE: 'AUTO'  // 자동 파싱이므로 AUTO 표시
-              };
-              
-              // 추가 파라미터 처리
-              this.processEventParams(row, event.eventParams);
-              
-              // 상품 정보 처리
-              if (event.eventParams.items && Array.isArray(event.eventParams.items)) {
-                for (const item of event.eventParams.items) {
-                  if (item.item_id) row.ITEM_ID = item.item_id;
-                  if (item.item_name) row.ITEM_NAME = item.item_name;
-                  if (item.price) row.PRICE = item.price;
-                  if (item.coupon) row.COUPON_YN = item.coupon;
-                  if (item.discount) row.DISCOUNT = item.discount;
-                  if (item.item_brand) row.ITEM_BRAND = item.item_brand;
-                }
-              }
-              
-              // LABEL_TEXT가 없으면 기본값 설정
-              if (!row['LABEL_TEXT']) {
-                row['LABEL_TEXT'] = '(라벨 없음)';
-              }
-              
-              rows.push(row);
-            }
-          }
-        }
-      } catch (error) {
-        console.error('iOS 로그 파싱 중 오류:', error);
-        throw new Error(`iOS 로그 파싱 실패: ${error.message}`);
-      }
-      
-      return rows;
-    },
+        return rows;
+      },
 
-    // 시간 형식 변환
-    formatTime(timeStr) {
-      try {
-        const date = new Date(timeStr);
-        return date.toLocaleString('ko-KR', {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          hour12: false
-        });
-      } catch (e) {
-        return timeStr; // 변환 실패 시 원본 반환
-      }
-    },
-
-    // 이벤트 파라미터 처리
-    processEventParams(targetRow, eventParams) {
-      // 객체 형태의 eventParams 처리
-      if (eventParams && typeof eventParams === 'object' && !Array.isArray(eventParams)) {
-        for (const [key, value] of Object.entries(eventParams)) {
-          // items 배열은 별도 처리
-          if (key === 'items') continue;
-          
-          // 중첩된 객체는 JSON 문자열로 변환
-          if (typeof value === 'object' && value !== null) {
-            targetRow[key.toUpperCase()] = JSON.stringify(value);
-          } else {
-            targetRow[key.toUpperCase()] = String(value);
-          }
-        }
-      }
-    },
-    
-    // JSON 객체 추출
-    extractJsonObjects(text) {
-      const jsonObjects = [];
-      try {
-        // 전체 텍스트가 단일 JSON인 경우
-        const fullJson = JSON.parse(text);
-        if (fullJson) {
-          jsonObjects.push(fullJson);
-          return jsonObjects;
-        }
-      } catch (e) {
-        // 단일 JSON이 아니면 여러 JSON 객체를 찾기
-        const jsonRegex = /\{(?:[^{}]|(?:\{(?:[^{}]|(?:\{[^{}]*\}))*\}))*\}/g;
-        const matches = text.match(jsonRegex);
-        
-        if (matches) {
-          for (const match of matches) {
-            try {
-              const json = JSON.parse(match);
-              if (json && json.log_body) {
-                jsonObjects.push(json);
-              }
-            } catch (e) {
-              // 파싱 실패한 JSON은 무시
-            }
-          }
-        }
-      }
-      return jsonObjects;
-    },
-
-    // 파싱된 데이터를 테이블에 추가
-    addParsedDataToTable(parsedRows) {
-      // 컬럼 추가 (기존에 없는 컬럼)
-      parsedRows.forEach(row => {
-        Object.keys(row).forEach(key => {
-          if (key !== 'uniqueId' && key !== 'SHOT_NUMBER' && !this.editColumns.includes(key)) {
-            this.editColumns.push(key);
-          }
-        });
-      });
-      
-      // 모든 행의 데이터 추가
-      this.editData.push(...parsedRows);
-      
-      // SHOT_NUMBER 재조정
-      this.updateShotNumbers();
-    },
-    
-    // 로그 입력 초기화
-    clearLogInput() {
-      this.logText = '';
-    },
-
-    // 컬럼 삭제
-    removeColumn(columnName) {
-      if (this.isRequiredColumn(columnName)) {
-        alert('필수 컬럼은 삭제할 수 없습니다.');
-        return;
-      }
-      
-      if (confirm(`'${columnName}' 컬럼을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`)) {
-        // editColumns 배열에서 컬럼 제거
-        const columnIndex = this.editColumns.indexOf(columnName);
-        if (columnIndex !== -1) {
-          this.editColumns.splice(columnIndex, 1);
-          
-          // 모든 행에서 해당 컬럼 속성 제거
-          this.editData.forEach(row => {
-            delete row[columnName];
+      // 시간 형식 변환
+      formatTime(timeStr) {
+        try {
+          const date = new Date(timeStr);
+          return date.toLocaleString('ko-KR', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
           });
+        } catch (e) {
+          return timeStr; // 변환 실패 시 원본 반환
         }
-      }
-    },
-
-    // 필수 컬럼 체크
-    isRequiredColumn(columnName) {
-      // 삭제할 수 없는 필수 컬럼 목록
-      const requiredColumns = ['SHOT_NUMBER', 'EVENTNAME', 'TIME'];
-      return requiredColumns.includes(columnName);
-    },
-    
-    // 이미지 모달 열기
-    openImageZoomModal() {
-      this.showImageModal = true;
-      this.resetZoom();
+      },
+  
+        // 이벤트 파라미터 처리
+      processEventParams(targetRow, eventParams) {
+        // 객체 형태의 eventParams 처리
+        if (eventParams && typeof eventParams === 'object' && !Array.isArray(eventParams)) {
+          for (const [key, value] of Object.entries(eventParams)) {
+            // items 배열은 별도 처리
+            if (key === 'items') continue;
+            
+            // 중첩된 객체는 JSON 문자열로 변환
+            if (typeof value === 'object' && value !== null) {
+              targetRow[key.toUpperCase()] = JSON.stringify(value);
+            } else {
+              targetRow[key.toUpperCase()] = String(value);
+            }
+          }
+        }
+      },
       
-      // 모달이 열린 후 키보드 이벤트 리스너 추가
-      this.$nextTick(() => {
-        document.addEventListener('keydown', this.handleKeyDown);
+       // JSON 객체 추출
+      extractJsonObjects(text) {
+        const jsonObjects = [];
+        try {
+          // 전체 텍스트가 단일 JSON인 경우
+          const fullJson = JSON.parse(text);
+          if (fullJson) {
+            jsonObjects.push(fullJson);
+            return jsonObjects;
+          }
+        } catch (e) {
+          // 단일 JSON이 아니면 여러 JSON 객체를 찾기
+          const jsonRegex = /\{(?:[^{}]|(?:\{(?:[^{}]|(?:\{[^{}]*\}))*\}))*\}/g;
+          const matches = text.match(jsonRegex);
+          
+          if (matches) {
+            for (const match of matches) {
+              try {
+                const json = JSON.parse(match);
+                if (json && json.log_body) {
+                  jsonObjects.push(json);
+                }
+              } catch (e) {
+                // 파싱 실패한 JSON은 무시
+              }
+            }
+          }
+        }
+        return jsonObjects;
+      },
+
+      // 파싱된 데이터를 테이블에 추가
+      addParsedDataToTable(parsedRows) {
+        // 컬럼 추가 (기존에 없는 컬럼)
+        parsedRows.forEach(row => {
+          Object.keys(row).forEach(key => {
+            if (key !== 'uniqueId' && key !== 'SHOT_NUMBER' && !this.editColumns.includes(key)) {
+              this.editColumns.push(key);
+            }
+          });
+        });
         
-        // 드래그 기능 초기화
+        // 모든 행의 데이터 추가
+        this.editData.push(...parsedRows);
+        
+        // SHOT_NUMBER 재조정
+        this.updateShotNumbers();
+      },
+      
+      // 로그 입력 초기화
+      clearLogInput() {
+        this.logText = '';
+      },
+
+      // 컬럼 삭제
+      removeColumn(columnName) {
+        if (this.isRequiredColumn(columnName)) {
+          alert('필수 컬럼은 삭제할 수 없습니다.');
+          return;
+        }
+        
+        if (confirm(`'${columnName}' 컬럼을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`)) {
+          // editColumns 배열에서 컬럼 제거
+          const columnIndex = this.editColumns.indexOf(columnName);
+          if (columnIndex !== -1) {
+            this.editColumns.splice(columnIndex, 1);
+            
+            // 모든 행에서 해당 컬럼 속성 제거
+            this.editData.forEach(row => {
+              delete row[columnName];
+            });
+          }
+        }
+      },
+
+      // 필수 컬럼 체크
+      isRequiredColumn(columnName) {
+        // 삭제할 수 없는 필수 컬럼 목록
+        const requiredColumns = ['SHOT_NUMBER', 'EVENTNAME', 'TIME'];
+        return requiredColumns.includes(columnName);
+      },
+      // 이미지 모달 열기
+      openImageZoomModal() {
+        this.showImageModal = true;
+        this.resetZoom();
+        
+        // 모달이 열린 후 키보드 이벤트 리스너 추가
+        this.$nextTick(() => {
+          document.addEventListener('keydown', this.handleKeyDown);
+          
+          // 드래그 기능 초기화
+          const zoomContainer = this.$refs.zoomContainer;
+          if (zoomContainer) {
+            zoomContainer.addEventListener('mousedown', this.startDrag);
+            zoomContainer.addEventListener('mousemove', this.drag);
+            zoomContainer.addEventListener('mouseup', this.endDrag);
+            zoomContainer.addEventListener('mouseleave', this.endDrag);
+            
+            // 모바일 터치 이벤트
+            zoomContainer.addEventListener('touchstart', this.startDrag);
+            zoomContainer.addEventListener('touchmove', this.drag);
+            zoomContainer.addEventListener('touchend', this.endDrag);
+          }
+        });
+      },
+      
+      // 이미지 모달 닫기
+      closeImageModal() {
+        this.showImageModal = false;
+        
+        // 이벤트 리스너 제거
+        document.removeEventListener('keydown', this.handleKeyDown);
+        
         const zoomContainer = this.$refs.zoomContainer;
         if (zoomContainer) {
-          zoomContainer.addEventListener('mousedown', this.startDrag);
-          zoomContainer.addEventListener('mousemove', this.drag);
-          zoomContainer.addEventListener('mouseup', this.endDrag);
-          zoomContainer.addEventListener('mouseleave', this.endDrag);
+          zoomContainer.removeEventListener('mousedown', this.startDrag);
+          zoomContainer.removeEventListener('mousemove', this.drag);
+          zoomContainer.removeEventListener('mouseup', this.endDrag);
+          zoomContainer.removeEventListener('mouseleave', this.endDrag);
           
-          // 모바일 터치 이벤트
-          zoomContainer.addEventListener('touchstart', this.startDrag);
-          zoomContainer.addEventListener('touchmove', this.drag);
-          zoomContainer.addEventListener('touchend', this.endDrag);
+          zoomContainer.removeEventListener('touchstart', this.startDrag);
+          zoomContainer.removeEventListener('touchmove', this.drag);
+          zoomContainer.removeEventListener('touchend', this.endDrag);
         }
-      });
-    },
-    
-    // 이미지 모달 닫기
-    closeImageModal() {
-      this.showImageModal = false;
+      },
       
-      // 이벤트 리스너 제거
-      document.removeEventListener('keydown', this.handleKeyDown);
+      // 키보드 이벤트 처리
+      handleKeyDown(e) {
+        if (e.key === 'Escape') {
+          this.closeImageModal();
+        } else if (e.key === '+' || e.key === '=') {
+          this.zoomIn();
+        } else if (e.key === '-') {
+          this.zoomOut();
+        } else if (e.key === '0') {
+          this.resetZoom();
+        }
+      },
       
-      const zoomContainer = this.$refs.zoomContainer;
-      if (zoomContainer) {
-        zoomContainer.removeEventListener('mousedown', this.startDrag);
-        zoomContainer.removeEventListener('mousemove', this.drag);
-        zoomContainer.removeEventListener('mouseup', this.endDrag);
-        zoomContainer.removeEventListener('mouseleave', this.endDrag);
+      // 이미지 로드 시 자동 배율 조정 함수
+      onImageLoad() {
+        // 모달과 이미지 요소 참조 가져오기
+        const modalEl = this.$refs.zoomWrapper;
+        const imageEl = this.$refs.zoomImage;
         
-        zoomContainer.removeEventListener('touchstart', this.startDrag);
-        zoomContainer.removeEventListener('touchmove', this.drag);
-        zoomContainer.removeEventListener('touchend', this.endDrag);
-      }
-    },
-    
-    // 키보드 이벤트 처리
-    handleKeyDown(e) {
-      if (e.key === 'Escape') {
-        this.closeImageModal();
-      } else if (e.key === '+' || e.key === '=') {
-        this.zoomIn();
-      } else if (e.key === '-') {
-        this.zoomOut();
-      } else if (e.key === '0') {
-        this.resetZoom();
-      }
-    },
-    
-    // 이미지 로드 시 자동 배율 조정 함수
-    onImageLoad() {
-      // 모달과 이미지 요소 참조 가져오기
-      const modalEl = this.$refs.zoomWrapper;
-      const imageEl = this.$refs.zoomImage;
-      
-      if (!modalEl || !imageEl) return;
-      
-      // 이미지 원본 크기 저장
-      this.naturalWidth = imageEl.naturalWidth;
-      this.naturalHeight = imageEl.naturalHeight;
-      
-      // 모달 가로 길이
-      const modalWidth = modalEl.clientWidth;
-      
-      // 이미지와 모달의 가로 비율 계산
-      const widthRatio = this.naturalWidth / modalWidth;
-      
-      // 비율에 따른 초기 배율 설정
-      if (widthRatio > 3) {
-        // 3배 이상 큰 경우 -> 30%로 설정
-        this.zoomLevel = 0.3;
-      } else if (widthRatio > 2) {
-        // 2배 이상 큰 경우 -> 50%로 설정
-        this.zoomLevel = 0.5;
-      } else if (widthRatio > 1.5) {
-        // 1.5배 이상 큰 경우 -> 70%로 설정
-        this.zoomLevel = 0.7;
-      } else {
-        // 그 외의 경우 -> 100% 유지
-        this.zoomLevel = 1;
-      }
-      
-      // 이미지 실제 크기 저장 (필요시)
-      this.imageRealHeight = this.naturalHeight * this.zoomLevel;
-      
-      // 로그 출력 (디버깅 용도)
-      console.log(`이미지 크기: ${this.naturalWidth}x${this.naturalHeight}`);
-      console.log(`모달 가로: ${modalWidth}, 비율: ${widthRatio}`);
-      console.log(`초기 배율 설정: ${this.zoomLevel * 100}%`);
-      
-      // 추가 로깅 (요청한 정보)
-      const now = new Date();
-      const dateTime = now.toISOString().replace('T', ' ').substr(0, 19);
-      console.log(`Loaded at: ${dateTime}, User: ${this.currentUser || 'wschoi-loca'}`);
-      
-      // 초기 위치 조정 (중앙 정렬)
-      this.resetImagePosition();
-    },
+        if (!modalEl || !imageEl) return;
+        
+        // 이미지 원본 크기 저장
+        this.naturalWidth = imageEl.naturalWidth;
+        this.naturalHeight = imageEl.naturalHeight;
+        
+        // 모달 가로 길이
+        const modalWidth = modalEl.clientWidth;
+        
+        // 이미지와 모달의 가로 비율 계산
+        const widthRatio = this.naturalWidth / modalWidth;
+        
+        // 비율에 따른 초기 배율 설정
+        if (widthRatio > 3) {
+          // 3배 이상 큰 경우 -> 30%로 설정
+          this.zoomLevel = 0.3;
+        } else if (widthRatio > 2) {
+          // 2배 이상 큰 경우 -> 50%로 설정
+          this.zoomLevel = 0.5;
+        } else if (widthRatio > 1.5) {
+          // 1.5배 이상 큰 경우 -> 70%로 설정
+          this.zoomLevel = 0.7;
+        } else {
+          // 그 외의 경우 -> 100% 유지
+          this.zoomLevel = 1;
+        }
+        
+        // 이미지 실제 크기 저장 (필요시)
+        this.imageRealHeight = this.naturalHeight * this.zoomLevel;
+        
+        // 로그 출력 (디버깅 용도)
+        console.log(`이미지 크기: ${this.naturalWidth}x${this.naturalHeight}`);
+        console.log(`모달 가로: ${modalWidth}, 비율: ${widthRatio}`);
+        console.log(`초기 배율 설정: ${this.zoomLevel * 100}%`);
+        
+        // 추가 로깅 (요청한 정보)
+        const now = new Date();
+        const dateTime = now.toISOString().replace('T', ' ').substr(0, 19);
+        console.log(`Loaded at: ${dateTime}, User: ${this.currentUser || 'wschoi-loca'}`);
+        
+        // 초기 위치 조정 (중앙 정렬)
+        this.resetImagePosition();
+      },
 
-    // 이미지 위치 초기화 (중앙 정렬) 메서드 (이어서)
-    resetImagePosition() {
-      const modalEl = this.$refs.zoomWrapper;
-      if (!modalEl) return;
-      
-      // 이미지 크기와 모달 크기를 고려하여 중앙 정렬
-      const scaledWidth = this.naturalWidth * this.zoomLevel;
-      const scaledHeight = this.naturalHeight * this.zoomLevel;
-      
-      // 중앙 정렬을 위한 오프셋 계산
-      const offsetX = Math.max(0, (modalEl.clientWidth - scaledWidth) / 2);
-      const offsetY = Math.max(0, (modalEl.clientHeight - scaledHeight) / 2);
-      
-      // 위치 업데이트
-      this.panPosition = {
-        x: offsetX,
-        y: offsetY
-      };
-    },
-    
-    // 이미지 확대
-    zoomIn() {
-      if (this.zoomLevel < 7) this.zoomLevel = Math.min(7, this.zoomLevel + 0.1);
-      this.fixPanBounds();
-    },
-    
-    // 이미지 축소
-    zoomOut() {
-      if (this.zoomLevel > 0.05) {  // 최소 0.05(5%)까지 가능
-        // 부드러운 축소를 위한 단계 조정
-        let step;
-        if (this.zoomLevel > 2) step = 0.2;      // 크게 축소
-        else if (this.zoomLevel > 0.5) step = 0.1; // 중간 축소
-        else step = 0.05;                        // 미세 축소
+      // 이미지 위치 초기화 (중앙 정렬) 메서드
+      resetImagePosition() {
+        const modalEl = this.$refs.zoomWrapper;
+        if (!modalEl) return;
         
-        this.zoomLevel = Math.max(0.05, this.zoomLevel - step);
-      }
-      this.fixPanBounds();
-    },
-    
-    // 이미지 확대/축소 초기화
-    resetZoom() {
-      // 모달과 이미지 요소 참조 가져오기
-      const modalEl = this.$refs.zoomWrapper;
-      const imageEl = this.$refs.zoomImage;
-      
-      if (!modalEl || !imageEl) {
-        // 요소가 없으면 기본값으로 설정
-        this.zoomLevel = 1;
-        this.panPosition = { x: 0, y: 0 };
-        return;
-      }
-      
-      // 이미지 원본 크기 확인
-      const imgWidth = this.naturalWidth || imageEl.naturalWidth;
-      const imgHeight = this.naturalHeight || imageEl.naturalHeight;
-      
-      // 모달 가로 길이
-      const modalWidth = modalEl.clientWidth;
-      
-      // 이미지와 모달의 가로 비율 계산
-      const widthRatio = imgWidth / modalWidth;
-      
-      // 비율에 따른 초기 배율 설정
-      if (widthRatio > 3) {
-        // 3배 이상 큰 경우 -> 30%로 설정
-        this.zoomLevel = 0.3;
-      } else if (widthRatio > 2) {
-        // 2배 이상 큰 경우 -> 50%로 설정
-        this.zoomLevel = 0.5;
-      } else if (widthRatio > 1.5) {
-        // 1.5배 이상 큰 경우 -> 70%로 설정
-        this.zoomLevel = 0.7;
-      } else {
-        // 그 외의 경우 -> 100% 유지
-        this.zoomLevel = 1;
-      }
-      
-      // 이미지 위치 초기화 (중앙 정렬)
-      const scaledWidth = imgWidth * this.zoomLevel;
-      const scaledHeight = imgHeight * this.zoomLevel;
-      
-      // 중앙 정렬을 위한 오프셋 계산
-      const offsetX = Math.max(0, (modalWidth - scaledWidth) / 2);
-      const offsetY = Math.max(0, (modalEl.clientHeight - scaledHeight) / 2);
-      
-      // 위치 업데이트
-      this.panPosition = { x: offsetX, y: offsetY };
-      
-      // 로그 출력 (요청한 형식대로)
-      const now = new Date();
-      const formattedDate = now.getUTCFullYear() + '-' + 
-          String(now.getUTCMonth() + 1).padStart(2, '0') + '-' + 
-          String(now.getUTCDate()).padStart(2, '0') + ' ' + 
-          String(now.getUTCHours()).padStart(2, '0') + ':' + 
-          String(now.getUTCMinutes()).padStart(2, '0') + ':' + 
-          String(now.getUTCSeconds()).padStart(2, '0');
-          
-      console.log(`Current Date and Time (UTC - YYYY-MM-DD HH:MM:SS formatted): ${formattedDate}`);
-      console.log(`Current User's Login: wschoi-loca`);
-      console.log(`Applied zoom level: ${this.zoomLevel * 100}% (width ratio: ${widthRatio.toFixed(2)})`);
-    },
-    
-    // 이미지 드래그 시작
-    startDrag(event) {
-      // 터치 이벤트 또는 마우스 이벤트 처리
-      const clientX = event.touches ? event.touches[0].clientX : event.clientX;
-      const clientY = event.touches ? event.touches[0].clientY : event.clientY;
-      
-      // 무조건 드래그 가능하도록 설정 (배율에 상관없이)
-      this.isDragging = true;
-      this.lastX = clientX;
-      this.lastY = clientY;
-      
-      // 커서 스타일 변경
-      document.body.style.cursor = 'grabbing';
-    },
-    
-    // 이미지 드래그 중
-    drag(event) {
-      if (!this.isDragging) return;
-      
-      // 터치 이벤트 또는 마우스 이벤트 처리
-      const clientX = event.touches ? event.touches[0].clientX : event.clientX;
-      const clientY = event.touches ? event.touches[0].clientY : event.clientY;
-      
-      // 이동 거리 계산
-      const dx = clientX - this.lastX;
-      const dy = clientY - this.lastY;
-      
-      // panPosition 업데이트 (배율에 상관없이 이동)
-      this.panPosition.x += dx;
-      this.panPosition.y += dy;
-      
-      // 현재 위치 저장
-      this.lastX = clientX;
-      this.lastY = clientY;
-    },
-    
-    // 이미지 드래그 종료
-    endDrag() {
-      this.isDragging = false;
-      document.body.style.cursor = '';  // 커서 스타일 복원
-    },
-    
-    // 마우스 휠 이벤트 처리
-    handleWheel(event) {
-      event.preventDefault(); // 페이지 스크롤 방지
-      
-      if (event.ctrlKey) {
-        // Ctrl+휠: 확대/축소
-        if (event.deltaY > 0 && this.zoomLevel > 0.05) {
-          // 축소
-          const step = this.zoomLevel > 1 ? 0.1 : 0.05;
-          this.zoomLevel = Math.max(0.05, this.zoomLevel - step);
-        } else if (event.deltaY < 0 && this.zoomLevel < 7) {
-          // 확대
-          const step = this.zoomLevel < 1 ? 0.05 : 0.1;
-          this.zoomLevel = Math.min(7, this.zoomLevel + step);
-        }
-        this.fixPanBounds();
-      } else {
-        // 일반 휠: 이미지 이동 (직접적으로 값 변경)
-        const scrollSpeed = 20; // 스크롤 속도 조절
+        // 이미지 크기와 모달 크기를 고려하여 중앙 정렬
+        const scaledWidth = this.naturalWidth * this.zoomLevel;
+        const scaledHeight = this.naturalHeight * this.zoomLevel;
         
-        // 수직 스크롤
-        if (event.deltaY !== 0) {
-          this.panPosition.y -= event.deltaY > 0 ? scrollSpeed : -scrollSpeed;
-        }
+        // 중앙 정렬을 위한 오프셋 계산
+        const offsetX = Math.max(0, (modalEl.clientWidth - scaledWidth) / 2);
+        const offsetY = Math.max(0, (modalEl.clientHeight - scaledHeight) / 2);
         
-        // 수평 스크롤 (Shift+휠 또는 수평 휠 이벤트)
-        if (event.deltaX !== 0) {
-          this.panPosition.x -= event.deltaX > 0 ? scrollSpeed : -scrollSpeed;
-        } else if (event.shiftKey && event.deltaY !== 0) {
-          this.panPosition.x -= event.deltaY > 0 ? scrollSpeed : -scrollSpeed;
-        }
-      }
-    },
-    
-    // 이미지 위치 경계 보정
-    fixPanBounds() {
-      // zoomLevel이 바뀐 뒤에도 pan이 한계 넘지 않도록 보정
-      const wrapper = this.$refs.zoomWrapper;
-      const iw = this.naturalWidth * this.zoomLevel;
-      const ih = this.naturalHeight * this.zoomLevel;
-      if (wrapper) {
-        const w = wrapper.clientWidth;
-        const h = wrapper.clientHeight;
-        const minX = Math.min(0, w - iw);
-        const minY = Math.min(0, h - ih);
-        this.panPosition.x = Math.max(minX, Math.min(0, this.panPosition.x));
-        this.panPosition.y = Math.max(minY, Math.min(0, this.panPosition.y));
-      } else {
-        this.panPosition = { x: 0, y: 0 };
-      }
-    },
-    
-    // 필터 공유 기능
-    shareFilters() {
-      try {
-        // 1. 현재 URL 가져오기
-        const currentUrl = window.location.href;
-        
-        // 2. 필터 값들 수집
-        const filters = {
-          eventType: this.selectedEventType || '선택되지 않음',
-          url: this.selectedUrl || '선택되지 않음',
-          timestamp: this.selectedTimestamp 
-            ? this.formatTimestamp(this.selectedTimestamp) + 
-              (this.formatEventNames(this.getEventNamesForTimestamp(this.selectedTimestamp)) || '')
-            : '선택되지 않음'
+        // 위치 업데이트
+        this.panPosition = {
+          x: offsetX,
+          y: offsetY
         };
-        
-        // 3. 공유 텍스트 생성
-        let shareText = '🔍 태깅맵 필터 공유\n\n';
-        shareText += `📌 URL: ${currentUrl}\n\n`;
-        shareText += '📋 필터 설정:\n';
-        
-        // 필터 값 추가
-        shareText += `- 이벤트 유형: ${filters.eventType === 'visibility' ? '노출' : filters.eventType === 'click' ? '클릭' : filters.eventType}\n`;
-        shareText += `- URL: ${filters.url}\n`;
-        shareText += `- 타임스탬프: ${filters.timestamp}\n`;
-        
-        // 4. 클립보드에 복사
-        navigator.clipboard.writeText(shareText)
-          .then(() => {
-            // 성공 메시지 표시
-            this.showToast('필터 설정이 클립보드에 복사되었습니다.', 'success');
-            
-            // 로그 출력 (요청한 형식대로)
-            const now = new Date();
-            const formattedDate = now.getUTCFullYear() + '-' + 
-                String(now.getUTCMonth() + 1).padStart(2, '0') + '-' + 
-                String(now.getUTCDate()).padStart(2, '0') + ' ' + 
-                String(now.getUTCHours()).padStart(2, '0') + ':' + 
-                String(now.getUTCMinutes()).padStart(2, '0') + ':' + 
-                String(now.getUTCSeconds()).padStart(2, '0');
-                
-            console.log(`Current Date and Time (UTC - YYYY-MM-DD HH:MM:SS formatted): ${formattedDate}`);
-            console.log(`Current User's Login: wschoi-loca`);
-            console.log(`Filters shared: ${JSON.stringify(filters)}`);
-          })
-          .catch(err => {
-            console.error('클립보드 복사 실패:', err);
-            this.showToast('클립보드 복사에 실패했습니다.', 'error');
-          });
-      } catch (error) {
-        console.error('필터 공유 중 오류:', error);
-        this.showToast('필터 공유 중 오류가 발생했습니다.', 'error');
-      }
-    },
-    
-    // 타임스탬프에 해당하는 이벤트 이름 가져오기
-    getEventNamesForTimestamp(timestamp) {
-      if (!timestamp) return null;
-      
-      const timeEntry = this.times.find(t => t.timestamp === timestamp);
-      return timeEntry ? timeEntry.eventNames : null;
-    },
-    
-    // 토스트 메시지 표시
-    showToast(message, type = 'success') {
-      // 이미 표시 중인 토스트가 있으면 타이머 제거
-      if (this.toast.timer) {
-        clearTimeout(this.toast.timer);
-      }
-      
-      // 토스트 상태 업데이트
-      this.toast.message = message;
-      this.toast.type = type;
-      this.toast.show = true;
-      
-      // 로그 출력
-      const now = new Date();
-      const formattedDate = now.getUTCFullYear() + '-' + 
-          String(now.getUTCMonth() + 1).padStart(2, '0') + '-' + 
-          String(now.getUTCDate()).padStart(2, '0') + ' ' + 
-          String(now.getUTCHours()).padStart(2, '0') + ':' + 
-          String(now.getUTCMinutes()).padStart(2, '0') + ':' + 
-          String(now.getUTCSeconds()).padStart(2, '0');
+      },
+      zoomIn() {
+        if (this.zoomLevel < 7) this.zoomLevel = Math.min(7, this.zoomLevel + 0.1);
+        this.fixPanBounds();
+      },
+      zoomOut() {
+        if (this.zoomLevel > 0.05) {  // 최소 0.05(5%)까지 가능
+          // 부드러운 축소를 위한 단계 조정
+          let step;
+          if (this.zoomLevel > 2) step = 0.2;      // 크게 축소
+          else if (this.zoomLevel > 0.5) step = 0.1; // 중간 축소
+          else step = 0.05;                        // 미세 축소
           
-      console.log(`Current Date and Time (UTC - YYYY-MM-DD HH:MM:SS formatted): ${formattedDate}`);
-      console.log(`Current User's Login: wschoi-loca`);
-      console.log(`Toast message: ${message} (${type})`);
+          this.zoomLevel = Math.max(0.05, this.zoomLevel - step);
+        }
+      },
+      resetZoom() {
+        // 모달과 이미지 요소 참조 가져오기
+        const modalEl = this.$refs.zoomWrapper;
+        const imageEl = this.$refs.zoomImage;
+        
+        if (!modalEl || !imageEl) {
+          // 요소가 없으면 기본값으로 설정
+          this.zoomLevel = 1;
+          this.panPosition = { x: 0, y: 0 };
+          return;
+        }
+        
+        // 이미지 원본 크기 확인
+        const imgWidth = this.naturalWidth || imageEl.naturalWidth;
+        const imgHeight = this.naturalHeight || imageEl.naturalHeight;
+        
+        // 모달 가로 길이
+        const modalWidth = modalEl.clientWidth;
+        
+        // 이미지와 모달의 가로 비율 계산
+        const widthRatio = imgWidth / modalWidth;
+        
+        // 비율에 따른 초기 배율 설정
+        if (widthRatio > 3) {
+          // 3배 이상 큰 경우 -> 30%로 설정
+          this.zoomLevel = 0.3;
+        } else if (widthRatio > 2) {
+          // 2배 이상 큰 경우 -> 50%로 설정
+          this.zoomLevel = 0.5;
+        } else if (widthRatio > 1.5) {
+          // 1.5배 이상 큰 경우 -> 70%로 설정
+          this.zoomLevel = 0.7;
+        } else {
+          // 그 외의 경우 -> 100% 유지
+          this.zoomLevel = 1;
+        }
+        
+        // 이미지 위치 초기화 (중앙 정렬)
+        const scaledWidth = imgWidth * this.zoomLevel;
+        const scaledHeight = imgHeight * this.zoomLevel;
+        
+        // 중앙 정렬을 위한 오프셋 계산
+        const offsetX = Math.max(0, (modalWidth - scaledWidth) / 2);
+        const offsetY = Math.max(0, (modalEl.clientHeight - scaledHeight) / 2);
+        
+        // 위치 업데이트
+        this.panPosition = { x: offsetX, y: offsetY };
+        
+        // 로그 출력 (요청한 형식대로)
+        const now = new Date();
+        const formattedDate = now.getUTCFullYear() + '-' + 
+            String(now.getUTCMonth() + 1).padStart(2, '0') + '-' + 
+            String(now.getUTCDate()).padStart(2, '0') + ' ' + 
+            String(now.getUTCHours()).padStart(2, '0') + ':' + 
+            String(now.getUTCMinutes()).padStart(2, '0') + ':' + 
+            String(now.getUTCSeconds()).padStart(2, '0');
+            
+        console.log(`Current Date and Time (UTC - YYYY-MM-DD HH:MM:SS formatted): ${formattedDate}`);
+        console.log(`Current User's Login: wschoi-loca`);
+        console.log(`Applied zoom level: ${this.zoomLevel * 100}% (width ratio: ${widthRatio.toFixed(2)})`);
+      },
+      // startDrag 메서드 수정
+      startDrag(event) {
+        // 터치 이벤트 또는 마우스 이벤트 처리
+        const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+        const clientY = event.touches ? event.touches[0].clientY : event.clientY;
+        
+        // 무조건 드래그 가능하도록 설정 (배율에 상관없이)
+        this.isDragging = true;
+        this.lastX = clientX;
+        this.lastY = clientY;
+        
+        // 커서 스타일 변경
+        document.body.style.cursor = 'grabbing';
+      },
+      // drag 메서드 수정
+      drag(event) {
+        if (!this.isDragging) return;
+        
+        // 터치 이벤트 또는 마우스 이벤트 처리
+        const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+        const clientY = event.touches ? event.touches[0].clientY : event.clientY;
+        
+        // 이동 거리 계산
+        const dx = clientX - this.lastX;
+        const dy = clientY - this.lastY;
+        
+        // panPosition 업데이트 (배율에 상관없이 이동)
+        this.panPosition.x += dx;
+        this.panPosition.y += dy;
+        
+        // 현재 위치 저장
+        this.lastX = clientX;
+        this.lastY = clientY;
+      },
+      // endDrag 메서드 수정
+      endDrag() {
+        this.isDragging = false;
+        document.body.style.cursor = '';  // 커서 스타일 복원
+      },
+      // 휠 이벤트 핸들러 수정
+      // handleWheel 메서드 수정
+      handleWheel(event) {
+        event.preventDefault(); // 페이지 스크롤 방지
+        
+        if (event.ctrlKey) {
+          // Ctrl+휠: 확대/축소
+          if (event.deltaY > 0 && this.zoomLevel > 0.05) {
+            // 축소
+            const step = this.zoomLevel > 1 ? 0.1 : 0.05;
+            this.zoomLevel = Math.max(0.05, this.zoomLevel - step);
+          } else if (event.deltaY < 0 && this.zoomLevel < 7) {
+            // 확대
+            const step = this.zoomLevel < 1 ? 0.05 : 0.1;
+            this.zoomLevel = Math.min(7, this.zoomLevel + step);
+          }
+        } else {
+          // 일반 휠: 이미지 이동 (직접적으로 값 변경)
+          const scrollSpeed = 20; // 스크롤 속도 조절
+          
+          // 수직 스크롤
+          if (event.deltaY !== 0) {
+            this.panPosition.y -= event.deltaY > 0 ? scrollSpeed : -scrollSpeed;
+          }
+          
+          // 수평 스크롤 (Shift+휠 또는 수평 휠 이벤트)
+          if (event.deltaX !== 0) {
+            this.panPosition.x -= event.deltaX > 0 ? scrollSpeed : -scrollSpeed;
+          } else if (event.shiftKey && event.deltaY !== 0) {
+            this.panPosition.x -= event.deltaY > 0 ? scrollSpeed : -scrollSpeed;
+          }
+        }
+      },
+      fixPanBounds() {
+        // zoomLevel이 바뀐 뒤에도 pan이 한계 넘지 않도록 보정
+        const wrapper = this.$refs.zoomWrapper;
+        const iw = this.naturalWidth * this.zoomLevel;
+        const ih = this.naturalHeight * this.zoomLevel;
+        if (wrapper) {
+          const w = wrapper.clientWidth;
+          const h = wrapper.clientHeight;
+          const minX = Math.min(0, w - iw);
+          const minY = Math.min(0, h - ih);
+          this.panPosition.x = Math.max(minX, Math.min(0, this.panPosition.x));
+          this.panPosition.y = Math.max(minY, Math.min(0, this.panPosition.y));
+        } else {
+          this.panPosition = { x: 0, y: 0 };
+        }
+      },
+      /* 필터 공유 기능
+      * 현재 페이지 URL과 필터 설정을 클립보드에 복사
+      */
+      shareFilters() {
+        try {
+          // 1. 현재 URL 가져오기
+          const currentUrl = window.location.href;
+          
+          // 2. 필터 값들 수집
+          const filters = {
+            eventType: this.selectedEventType || '선택되지 않음',
+            url: this.selectedUrl || '선택되지 않음',
+            timestamp: this.selectedTimestamp 
+              ? this.formatTimestamp(this.selectedTimestamp) + 
+                (this.formatEventNames(this.getEventNamesForTimestamp(this.selectedTimestamp)) || '')
+              : '선택되지 않음'
+          };
+          
+          // 3. 공유 텍스트 생성
+          let shareText = '🔍 태깅맵 필터 공유\n\n';
+          shareText += `📌 URL: ${currentUrl}\n\n`;
+          shareText += '📋 필터 설정:\n';
+          
+          // 필터 값 추가
+          shareText += `- 이벤트 유형: ${filters.eventType === 'visibility' ? '노출' : filters.eventType === 'click' ? '클릭' : filters.eventType}\n`;
+          shareText += `- URL: ${filters.url}\n`;
+          shareText += `- 타임스탬프: ${filters.timestamp}\n`;
+          
+          // 4. 클립보드에 복사
+          navigator.clipboard.writeText(shareText)
+            .then(() => {
+              // 성공 메시지 표시
+              this.showToast('필터 설정이 클립보드에 복사되었습니다.', 'success');
+              
+              // 로그 출력 (요청한 형식대로)
+              const now = new Date();
+              const formattedDate = now.getUTCFullYear() + '-' + 
+                  String(now.getUTCMonth() + 1).padStart(2, '0') + '-' + 
+                  String(now.getUTCDate()).padStart(2, '0') + ' ' + 
+                  String(now.getUTCHours()).padStart(2, '0') + ':' + 
+                  String(now.getUTCMinutes()).padStart(2, '0') + ':' + 
+                  String(now.getUTCSeconds()).padStart(2, '0');
+                  
+              console.log(`Current Date and Time (UTC - YYYY-MM-DD HH:MM:SS formatted): ${formattedDate}`);
+              console.log(`Current User's Login: wschoi-loca`);
+              console.log(`Filters shared: ${JSON.stringify(filters)}`);
+            })
+            .catch(err => {
+              console.error('클립보드 복사 실패:', err);
+              this.showToast('클립보드 복사에 실패했습니다.', 'error');
+            });
+        } catch (error) {
+          console.error('필터 공유 중 오류:', error);
+          this.showToast('필터 공유 중 오류가 발생했습니다.', 'error');
+        }
+      },
+
+      /**
+       * 타임스탬프에 해당하는 이벤트 이름 가져오기
+       */
+      getEventNamesForTimestamp(timestamp) {
+        if (!timestamp) return null;
+        
+        const timeEntry = this.times.find(t => t.timestamp === timestamp);
+        return timeEntry ? timeEntry.eventNames : null;
+      },
+
+      /**
+       * 토스트 메시지 표시
+       */
+       showToast(message, type = 'success') {
+        // 이미 표시 중인 토스트가 있으면 타이머 제거
+        if (this.toast.timer) {
+          clearTimeout(this.toast.timer);
+        }
+        
+        // 토스트 상태 업데이트
+        this.toast.message = message;
+        this.toast.type = type;
+        this.toast.show = true;
+        
+        // 로그 출력
+        const now = new Date();
+        const formattedDate = now.getUTCFullYear() + '-' + 
+            String(now.getUTCMonth() + 1).padStart(2, '0') + '-' + 
+            String(now.getUTCDate()).padStart(2, '0') + ' ' + 
+            String(now.getUTCHours()).padStart(2, '0') + ':' + 
+            String(now.getUTCMinutes()).padStart(2, '0') + ':' + 
+            String(now.getUTCSeconds()).padStart(2, '0');
+            
+        console.log(`Current Date and Time (UTC - YYYY-MM-DD HH:MM:SS formatted): ${formattedDate}`);
+        console.log(`Current User's Login: wschoi-loca`);
+        console.log(`Toast message: ${message} (${type})`);
+        
+        // 3초 후 토스트 숨기기
+        this.toast.timer = setTimeout(() => {
+          this.toast.show = false;
+        }, 3000);
+      },
+      /**
+       * 테이블을 왼쪽으로 스크롤 (컬럼 단위)
+       */
+      scrollTableLeft() {
+        const container = this.$refs.tableScrollContainer;
+        if (!container) return;
+        
+        // 현재 스크롤 위치에서 컬럼 너비만큼 왼쪽으로 이동
+        container.scrollLeft -= this.columnWidth;
+        
+        // 스크롤 후 위치 업데이트
+        this.$nextTick(() => {
+          this.updateScrollPosition();
+        });
+      },
       
-      // 3초 후 토스트 숨기기
-      this.toast.timer = setTimeout(() => {
-        this.toast.show = false;
-      }, 3000);
-    },
-    
-    // 테이블을 왼쪽으로 스크롤 (컬럼 단위)
-    scrollTableLeft() {
-      const container = this.$refs.tableScrollContainer;
-      if (!container) return;
+      /**
+       * 테이블을 오른쪽으로 스크롤 (컬럼 단위)
+       */
+      scrollTableRight() {
+        const container = this.$refs.tableScrollContainer;
+        if (!container) return;
+        
+        // 현재 스크롤 위치에서 컬럼 너비만큼 오른쪽으로 이동
+        container.scrollLeft += this.columnWidth;
+        
+        // 스크롤 후 위치 업데이트
+        this.$nextTick(() => {
+          this.updateScrollPosition();
+        });
+      },
       
-      // 현재 스크롤 위치에서 컬럼 너비만큼 왼쪽으로 이동
-      container.scrollLeft -= this.columnWidth;
-      
-      // 스크롤 후 위치 업데이트
-      this.$nextTick(() => {
-        this.updateScrollPosition();
-      });
-    },
-    
-    // 테이블을 오른쪽으로 스크롤 (컬럼 단위)
-    scrollTableRight() {
-      const container = this.$refs.tableScrollContainer;
-      if (!container) return;
-      
-      // 현재 스크롤 위치에서 컬럼 너비만큼 오른쪽으로 이동
-      container.scrollLeft += this.columnWidth;
-      
-      // 스크롤 후 위치 업데이트
-      this.$nextTick(() => {
-        this.updateScrollPosition();
-      });
-    },
-    
-    // 스크롤 위치 업데이트
-    updateScrollPosition() {
-      try {
+      /**
+       * 스크롤 위치 업데이트
+       */
+      updateScrollPosition() {
         const container = this.$refs.tableScrollContainer;
         if (!container) return;
         
@@ -2152,23 +2337,16 @@ export default {
         
         // 컬럼 기준 위치 계산 (첫번째 컬럼은 SHOT_NUMBER이므로 +1)
         const visibleColumns = Math.floor(container.clientWidth / this.columnWidth);
-        const totalColumns = this.sortedColumns ? this.sortedColumns.length + 1 : 1; // SHOT_NUMBER 컬럼 포함, null 체크 추가
+        const totalColumns = this.sortedColumns.length + 1; // SHOT_NUMBER 컬럼 포함
         
         // 현재 표시 중인 첫 번째 컬럼 (대략적인 계산)
         const currentColumn = Math.floor(container.scrollLeft / this.columnWidth) + 1;
         
         this.scrollPosition = {
           current: currentColumn,
-          total: Math.max(1, totalColumns - visibleColumns + 1) // 최소값 보장
+          total: totalColumns - visibleColumns + 1 // 화면에 보이는 컬럼 수를 고려
         };
-      } catch (error) {
-        console.error('스크롤 위치 업데이트 중 오류:', error);
-        // 기본값으로 설정
-        this.isScrollLeftEnd = true;
-        this.isScrollRightEnd = false;
-        this.scrollPosition = { current: 1, total: 1 };
       }
-    }
   }
 }
 </script>
