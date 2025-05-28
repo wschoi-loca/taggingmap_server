@@ -460,6 +460,8 @@ export default {
       // 이미지 확대 관련
       showImageModal: false,
       zoomLevel: 1,
+      lastX: 0,
+      lastY: 0,
       panPosition: { x: 0, y: 0 },
       isDragging: false,
       dragStart: { x: 0, y: 0 },
@@ -1898,45 +1900,52 @@ export default {
         this.zoomLevel = 1;
         this.panPosition = { x: 0, y: 0 };
       },
-      startDrag(e) {
-        if (this.zoomLevel === 1) return;
+      // startDrag 메서드 수정
+      startDrag(event) {
+        // 터치 이벤트 또는 마우스 이벤트 처리
+        const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+        const clientY = event.touches ? event.touches[0].clientY : event.clientY;
+        
+        // 무조건 드래그 가능하도록 설정 (배율에 상관없이)
         this.isDragging = true;
-        const evt = e.touches ? e.touches[0] : e;
-        this.dragStart = { x: evt.pageX, y: evt.pageY };
-        this.dragOrigin = { ...this.panPosition };
+        this.lastX = clientX;
+        this.lastY = clientY;
+        
+        // 커서 스타일 변경
+        document.body.style.cursor = 'grabbing';
       },
-      drag(e) {
+      // drag 메서드 수정
+      drag(event) {
         if (!this.isDragging) return;
-        const evt = e.touches ? e.touches[0] : e;
-        let nextX = this.dragOrigin.x + (evt.pageX - this.dragStart.x);
-        let nextY = this.dragOrigin.y + (evt.pageY - this.dragStart.y);
-
-        // 한계 계산: 왼쪽/위쪽은 0, 오른쪽/아래는 wrapper - image
-        const wrapper = this.$refs.zoomWrapper;
-        const iw = this.naturalWidth * this.zoomLevel;
-        const ih = this.naturalHeight * this.zoomLevel;
-        if (wrapper) {
-          const w = wrapper.clientWidth;
-          const h = wrapper.clientHeight;
-          const minX = Math.min(0, w - iw); // 이미지가 wrapper보다 작으면 0
-          const minY = Math.min(0, h - ih);
-          nextX = Math.max(minX, Math.min(0, nextX));
-          nextY = Math.max(minY, Math.min(0, nextY));
-        }
-
-        this.panPosition.x = nextX;
-        this.panPosition.y = nextY;
+        
+        // 터치 이벤트 또는 마우스 이벤트 처리
+        const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+        const clientY = event.touches ? event.touches[0].clientY : event.clientY;
+        
+        // 이동 거리 계산
+        const dx = clientX - this.lastX;
+        const dy = clientY - this.lastY;
+        
+        // panPosition 업데이트 (배율에 상관없이 이동)
+        this.panPosition.x += dx;
+        this.panPosition.y += dy;
+        
+        // 현재 위치 저장
+        this.lastX = clientX;
+        this.lastY = clientY;
       },
+      // endDrag 메서드 수정
       endDrag() {
         this.isDragging = false;
+        document.body.style.cursor = '';  // 커서 스타일 복원
       },
       // 휠 이벤트 핸들러 수정
+      // handleWheel 메서드 수정
       handleWheel(event) {
-        // Ctrl 키가 눌려있으면 확대/축소, 아니면 이미지 이동
+        event.preventDefault(); // 페이지 스크롤 방지
+        
         if (event.ctrlKey) {
-          // 확대/축소 기능 (기존 기능)
-          event.preventDefault(); // 페이지 스크롤 방지
-          
+          // Ctrl+휠: 확대/축소
           if (event.deltaY > 0 && this.zoomLevel > 0.05) {
             // 축소
             const step = this.zoomLevel > 1 ? 0.1 : 0.05;
@@ -1947,18 +1956,19 @@ export default {
             this.zoomLevel = Math.min(7, this.zoomLevel + step);
           }
         } else {
-          // 이미지 이동 기능 (휠로 이미지 스크롤)
-          event.preventDefault();
+          // 일반 휠: 이미지 이동 (직접적으로 값 변경)
+          const scrollSpeed = 20; // 스크롤 속도 조절
           
           // 수직 스크롤
           if (event.deltaY !== 0) {
-            this.imageOffsetY -= event.deltaY;
+            this.panPosition.y -= event.deltaY > 0 ? scrollSpeed : -scrollSpeed;
           }
           
           // 수평 스크롤 (Shift+휠 또는 수평 휠 이벤트)
-          if (event.deltaX !== 0 || event.shiftKey) {
-            const deltaX = event.deltaX !== 0 ? event.deltaX : event.deltaY;
-            this.imageOffsetX -= deltaX;
+          if (event.deltaX !== 0) {
+            this.panPosition.x -= event.deltaX > 0 ? scrollSpeed : -scrollSpeed;
+          } else if (event.shiftKey && event.deltaY !== 0) {
+            this.panPosition.x -= event.deltaY > 0 ? scrollSpeed : -scrollSpeed;
           }
         }
       },
@@ -3077,7 +3087,7 @@ select {
   justify-content: flex-start;  /* 왼쪽 정렬 */
   position: relative;
   user-select: none;
-  cursor: grab; /* 드래그 가능함을 나타내는 손 모양 커서 */
+  /*cursor: grab !important;  드래그 가능함을 나타내는 손 모양 커서 */
 }
 
 .zoomable-image-wrapper:active {
