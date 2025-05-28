@@ -135,6 +135,16 @@
 
     <!-- 필터 섹션 -->
     <div class="filter-section">
+      <div class="filter-header">
+        <h3>필터</h3>
+        <button 
+          class="share-filter-btn"
+          @click="shareFilters"
+          title="현재 필터 설정 공유"
+        >
+          <i class="fas fa-share-alt"></i> 필터 공유
+        </button>
+      </div>
       <!-- 이벤트 유형 필터 -->
       <div class="filter-group">
         <label>이벤트 유형:</label>
@@ -161,7 +171,7 @@
           </option>
         </select>
       </div>
-      <!-- 고급 검색 버튼 -->
+      <!-- 컬럼별 필터 버튼 -->
       <div class="filter-group advanced-search-group">
         <button class="advanced-search-btn" @click="toggleAdvancedSearch" :disabled="loading">컬럼별 필터</button>
         <small v-if="hasActiveAdvancedFilters" class="active-filters-indicator">필터 적용됨</small>
@@ -2108,6 +2118,119 @@ export default {
           this.panPosition = { x: 0, y: 0 };
         }
       },
+      * 필터 공유 기능
+      * 현재 페이지 URL과 필터 설정을 클립보드에 복사
+      */
+      shareFilters() {
+        try {
+          // 1. 현재 URL 가져오기
+          const currentUrl = window.location.href;
+          
+          // 2. 필터 값들 수집
+          const filters = {
+            // 필터 섹션의 값들을 여기에 추가
+            // 예: category, date, status 등
+            category: this.selectedCategory,
+            dateRange: this.dateRange,
+            status: this.selectedStatus,
+            // 필요에 따라 다른 필터 추가
+            // ...
+          };
+          
+          // 3. 공유 텍스트 생성
+          let shareText = '🔍 태깅맵 필터 공유\n\n';
+          shareText += `📌 URL: ${currentUrl}\n\n`;
+          shareText += '📋 필터 설정:\n';
+          
+          // 필터 값 추가
+          Object.entries(filters).forEach(([key, value]) => {
+            // 값이 있는 경우에만 추가
+            if (value !== undefined && value !== null && value !== '') {
+              // 배열인 경우 처리
+              if (Array.isArray(value)) {
+                shareText += `- ${this.getFilterLabel(key)}: ${value.join(', ')}\n`;
+              } else {
+                shareText += `- ${this.getFilterLabel(key)}: ${value}\n`;
+              }
+            }
+          });
+          
+          // 4. 클립보드에 복사
+          navigator.clipboard.writeText(shareText)
+            .then(() => {
+              // 성공 메시지 표시
+              this.showToast('필터 설정이 클립보드에 복사되었습니다.');
+              
+              // 로그 출력 (요청한 형식대로)
+              const now = new Date();
+              const formattedDate = now.getUTCFullYear() + '-' + 
+                  String(now.getUTCMonth() + 1).padStart(2, '0') + '-' + 
+                  String(now.getUTCDate()).padStart(2, '0') + ' ' + 
+                  String(now.getUTCHours()).padStart(2, '0') + ':' + 
+                  String(now.getUTCMinutes()).padStart(2, '0') + ':' + 
+                  String(now.getUTCSeconds()).padStart(2, '0');
+                  
+              console.log(`Current Date and Time (UTC - YYYY-MM-DD HH:MM:SS formatted): ${formattedDate}`);
+              console.log(`Current User's Login: wschoi-loca`);
+              console.log(`Filters shared: ${JSON.stringify(filters)}`);
+            })
+            .catch(err => {
+              console.error('클립보드 복사 실패:', err);
+              this.showToast('클립보드 복사에 실패했습니다.', 'error');
+            });
+        } catch (error) {
+          console.error('필터 공유 중 오류:', error);
+          this.showToast('필터 공유 중 오류가 발생했습니다.', 'error');
+        }
+      },
+      
+      /**
+       * 필터 키에 해당하는 사용자 친화적인 레이블 반환
+       */
+      getFilterLabel(key) {
+        const labels = {
+          category: '카테고리',
+          dateRange: '날짜 범위',
+          status: '상태',
+          // 필요에 따라 다른 필터 레이블 추가
+        };
+        
+        return labels[key] || key;
+      },
+      
+      /**
+       * 토스트 메시지 표시
+       */
+      showToast(message, type = 'success') {
+        // 이미 토스트 컴포넌트가 있는 경우 그것을 사용
+        if (this.$toast) {
+          this.$toast[type](message, {
+            position: 'top-right',
+            duration: 3000
+          });
+          return;
+        }
+        
+        // 토스트 컴포넌트가 없는 경우 간단한 토스트 구현
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.textContent = message;
+        
+        document.body.appendChild(toast);
+        
+        // 애니메이션 효과
+        setTimeout(() => {
+          toast.classList.add('show');
+        }, 10);
+        
+        // 3초 후 제거
+        setTimeout(() => {
+          toast.classList.remove('show');
+          setTimeout(() => {
+            document.body.removeChild(toast);
+          }, 300);
+        }, 3000);
+      }
   }
 }
 </script>
@@ -3257,4 +3380,64 @@ select {
 .zoom-btn:hover:not(:disabled) { background: #e0e0e0; }
 .zoom-level { min-width: 48px; text-align: center; font-weight: bold; }
 .no-image { color: #aaa; text-align: center; padding: 2em 0;}
+
+/* 필터 공유 버튼 스타일 */
+.filter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.share-filter-btn {
+  background-color: #4a6cf7;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background-color 0.2s;
+}
+
+.share-filter-btn:hover {
+  background-color: #3a5be0;
+}
+
+.share-filter-btn i {
+  font-size: 16px;
+}
+
+/* 토스트 메시지 스타일 (토스트 컴포넌트가 없는 경우) */
+.toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background-color: #333;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 4px;
+  z-index: 9999;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  transform: translateY(-20px);
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.toast.show {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.toast-success {
+  background-color: #4CAF50;
+}
+
+.toast-error {
+  background-color: #F44336;
+}
+
 </style>
