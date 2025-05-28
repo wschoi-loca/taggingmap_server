@@ -1879,7 +1879,7 @@ export default {
         this.panPosition = { x: 0, y: 0 };
       },
       startDrag(e) {
-        if (this.zoomLevel === 1) return; // 1배율일 때는 드래그 불가
+        if (this.zoomLevel === 1) return;
         this.isDragging = true;
         const evt = e.touches ? e.touches[0] : e;
         this.dragStart = { x: evt.pageX, y: evt.pageY };
@@ -1888,8 +1888,27 @@ export default {
       drag(e) {
         if (!this.isDragging) return;
         const evt = e.touches ? e.touches[0] : e;
-        this.panPosition.x = this.dragOrigin.x + (evt.pageX - this.dragStart.x);
-        this.panPosition.y = this.dragOrigin.y + (evt.pageY - this.dragStart.y);
+        let nextX = this.dragOrigin.x + (evt.pageX - this.dragStart.x);
+        let nextY = this.dragOrigin.y + (evt.pageY - this.dragStart.y);
+
+        // 한계 계산
+        const wrapper = this.$refs.zoomWrapper;
+        const img = this.$refs.zoomImage;
+        if (wrapper && img) {
+          const w = wrapper.clientWidth;
+          const h = wrapper.clientHeight;
+          const iw = this.naturalWidth * this.zoomLevel;
+          const ih = this.naturalHeight * this.zoomLevel;
+
+          // 오른쪽/아래는 wrapper보다 이미지가 작으면 이동 못하게
+          const minX = Math.min(0, w - iw);
+          const minY = Math.min(0, h - ih);
+          nextX = Math.max(minX, Math.min(0, nextX));
+          nextY = Math.max(minY, Math.min(0, nextY));
+        }
+
+        this.panPosition.x = nextX;
+        this.panPosition.y = nextY;
       },
       endDrag() {
         this.isDragging = false;
