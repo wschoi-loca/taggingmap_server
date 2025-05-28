@@ -1875,11 +1875,74 @@ export default {
         }
       },
       
-      onImageLoad(e) {
-        this.naturalWidth = e.target.naturalWidth;
-        this.naturalHeight = e.target.naturalHeight;
-        // 패닝 위치 초기화
-        this.panPosition = { x: 0, y: 0 };
+      // 이미지 로드 시 자동 배율 조정 함수
+      onImageLoad() {
+        // 모달과 이미지 요소 참조 가져오기
+        const modalEl = this.$refs.zoomWrapper;
+        const imageEl = this.$refs.zoomImage;
+        
+        if (!modalEl || !imageEl) return;
+        
+        // 이미지 원본 크기 저장
+        this.naturalWidth = imageEl.naturalWidth;
+        this.naturalHeight = imageEl.naturalHeight;
+        
+        // 모달 가로 길이
+        const modalWidth = modalEl.clientWidth;
+        
+        // 이미지와 모달의 가로 비율 계산
+        const widthRatio = this.naturalWidth / modalWidth;
+        
+        // 비율에 따른 초기 배율 설정
+        if (widthRatio > 3) {
+          // 3배 이상 큰 경우 -> 30%로 설정
+          this.zoomLevel = 0.3;
+        } else if (widthRatio > 2) {
+          // 2배 이상 큰 경우 -> 50%로 설정
+          this.zoomLevel = 0.5;
+        } else if (widthRatio > 1.5) {
+          // 1.5배 이상 큰 경우 -> 70%로 설정
+          this.zoomLevel = 0.7;
+        } else {
+          // 그 외의 경우 -> 100% 유지
+          this.zoomLevel = 1;
+        }
+        
+        // 이미지 실제 크기 저장 (필요시)
+        this.imageRealHeight = this.naturalHeight * this.zoomLevel;
+        
+        // 로그 출력 (디버깅 용도)
+        console.log(`이미지 크기: ${this.naturalWidth}x${this.naturalHeight}`);
+        console.log(`모달 가로: ${modalWidth}, 비율: ${widthRatio}`);
+        console.log(`초기 배율 설정: ${this.zoomLevel * 100}%`);
+        
+        // 추가 로깅 (요청한 정보)
+        const now = new Date();
+        const dateTime = now.toISOString().replace('T', ' ').substr(0, 19);
+        console.log(`Loaded at: ${dateTime}, User: ${this.currentUser || 'wschoi-loca'}`);
+        
+        // 초기 위치 조정 (중앙 정렬)
+        this.resetImagePosition();
+      }
+
+      // 이미지 위치 초기화 (중앙 정렬) 메서드
+      resetImagePosition() {
+        const modalEl = this.$refs.zoomWrapper;
+        if (!modalEl) return;
+        
+        // 이미지 크기와 모달 크기를 고려하여 중앙 정렬
+        const scaledWidth = this.naturalWidth * this.zoomLevel;
+        const scaledHeight = this.naturalHeight * this.zoomLevel;
+        
+        // 중앙 정렬을 위한 오프셋 계산
+        const offsetX = Math.max(0, (modalEl.clientWidth - scaledWidth) / 2);
+        const offsetY = Math.max(0, (modalEl.clientHeight - scaledHeight) / 2);
+        
+        // 위치 업데이트
+        this.panPosition = {
+          x: offsetX,
+          y: offsetY
+        };
       },
       zoomIn() {
         if (this.zoomLevel < 7) this.zoomLevel = Math.min(7, this.zoomLevel + 0.1);
