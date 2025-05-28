@@ -2128,32 +2128,23 @@ export default {
           
           // 2. 필터 값들 수집
           const filters = {
-            // 필터 섹션의 값들을 여기에 추가
-            // 예: category, date, status 등
-            category: this.selectedCategory,
-            dateRange: this.dateRange,
-            status: this.selectedStatus,
-            // 필요에 따라 다른 필터 추가
-            // ...
+            eventType: this.selectedEventType || '선택되지 않음',
+            url: this.selectedUrl || '선택되지 않음',
+            timestamp: this.selectedTimestamp 
+              ? this.formatTimestamp(this.selectedTimestamp) + 
+                (this.formatEventNames(this.getEventNamesForTimestamp(this.selectedTimestamp)) || '')
+              : '선택되지 않음'
           };
           
           // 3. 공유 텍스트 생성
           let shareText = '🔍 태깅맵 필터 공유\n\n';
-          shareText += `📌 URL: ${currentUrl}\n\n`;
+          shareText += `📌 태깅맵 URL: ${currentUrl}\n\n`;
           shareText += '📋 필터 설정:\n';
           
           // 필터 값 추가
-          Object.entries(filters).forEach(([key, value]) => {
-            // 값이 있는 경우에만 추가
-            if (value !== undefined && value !== null && value !== '') {
-              // 배열인 경우 처리
-              if (Array.isArray(value)) {
-                shareText += `- ${this.getFilterLabel(key)}: ${value.join(', ')}\n`;
-              } else {
-                shareText += `- ${this.getFilterLabel(key)}: ${value}\n`;
-              }
-            }
-          });
+          shareText += `- 이벤트 유형: ${filters.eventType === 'visibility' ? '노출' : filters.eventType === 'click' ? '클릭' : filters.eventType}\n`;
+          shareText += `- URL 필터: ${filters.url}\n`;
+          shareText += `- 타임스탬프 필터: ${filters.timestamp}\n`;
           
           // 4. 클립보드에 복사
           navigator.clipboard.writeText(shareText)
@@ -2185,17 +2176,13 @@ export default {
       },
       
       /**
-       * 필터 키에 해당하는 사용자 친화적인 레이블 반환
+       * 타임스탬프에 해당하는 이벤트 이름 가져오기
        */
-      getFilterLabel(key) {
-        const labels = {
-          category: '카테고리',
-          dateRange: '날짜 범위',
-          status: '상태',
-          // 필요에 따라 다른 필터 레이블 추가
-        };
+      getEventNamesForTimestamp(timestamp) {
+        if (!timestamp) return null;
         
-        return labels[key] || key;
+        const timeEntry = this.times.find(t => t.timestamp === timestamp);
+        return timeEntry ? timeEntry.eventNames : null;
       },
       
       /**
@@ -3389,6 +3376,7 @@ select {
   margin-bottom: 15px;
 }
 
+/* 필터 공유 버튼 스타일 */
 .share-filter-btn {
   background-color: #4a6cf7;
   color: white;
@@ -3411,7 +3399,7 @@ select {
   font-size: 16px;
 }
 
-/* 토스트 메시지 스타일 (토스트 컴포넌트가 없는 경우) */
+/* 토스트 메시지 스타일 */
 .toast {
   position: fixed;
   top: 20px;
