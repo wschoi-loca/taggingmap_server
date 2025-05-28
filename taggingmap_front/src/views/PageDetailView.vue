@@ -2874,7 +2874,7 @@ select {
 
 /* 클릭 가능한 이미지 스타일 */
 .image-container {
-  position: relative;
+  position: sticky;
   overflow: hidden;
   border: 1px solid #ddd;
   border-radius: 4px;
