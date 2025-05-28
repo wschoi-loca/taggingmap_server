@@ -270,6 +270,7 @@
             </tbody>
           </table>
         </div>
+      </div>
     </div>
     <!-- 고급 검색 모달 -->
     <div v-if="showAdvancedSearch" class="modal-overlay" @click.self="toggleAdvancedSearch">
