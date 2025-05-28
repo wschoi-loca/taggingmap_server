@@ -195,43 +195,45 @@
     <div v-else class="content-section">
       <!-- 이미지 섹션 -->
       <div class="image-section">
-        <div class="image-container">
-          <div class="zoom-controls absolute-top-right">
-            <button @click="zoomOut" class="zoom-btn" :disabled="zoomLevel <= 0.5">
-              <i class="fas fa-search-minus"></i>
-            </button>
-            <span class="zoom-level">{{ Math.round(zoomLevel * 100) }}%</span>
-            <button @click="zoomIn" class="zoom-btn" :disabled="zoomLevel >= 7">
-              <i class="fas fa-search-plus"></i>
-            </button>
-            <button class="zoom-btn reset" @click="resetZoom">
-              <i class="fas fa-sync-alt"></i>
-            </button>
-          </div>
-          <div
-            class="zoomable-image-wrapper"
-            ref="zoomWrapper"
-            @mousedown="startDrag"
-            @mousemove="drag"
-            @mouseup="endDrag"
-            @mouseleave="endDrag"
-            @touchstart="startDrag"
-            @touchmove="drag"
-            @touchend="endDrag"
-            :style="imageWrapperStyle"
-          >
-            <img
-              v-if="taggingMaps.length > 0 && taggingMaps[0].image"
-              :src="taggingMaps[0].image"
-              alt="태깅맵 이미지"
-              class="zoomable-image"
-              :style="zoomedImageStyle"
-              ref="zoomImage"
-              @wheel.prevent="handleWheel"
-              @load="onImageLoad"
-              draggable="false"
-            />
-            <p v-else class="no-image">이미지가 없습니다</p>
+        <div class="sticky-container"> <!-- 새로운 스티키 컨테이너 -->
+          <div class="image-container">
+            <div class="zoom-controls absolute-top-right">
+              <button @click="zoomOut" class="zoom-btn" :disabled="zoomLevel <= 0.5">
+                <i class="fas fa-search-minus"></i>
+              </button>
+              <span class="zoom-level">{{ Math.round(zoomLevel * 100) }}%</span>
+              <button @click="zoomIn" class="zoom-btn" :disabled="zoomLevel >= 7">
+                <i class="fas fa-search-plus"></i>
+              </button>
+              <button class="zoom-btn reset" @click="resetZoom">
+                <i class="fas fa-sync-alt"></i>
+              </button>
+            </div>
+            <div
+              class="zoomable-image-wrapper"
+              ref="zoomWrapper"
+              @mousedown="startDrag"
+              @mousemove="drag"
+              @mouseup="endDrag"
+              @mouseleave="endDrag"
+              @touchstart="startDrag"
+              @touchmove="drag"
+              @touchend="endDrag"
+              :style="imageWrapperStyle"
+            >
+              <img
+                v-if="taggingMaps.length > 0 && taggingMaps[0].image"
+                :src="taggingMaps[0].image"
+                alt="태깅맵 이미지"
+                class="zoomable-image"
+                :style="zoomedImageStyle"
+                ref="zoomImage"
+                @wheel.prevent="handleWheel"
+                @load="onImageLoad"
+                draggable="false"
+              />
+              <p v-else class="no-image">이미지가 없습니다</p>
+            </div>
           </div>
         </div>
       </div>
@@ -3010,18 +3012,22 @@ select {
   }
 }
 
-.image-container {
+.sticky-container {
   position: sticky;
-  top: 20px;  /* 스크롤 시 상단에서 20px 위치에 고정 */
+  top: 20px;
+  z-index: 10;
+}
+
+.image-container {
   border: 1px solid #ddd;
   border-radius: 4px;
   padding: 10px;
   background: #fafafa;
-  overflow: visible; /* auto에서 visible로 변경 */
+  overflow: hidden; /* 다시 hidden으로 변경! */
   min-width: 320px;
   min-height: 220px;
-  z-index: 10; /* 다른 요소 위에 표시되도록 */
 }
+
 .zoomable-image-wrapper {
   overflow: visible;
   width: 100%;
