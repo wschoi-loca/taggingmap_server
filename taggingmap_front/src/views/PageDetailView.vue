@@ -3020,9 +3020,9 @@ select {
 .zoomable-image-wrapper {
   overflow: hidden;
   width: 100%;
-  height: 60vh;
+  height: 95vh;
   min-height: 200px;
-  max-height: 90vh;
+  max-height: 98vh;
   background: #eee;
   display: flex;
   align-items: flex-start;      /* 위쪽 정렬 */
