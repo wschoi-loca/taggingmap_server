@@ -221,15 +221,15 @@
             :style="imageWrapperStyle"
           >
             <img
-            v-if="taggingMaps.length > 0 && taggingMaps[0].image"
-            :src="taggingMaps[0].image"
-            alt="태깅맵 이미지"
-            class="zoomable-image"
-            :style="zoomedImageStyle"
-            ref="zoomImage"
-            @wheel.prevent="handleWheel"
-            @load="onImageLoad"
-            draggable="false"
+              v-if="taggingMaps.length > 0 && taggingMaps[0].image"
+              :src="taggingMaps[0].image"
+              alt="태깅맵 이미지"
+              class="zoomable-image"
+              :style="zoomedImageStyle"
+              ref="zoomImage"
+              @wheel.prevent="handleWheel"
+              @load="onImageLoad"
+              draggable="false"
             />
             <p v-else class="no-image">이미지가 없습니다</p>
           </div>
@@ -472,12 +472,13 @@ export default {
         height: this.imageRealHeight
           ? this.imageRealHeight + 'px'
           : '60vh', // 기본값
-        minHeight: '100px',
+        width: "100%",  
+        minHeight: '300px',
         overflow: 'hidden',
         background: '#eee',
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        alignItems: "flex-start",
+        justifyContent: "flex-start",
         position: 'relative',
         userSelect: 'none',
       };
@@ -1867,12 +1868,19 @@ export default {
         }
       },
       
+      onImageLoad(e) {
+        this.naturalWidth = e.target.naturalWidth;
+        this.naturalHeight = e.target.naturalHeight;
+        // 패닝 위치 초기화
+        this.panPosition = { x: 0, y: 0 };
+      },
       zoomIn() {
         if (this.zoomLevel < 7) this.zoomLevel = Math.min(7, this.zoomLevel + 0.1);
+        this.fixPanBounds();
       },
       zoomOut() {
         if (this.zoomLevel > 0.5) this.zoomLevel = Math.max(0.5, this.zoomLevel - 0.1);
-        if (this.zoomLevel === 1) this.panPosition = { x: 0, y: 0 };
+        this.fixPanBounds();
       },
       resetZoom() {
         this.zoomLevel = 1;
@@ -1891,17 +1899,14 @@ export default {
         let nextX = this.dragOrigin.x + (evt.pageX - this.dragStart.x);
         let nextY = this.dragOrigin.y + (evt.pageY - this.dragStart.y);
 
-        // 한계 계산
+        // 한계 계산: 왼쪽/위쪽은 0, 오른쪽/아래는 wrapper - image
         const wrapper = this.$refs.zoomWrapper;
-        const img = this.$refs.zoomImage;
-        if (wrapper && img) {
+        const iw = this.naturalWidth * this.zoomLevel;
+        const ih = this.naturalHeight * this.zoomLevel;
+        if (wrapper) {
           const w = wrapper.clientWidth;
           const h = wrapper.clientHeight;
-          const iw = this.naturalWidth * this.zoomLevel;
-          const ih = this.naturalHeight * this.zoomLevel;
-
-          // 오른쪽/아래는 wrapper보다 이미지가 작으면 이동 못하게
-          const minX = Math.min(0, w - iw);
+          const minX = Math.min(0, w - iw); // 이미지가 wrapper보다 작으면 0
           const minY = Math.min(0, h - ih);
           nextX = Math.max(minX, Math.min(0, nextX));
           nextY = Math.max(minY, Math.min(0, nextY));
@@ -1918,10 +1923,21 @@ export default {
         if (e.deltaY < 0) this.zoomIn();
         else this.zoomOut();
       },
-      onImageLoad(e) {
-        this.naturalWidth = e.target.naturalWidth;
-        this.naturalHeight = e.target.naturalHeight;
-        this.imageRealHeight = e.target.naturalHeight * this.zoomLevel;
+      fixPanBounds() {
+        // zoomLevel이 바뀐 뒤에도 pan이 한계 넘지 않도록 보정
+        const wrapper = this.$refs.zoomWrapper;
+        const iw = this.naturalWidth * this.zoomLevel;
+        const ih = this.naturalHeight * this.zoomLevel;
+        if (wrapper) {
+          const w = wrapper.clientWidth;
+          const h = wrapper.clientHeight;
+          const minX = Math.min(0, w - iw);
+          const minY = Math.min(0, h - ih);
+          this.panPosition.x = Math.max(minX, Math.min(0, this.panPosition.x));
+          this.panPosition.y = Math.max(minY, Math.min(0, this.panPosition.y));
+        } else {
+          this.panPosition = { x: 0, y: 0 };
+        }
       },
   }
 }
@@ -3014,13 +3030,13 @@ select {
   user-select: none;
 }
 .zoomable-image {
+  position: relative;
+  left: 0;
+  top: 0;
   max-width: none;
   max-height: none;
-  will-change: transform;
   user-select: none;
   pointer-events: auto;
-  /* 추가: 움직일 때 left/top 적용 */
-  position: relative;
 }
 .absolute-top-right {
   position: absolute;
