@@ -161,19 +161,15 @@
           </option>
         </select>
       </div>
-      <div class="filter-header">
-        <button 
-          class="share-filter-btn"
-          @click="shareFilters"
-          title="현재 필터 설정 공유"
-        >
-          <i class="fas fa-share-alt"></i> 필터 공유
-        </button>
-      </div>
-      <!-- 컬럼별 필터 버튼 -->
+      <!-- 버튼 그룹 -->
       <div class="filter-group advanced-search-group">
-        <button class="advanced-search-btn" @click="toggleAdvancedSearch" :disabled="loading">컬럼별 필터</button>
-        <small v-if="hasActiveAdvancedFilters" class="active-filters-indicator">필터 적용됨</small>
+        <div class="filter-buttons-container">
+          <button class="advanced-search-btn" @click="toggleAdvancedSearch" :disabled="loading">컬럼별 필터</button>
+          <button class="share-filter-btn" @click="shareFilters" title="현재 필터 설정 공유">
+            <i class="fas fa-share-alt"></i> 필터 공유
+          </button>
+          <small v-if="hasActiveAdvancedFilters" class="active-filters-indicator">필터 적용됨</small>
+        </div>
       </div>
     </div>
 
@@ -2137,13 +2133,13 @@ export default {
           
           // 3. 공유 텍스트 생성
           let shareText = '🔍 태깅맵 필터 공유\n\n';
-          shareText += `📌 태깅맵 URL: ${currentUrl}\n\n`;
+          shareText += `📌 URL: ${currentUrl}\n\n`;
           shareText += '📋 필터 설정:\n';
           
           // 필터 값 추가
           shareText += `- 이벤트 유형: ${filters.eventType === 'visibility' ? '노출' : filters.eventType === 'click' ? '클릭' : filters.eventType}\n`;
-          shareText += `- URL 필터: ${filters.url}\n`;
-          shareText += `- 타임스탬프 필터: ${filters.timestamp}\n`;
+          shareText += `- URL: ${filters.url}\n`;
+          shareText += `- 타임스탬프: ${filters.timestamp}\n`;
           
           // 4. 클립보드에 복사
           navigator.clipboard.writeText(shareText)
@@ -2173,7 +2169,7 @@ export default {
           this.showToast('필터 공유 중 오류가 발생했습니다.', 'error');
         }
       },
-      
+
       /**
        * 타임스탬프에 해당하는 이벤트 이름 가져오기
        */
@@ -2183,21 +2179,12 @@ export default {
         const timeEntry = this.times.find(t => t.timestamp === timestamp);
         return timeEntry ? timeEntry.eventNames : null;
       },
-      
+
       /**
        * 토스트 메시지 표시
        */
       showToast(message, type = 'success') {
-        // 이미 토스트 컴포넌트가 있는 경우 그것을 사용
-        if (this.$toast) {
-          this.$toast[type](message, {
-            position: 'top-right',
-            duration: 3000
-          });
-          return;
-        }
-        
-        // 토스트 컴포넌트가 없는 경우 간단한 토스트 구현
+        // 토스트 요소 생성
         const toast = document.createElement('div');
         toast.className = `toast toast-${type}`;
         toast.textContent = message;
@@ -3367,21 +3354,21 @@ select {
 .zoom-level { min-width: 48px; text-align: center; font-weight: bold; }
 .no-image { color: #aaa; text-align: center; padding: 2em 0;}
 
-/* 필터 공유 버튼 스타일 */
-.filter-header {
+/* 필터 버튼 컨테이너 */
+.filter-buttons-container {
   display: flex;
-  justify-content: space-between;
+  gap: 10px;
   align-items: center;
-  margin-bottom: 15px;
 }
 
-/* 필터 공유 버튼 스타일 */
+
+/* 필터 공유 버튼 스타일 수정 - 컬럼별 필터 버튼과 일치시킴 */
 .share-filter-btn {
-  background-color: #4a6cf7;
+  background-color: #6A5ACD;  /* 보라색 계열 */
   color: white;
   border: none;
   border-radius: 4px;
-  padding: 8px 12px;
+  padding: 8px 16px;
   font-size: 14px;
   cursor: pointer;
   display: flex;
@@ -3391,11 +3378,24 @@ select {
 }
 
 .share-filter-btn:hover {
-  background-color: #3a5be0;
+  background-color: #5A4ABD;  /* 약간 더 어두운 보라색 */
 }
 
 .share-filter-btn i {
-  font-size: 16px;
+  font-size: 14px;
+}
+
+/* 필터 선택 표시자 위치 조정 */
+.active-filters-indicator {
+  position: absolute;
+  bottom: -15px;
+  left: 0;
+}
+
+/* 버튼 그룹의 상대적 위치 설정 */
+.advanced-search-group {
+  position: relative;
+  padding-bottom: 15px;
 }
 
 /* 토스트 메시지 스타일 */
