@@ -1,6 +1,10 @@
 <template>
-  <div id="toast-container"></div>
   <div class="page-detail">
+    <transition name="toast-fade">
+      <div v-if="toast.show" :class="['vue-toast', `vue-toast-${toast.type}`]">
+        {{ toast.message }}
+      </div>
+    </transition>
     <!-- 헤더 섹션 -->
     <div class="header-section">
       <h1>{{ formattedPagetitle }}</h1>
@@ -478,6 +482,13 @@ export default {
       naturalHeight: 0,
       imageOffsetX: 0,
       imageOffsetY: 0,
+      // 토스트 상태 관리
+      toast: {
+        show: false,
+        message: '',
+        type: 'success',
+        timer: null
+      }
     }
   },
   computed: {
@@ -2148,7 +2159,7 @@ export default {
           navigator.clipboard.writeText(shareText)
             .then(() => {
               // 성공 메시지 표시
-              this.showToast('필터 설정이 클립보드에 복사되었습니다.');
+              this.showToast('필터 설정이 클립보드에 복사되었습니다.', 'success');
               
               // 로그 출력 (요청한 형식대로)
               const now = new Date();
@@ -2187,17 +2198,15 @@ export default {
        * 토스트 메시지 표시
        */
        showToast(message, type = 'success') {
-        // 기존 토스트 제거
-        const existingToasts = document.querySelectorAll('.toast');
-        existingToasts.forEach(t => document.body.removeChild(t));
+        // 이미 표시 중인 토스트가 있으면 타이머 제거
+        if (this.toast.timer) {
+          clearTimeout(this.toast.timer);
+        }
         
-        // 토스트 요소 생성
-        const toast = document.createElement('div');
-        toast.className = `toast toast-${type}`;
-        toast.textContent = message;
-        
-        // DOM에 추가
-        document.body.appendChild(toast);
+        // 토스트 상태 업데이트
+        this.toast.message = message;
+        this.toast.type = type;
+        this.toast.show = true;
         
         // 로그 출력
         const now = new Date();
@@ -2212,22 +2221,12 @@ export default {
         console.log(`Current User's Login: wschoi-loca`);
         console.log(`Toast message: ${message} (${type})`);
         
-        // 즉시 표시 - 약간의 지연 후 애니메이션 적용
-        setTimeout(() => {
-          toast.classList.add('show');
-        }, 10);
-        
-        // 3초 후 제거
-        setTimeout(() => {
-          toast.classList.remove('show');
-          setTimeout(() => {
-            // DOM에서 요소 제거 시 안전 장치 추가
-            if (document.body.contains(toast)) {
-              document.body.removeChild(toast);
-            }
-          }, 300);
+        // 3초 후 토스트 숨기기
+        this.toast.timer = setTimeout(() => {
+          this.toast.show = false;
         }, 3000);
-      }
+      },
+  
   }
 }
 </script>
@@ -3437,38 +3436,39 @@ select {
 }
 
 /* 토스트 메시지 스타일 */
-.toast {
+/* Vue 컴포넌트 기반 토스트 스타일 */
+.vue-toast {
   position: fixed;
   top: 20px;
   right: 20px;
-  min-width: 250px;
-  background-color: #333;
-  color: white;
+  min-width: 280px;
   padding: 15px 25px;
   border-radius: 4px;
-  z-index: 999999; /* 매우 높은 z-index 값 */
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  transform: translateY(-20px);
-  opacity: 0;
-  transition: all 0.3s ease;
-  font-size: 16px;
+  color: white;
   font-weight: 500;
-  pointer-events: none; /* 클릭 이벤트 무시 */
+  font-size: 16px;
+  z-index: 999999;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
-.toast.show {
-  transform: translateY(0);
-  opacity: 1;
-}
-
-.toast-success {
+.vue-toast-success {
   background-color: #4CAF50;
   border-left: 5px solid #2E7D32;
 }
 
-.toast-error {
+.vue-toast-error {
   background-color: #F44336;
   border-left: 5px solid #B71C1C;
+}
+
+/* 토스트 페이드 애니메이션 */
+.toast-fade-enter-active, .toast-fade-leave-active {
+  transition: opacity 0.5s, transform 0.5s;
+}
+
+.toast-fade-enter-from, .toast-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-20px);
 }
 
 </style>
