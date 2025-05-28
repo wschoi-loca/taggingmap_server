@@ -1923,7 +1923,7 @@ export default {
         
         // 초기 위치 조정 (중앙 정렬)
         this.resetImagePosition();
-      }
+      },
 
       // 이미지 위치 초기화 (중앙 정렬) 메서드
       resetImagePosition() {
