@@ -164,11 +164,13 @@
       <!-- 버튼 그룹 -->
       <div class="filter-group advanced-search-group">
         <div class="filter-buttons-container">
-          <button class="advanced-search-btn" @click="toggleAdvancedSearch" :disabled="loading">컬럼별 필터</button>
+          <div class="button-with-indicator">
+            <button class="advanced-search-btn" @click="toggleAdvancedSearch" :disabled="loading">컬럼별 필터</button>
+            <small v-if="hasActiveAdvancedFilters" class="active-filters-indicator">필터 적용됨</small>
+          </div>
           <button class="share-filter-btn" @click="shareFilters" title="현재 필터 설정 공유">
             <i class="fas fa-share-alt"></i> 필터 공유
           </button>
-          <small v-if="hasActiveAdvancedFilters" class="active-filters-indicator">필터 적용됨</small>
         </div>
       </div>
     </div>
@@ -2767,11 +2769,6 @@ input[type="file"] {
   background-color: #388E3C;
 }
 
-.active-filters-indicator {
-  margin-top: 5px;
-  color: #dc3545;
-  font-style: italic;
-}
 
 .active-filters {
   background-color: #f8f9fa;
@@ -3384,12 +3381,31 @@ select {
 .share-filter-btn i {
   font-size: 14px;
 }
+/* 버튼과 인디케이터 래퍼 */
+.button-with-indicator {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
 
-/* 필터 선택 표시자 위치 조정 */
+/* 필터 선택 표시자 스타일 */
 .active-filters-indicator {
   position: absolute;
-  bottom: -15px;
+  bottom: -18px;
   left: 0;
+  color: #dc3545;
+  font-style: italic;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* 필터 버튼 컨테이너에 여백 추가 */
+.filter-buttons-container {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 20px; /* 인디케이터를 위한 공간 확보 */
 }
 
 /* 버튼 그룹의 상대적 위치 설정 */
