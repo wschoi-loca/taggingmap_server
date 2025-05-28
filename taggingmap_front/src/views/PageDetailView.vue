@@ -229,6 +229,7 @@
               ref="zoomImage"
               @wheel.prevent="handleWheel"
               @load="onImageLoad"
+              draggable="false"
             />
             <p v-else class="no-image">이미지가 없습니다</p>
           </div>
@@ -456,20 +457,28 @@ export default {
       // 이미지 확대 관련
       showImageModal: false,
       zoomLevel: 1,
-      initialZoomLevel: 1,
       panPosition: { x: 0, y: 0 },
       isDragging: false,
-      startDragPosition: { x: 0, y: 0 },
+      dragStart: { x: 0, y: 0 },
+      dragOrigin: { x: 0, y: 0 },
+      naturalWidth: 0,
+      naturalHeight: 0,
     }
   },
   computed: {
     zoomedImageStyle() {
-      if (!this.naturalWidth) return {};
+      // width/height와 left/top을 모두 panPosition, zoomLevel로 적용!
       return {
-        width: `${this.naturalWidth * this.zoomLevel}px`,
-        height: `${this.naturalHeight * this.zoomLevel}px`,
+        width: this.naturalWidth ? `${this.naturalWidth * this.zoomLevel}px` : "auto",
+        height: this.naturalHeight ? `${this.naturalHeight * this.zoomLevel}px` : "auto",
         maxWidth: "none",
-        maxHeight: "none"
+        maxHeight: "none",
+        position: "relative",
+        left: `${this.panPosition.x}px`,
+        top: `${this.panPosition.y}px`,
+        userSelect: "none",
+        pointerEvents: "auto",
+        transition: this.isDragging ? "none" : "transform 0.12s, left 0.12s, top 0.12s",
       };
     },
   
@@ -1842,99 +1851,33 @@ export default {
         }
       },
       
-      // 확대
       zoomIn() {
-        if (this.zoomLevel < 7) this.zoomLevel = Math.min(7, this.zoomLevel + 0.2); // 500%
+        if (this.zoomLevel < 7) this.zoomLevel = Math.min(7, this.zoomLevel + 0.1);
       },
-      
-      // 축소
       zoomOut() {
-        if (this.zoomLevel > 0.5) {
-          this.zoomLevel -= 0.2;
-        }
+        if (this.zoomLevel > 0.5) this.zoomLevel = Math.max(0.5, this.zoomLevel - 0.1);
+        if (this.zoomLevel === 1) this.panPosition = { x: 0, y: 0 };
       },
-      
-      // 원래 크기로 복원
       resetZoom() {
         this.zoomLevel = 1;
-        
-        // 이미지 크기에 따라 초기 확대/축소 수준 결정
-        this.$nextTick(() => {
-          const zoomContainer = this.$refs.zoomContainer;
-          const zoomImage = this.$refs.zoomImage;
-          
-          if (zoomContainer && zoomImage) {
-            const containerWidth = zoomContainer.clientWidth;
-            const containerHeight = zoomContainer.clientHeight;
-            const imageWidth = zoomImage.naturalWidth;
-            const imageHeight = zoomImage.naturalHeight;
-            
-            // 이미지가 컨테이너보다 작을 경우, 적절한 확대 수준 설정
-            if (imageWidth < containerWidth * 0.8 && imageHeight < containerHeight * 0.8) {
-              // 컨테이너 크기의 80%를 채울 정도로 확대
-              const scaleX = (containerWidth * 0.8) / imageWidth;
-              const scaleY = (containerHeight * 0.8) / imageHeight;
-              this.initialZoomLevel = Math.min(scaleX, scaleY, 1.5); // 최대 1.5배까지만
-              this.zoomLevel = this.initialZoomLevel;
-            } else {
-              this.initialZoomLevel = 1;
-              this.zoomLevel = 1;
-            }
-          }
-        });
-        
-        // 패닝 위치 초기화
         this.panPosition = { x: 0, y: 0 };
-        if (this.$refs.zoomImage) {
-          this.$refs.zoomImage.style.transform = `scale(${this.zoomLevel})`;
-          this.$refs.zoomImage.style.left = '0px';
-          this.$refs.zoomImage.style.top = '0px';
-        }
       },
-      
-      // 드래그 시작
       startDrag(e) {
-        e.preventDefault();
-        
+        if (this.zoomLevel === 1) return; // 1배율일 때는 드래그 불가
         this.isDragging = true;
-        
-        // 터치 이벤트와 마우스 이벤트 구분
-        const pageX = e.touches ? e.touches[0].pageX : e.pageX;
-        const pageY = e.touches ? e.touches[0].pageY : e.pageY;
-        
-        this.startDragPosition = {
-          x: pageX - this.panPosition.x,
-          y: pageY - this.panPosition.y
-        };
+        const evt = e.touches ? e.touches[0] : e;
+        this.dragStart = { x: evt.pageX, y: evt.pageY };
+        this.dragOrigin = { ...this.panPosition };
       },
-      
-      // 드래그 중
       drag(e) {
         if (!this.isDragging) return;
-        
-        e.preventDefault();
-        
-        // 터치 이벤트와 마우스 이벤트 구분
-        const pageX = e.touches ? e.touches[0].pageX : e.pageX;
-        const pageY = e.touches ? e.touches[0].pageY : e.pageY;
-        
-        this.panPosition = {
-          x: pageX - this.startDragPosition.x,
-          y: pageY - this.startDragPosition.y
-        };
-        
-        if (this.$refs.zoomImage) {
-          this.$refs.zoomImage.style.left = `${this.panPosition.x}px`;
-          this.$refs.zoomImage.style.top = `${this.panPosition.y}px`;
-        }
+        const evt = e.touches ? e.touches[0] : e;
+        this.panPosition.x = this.dragOrigin.x + (evt.pageX - this.dragStart.x);
+        this.panPosition.y = this.dragOrigin.y + (evt.pageY - this.dragStart.y);
       },
-      
-      // 드래그 종료
       endDrag() {
         this.isDragging = false;
       },
-
-      // 휠 스크롤 이벤트 처리
       handleWheel(e) {
         if (e.ctrlKey || e.metaKey) return;
         if (e.deltaY < 0) this.zoomIn();
@@ -3036,10 +2979,11 @@ select {
 .zoomable-image {
   max-width: none;
   max-height: none;
-  /* 이미지 크기 제한은 zoom과 pan으로만 조절 */
   will-change: transform;
   user-select: none;
   pointer-events: auto;
+  /* 추가: 움직일 때 left/top 적용 */
+  position: relative;
 }
 .absolute-top-right {
   position: absolute;
