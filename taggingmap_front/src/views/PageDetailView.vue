@@ -279,17 +279,41 @@
         <!-- 이미지 섹션 -->
         <div class="image-section">
           <div class="image-container">
-            <img 
-              :src="taggingMaps[0].image" 
-              alt="태깅맵 이미지" 
-              @click="openImageZoomModal" 
-              class="clickable-image"
-              v-if="taggingMaps.length > 0 && taggingMaps[0].image"
-            />
-            <div class="image-zoom-hint" v-if="taggingMaps.length > 0 && taggingMaps[0].image">
-              <i class="fas fa-search-plus"></i> 클릭하여 확대
+            <div class="zoom-controls absolute-top-right">
+              <button @click="zoomOut" class="zoom-btn" :disabled="zoomLevel <= 0.5">
+                <i class="fas fa-search-minus"></i>
+              </button>
+              <span class="zoom-level">{{ Math.round(zoomLevel * 100) }}%</span>
+              <button @click="zoomIn" class="zoom-btn" :disabled="zoomLevel >= 3">
+                <i class="fas fa-search-plus"></i>
+              </button>
+              <button @click="resetZoom" class="zoom-btn reset">
+                <i class="fas fa-sync-alt"></i>
+              </button>
             </div>
-            <p v-else class="no-image">이미지가 없습니다</p>
+            <div
+              class="zoomable-image-wrapper"
+              ref="zoomWrapper"
+              @mousedown="startDrag"
+              @mousemove="drag"
+              @mouseup="endDrag"
+              @mouseleave="endDrag"
+              @touchstart="startDrag"
+              @touchmove="drag"
+              @touchend="endDrag"
+              :style="{ cursor: isDragging ? 'grabbing' : (zoomLevel !== 1 ? 'grab' : 'auto') }"
+            >
+              <img
+                v-if="taggingMaps.length > 0 && taggingMaps[0].image"
+                :src="taggingMaps[0].image"
+                alt="태깅맵 이미지"
+                class="zoomable-image"
+                :style="zoomedImageStyle"
+                ref="zoomImage"
+                @wheel.prevent="handleWheel"
+              />
+              <p v-else class="no-image">이미지가 없습니다</p>
+            </div>
           </div>
         </div>
 
@@ -557,10 +581,22 @@ export default {
       panPosition: { x: 0, y: 0 },
       isDragging: false,
       startDragPosition: { x: 0, y: 0 },
-      
+      zoomLevel: 1,
+      panPosition: { x: 0, y: 0 },
+      isDragging: false,
+      startDragPosition: { x: 0, y: 0 },
     }
   },
   computed: {
+    zoomedImageStyle() {
+      return {
+        transform: `scale(${this.zoomLevel}) translate(${this.panPosition.x / this.zoomLevel}px, ${this.panPosition.y / this.zoomLevel}px)`,
+        transition: this.isDragging ? "none" : "transform 0.16s",
+        'transform-origin': 'top left',
+        cursor: this.isDragging ? 'grabbing' : (this.zoomLevel !== 1 ? 'grab' : 'auto'),
+        userSelect: 'none'
+      };
+    },
   
     // 파싱 버튼 활성화 여부
     canParse() {
@@ -2023,7 +2059,44 @@ export default {
       // 드래그 종료
       endDrag() {
         this.isDragging = false;
-      }    
+      },
+      
+      zoomIn() {
+        if (this.zoomLevel < 3) this.zoomLevel = Math.min(3, this.zoomLevel + 0.1);
+      },
+      zoomOut() {
+        if (this.zoomLevel > 0.5) this.zoomLevel = Math.max(0.5, this.zoomLevel - 0.1);
+        if (this.zoomLevel === 1) this.panPosition = { x: 0, y: 0 };
+      },
+      resetZoom() {
+        this.zoomLevel = 1;
+        this.panPosition = { x: 0, y: 0 };
+      },
+      startDrag(e) {
+        if (this.zoomLevel === 1) return;
+        this.isDragging = true;
+        const event = e.touches ? e.touches[0] : e;
+        this.startDragPosition = {
+          x: event.pageX - this.panPosition.x,
+          y: event.pageY - this.panPosition.y,
+        };
+      },
+      drag(e) {
+        if (!this.isDragging) return;
+        const event = e.touches ? e.touches[0] : e;
+        this.panPosition = {
+          x: event.pageX - this.startDragPosition.x,
+          y: event.pageY - this.startDragPosition.y,
+        };
+      },
+      endDrag() {
+        this.isDragging = false;
+      },
+      handleWheel(e) {
+        if (e.ctrlKey || e.metaKey) return;
+        if (e.deltaY < 0) this.zoomIn();
+        else this.zoomOut();
+      }
   }
 }
 </script>
@@ -3090,4 +3163,64 @@ select {
     height: 36px;
   }
 }
+
+.image-container {
+  position: relative;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 10px;
+  background: #fafafa;
+  overflow: auto;
+  min-width: 320px;
+  min-height: 220px;
+}
+.zoomable-image-wrapper {
+  overflow: hidden;
+  width: 100%;
+  height: 60vh;
+  min-height: 300px;
+  background: #eee;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  user-select: none;
+}
+.zoomable-image {
+  max-width: none;
+  max-height: none;
+  /* 이미지 크기 제한은 zoom과 pan으로만 조절 */
+  will-change: transform;
+  user-select: none;
+  pointer-events: auto;
+}
+.absolute-top-right {
+  position: absolute;
+  top: 10px;
+  right: 20px;
+  z-index: 2;
+  display: flex;
+  gap: 6px;
+  background: rgba(255,255,255,0.8);
+  padding: 3px 7px;
+  border-radius: 6px;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.03);
+}
+.zoom-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: #f0f0f0;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.18s;
+}
+.zoom-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.zoom-btn.reset { background: #007bff; color: #fff;}
+.zoom-btn.reset:hover { background: #0056b3; }
+.zoom-btn:hover:not(:disabled) { background: #e0e0e0; }
+.zoom-level { min-width: 48px; text-align: center; font-weight: bold; }
+.no-image { color: #aaa; text-align: center; padding: 2em 0;}
 </style>
