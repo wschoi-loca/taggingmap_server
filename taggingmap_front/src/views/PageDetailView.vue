@@ -3021,7 +3021,7 @@ select {
   overflow: hidden;
   width: 100%;
   height: 60vh;
-  min-height: auto;
+  min-height: 950px; /* 최소 높이 설정 */
   background: #eee;
   display: flex;
   align-items: flex-start;      /* 위쪽 정렬 */
