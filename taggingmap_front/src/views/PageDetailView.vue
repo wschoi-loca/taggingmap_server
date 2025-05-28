@@ -251,8 +251,21 @@
       </div>
       <!-- 데이터 섹션 -->
       <div class="data-section">
+        <!-- 테이블 스크롤 컨트롤 버튼 -->
+        <div class="table-scroll-controls">
+          <button class="scroll-btn scroll-left-btn" @click="scrollTableLeft" :disabled="isScrollLeftEnd">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <div class="scroll-indicator">
+            <span>{{ scrollPosition.current }} / {{ scrollPosition.total }}</span>
+          </div>
+          <button class="scroll-btn scroll-right-btn" @click="scrollTableRight" :disabled="isScrollRightEnd">
+            <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
+        
         <!-- 스크롤 가능한 테이블 컨테이너 -->
-        <div class="table-scroll-container">
+        <div class="table-scroll-container" ref="tableScrollContainer">
           <table class="sticky-table">
             <thead>
               <tr>
@@ -318,6 +331,48 @@ export default {
     pathMatch: Array
   },
   components: {
+  },
+  // 라이프사이클 훅 - mounted
+  mounted() {
+    // 기존 코드가 있다면 유지...
+    
+    // 창 크기 변경 시 스크롤 위치 업데이트 (5번 항목)
+    window.addEventListener('resize', this.updateScrollPosition);
+    
+    // 테이블 스크롤 이벤트 리스너 (6번 항목)
+    const container = this.$refs.tableScrollContainer;
+    if (container) {
+      container.addEventListener('scroll', this.updateScrollPosition);
+    }
+    
+    // 초기 스크롤 위치 설정 (5번 항목)
+    this.$nextTick(() => {
+      this.updateScrollPosition();
+    });
+  },
+
+  // 라이프사이클 훅 - updated
+  updated() {
+    // 기존 코드가 있다면 유지...
+    
+    // 데이터 변경 시 스크롤 위치 업데이트 (5번 항목)
+    this.$nextTick(() => {
+      this.updateScrollPosition();
+    });
+  },
+
+  // 라이프사이클 훅 - beforeDestroy
+  beforeDestroy() {
+    // 기존 코드가 있다면 유지...
+    
+    // 이벤트 리스너 제거 (5번 항목)
+    window.removeEventListener('resize', this.updateScrollPosition);
+    
+    // 테이블 스크롤 이벤트 리스너 제거 (6번 항목)
+    const container = this.$refs.tableScrollContainer;
+    if (container) {
+      container.removeEventListener('scroll', this.updateScrollPosition);
+    }
   },
   data() {
     return {
@@ -488,8 +543,16 @@ export default {
         message: '',
         type: 'success',
         timer: null
+      },
+      // 테이블 스크롤 상태
+      scrollPosition: {
+        current: 1,
+        total: 1
+      },
+      columnWidth: 180, // 기본 컬럼 너비 (픽셀)
+      isScrollLeftEnd: true,
+      isScrollRightEnd: false
       }
-    }
   },
   computed: {
     imageWrapperStyle() {
@@ -2226,7 +2289,64 @@ export default {
           this.toast.show = false;
         }, 3000);
       },
-  
+      /**
+       * 테이블을 왼쪽으로 스크롤 (컬럼 단위)
+       */
+      scrollTableLeft() {
+        const container = this.$refs.tableScrollContainer;
+        if (!container) return;
+        
+        // 현재 스크롤 위치에서 컬럼 너비만큼 왼쪽으로 이동
+        container.scrollLeft -= this.columnWidth;
+        
+        // 스크롤 후 위치 업데이트
+        this.$nextTick(() => {
+          this.updateScrollPosition();
+        });
+      },
+      
+      /**
+       * 테이블을 오른쪽으로 스크롤 (컬럼 단위)
+       */
+      scrollTableRight() {
+        const container = this.$refs.tableScrollContainer;
+        if (!container) return;
+        
+        // 현재 스크롤 위치에서 컬럼 너비만큼 오른쪽으로 이동
+        container.scrollLeft += this.columnWidth;
+        
+        // 스크롤 후 위치 업데이트
+        this.$nextTick(() => {
+          this.updateScrollPosition();
+        });
+      },
+      
+      /**
+       * 스크롤 위치 업데이트
+       */
+      updateScrollPosition() {
+        const container = this.$refs.tableScrollContainer;
+        if (!container) return;
+        
+        // 전체 스크롤 가능 너비
+        const scrollWidth = container.scrollWidth - container.clientWidth;
+        
+        // 현재 스크롤 위치 계산
+        this.isScrollLeftEnd = container.scrollLeft <= 0;
+        this.isScrollRightEnd = container.scrollLeft >= scrollWidth;
+        
+        // 컬럼 기준 위치 계산 (첫번째 컬럼은 SHOT_NUMBER이므로 +1)
+        const visibleColumns = Math.floor(container.clientWidth / this.columnWidth);
+        const totalColumns = this.sortedColumns.length + 1; // SHOT_NUMBER 컬럼 포함
+        
+        // 현재 표시 중인 첫 번째 컬럼 (대략적인 계산)
+        const currentColumn = Math.floor(container.scrollLeft / this.columnWidth) + 1;
+        
+        this.scrollPosition = {
+          current: currentColumn,
+          total: totalColumns - visibleColumns + 1 // 화면에 보이는 컬럼 수를 고려
+        };
+      }
   }
 }
 </script>
@@ -3546,6 +3666,59 @@ select {
 /* 모든 테이블 셀 기본 스타일 */
 .sticky-table th, .sticky-table td {
   background-clip: padding-box; /* 배경색이 테두리까지 확장되지 않도록 함 */
+}
+
+/* 테이블 스크롤 컨트롤 버튼 */
+.table-scroll-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 0 5px;
+}
+
+.scroll-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+}
+
+.scroll-btn:hover:not(:disabled) {
+  background-color: #e9ecef;
+  border-color: #ced4da;
+}
+
+.scroll-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.scroll-indicator {
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 14px;
+  color: #495057;
+}
+
+/* 테이블 스크롤 애니메이션 */
+.table-scroll-container {
+  scroll-behavior: smooth;
+}
+
+/* 스티키 컬럼 스타일 강화 */
+.sticky-column {
+  left: 0;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.1);
 }
 
 </style>
