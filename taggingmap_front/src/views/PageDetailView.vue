@@ -2988,8 +2988,8 @@ select {
   min-height: 300px;
   background: #eee;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: flex-start;      /* 위쪽 정렬 */
+  justify-content: flex-start;  /* 왼쪽 정렬 */
   position: relative;
   user-select: none;
 }
