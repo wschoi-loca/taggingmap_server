@@ -198,7 +198,7 @@
         <div class="sticky-container"> <!-- 새로운 스티키 컨테이너 -->
           <div class="image-container">
             <div class="zoom-controls absolute-top-right">
-              <button @click="zoomOut" class="zoom-btn" :disabled="zoomLevel <= 0.5">
+              <button @click="zoomOut" class="zoom-btn" :disabled="zoomLevel <= 0.05">
                 <i class="fas fa-search-minus"></i>
               </button>
               <span class="zoom-level">{{ Math.round(zoomLevel * 100) }}%</span>
@@ -1881,8 +1881,15 @@ export default {
         this.fixPanBounds();
       },
       zoomOut() {
-        if (this.zoomLevel > 0.5) this.zoomLevel = Math.max(0.5, this.zoomLevel - 0.1);
-        this.fixPanBounds();
+        if (this.zoomLevel > 0.05) {  // 최소 0.05(5%)까지 가능
+          // 부드러운 축소를 위한 단계 조정
+          let step;
+          if (this.zoomLevel > 2) step = 0.2;      // 크게 축소
+          else if (this.zoomLevel > 0.5) step = 0.1; // 중간 축소
+          else step = 0.05;                        // 미세 축소
+          
+          this.zoomLevel = Math.max(0.05, this.zoomLevel - step);
+        }
       },
       resetZoom() {
         this.zoomLevel = 1;
@@ -1920,10 +1927,15 @@ export default {
       endDrag() {
         this.isDragging = false;
       },
-      handleWheel(e) {
-        if (e.ctrlKey || e.metaKey) return;
-        if (e.deltaY < 0) this.zoomIn();
-        else this.zoomOut();
+      handleWheel(event) {
+        if (event.deltaY > 0 && this.zoomLevel > 0.05) { // 최소 0.05까지
+          // 축소 로직
+          const step = this.zoomLevel > 1 ? 0.1 : 0.05;
+          this.zoomLevel = Math.max(0.05, this.zoomLevel - step);
+        } else if (event.deltaY < 0 && this.zoomLevel < 7) {
+          // 확대 로직...
+        }
+        // ...
       },
       fixPanBounds() {
         // zoomLevel이 바뀐 뒤에도 pan이 한계 넘지 않도록 보정
