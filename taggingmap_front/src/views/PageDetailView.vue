@@ -251,25 +251,25 @@
       </div>
       <!-- 데이터 섹션 -->
       <div class="data-section">
-        <div class="section-header">
-          <button class="view-full-btn" @click="openTableModal">전체 표 새 창에서 보기</button>
+        <!-- 스크롤 가능한 테이블 컨테이너 -->
+        <div class="table-scroll-container">
+          <table class="sticky-table">
+            <thead>
+              <tr>
+                <th class="sticky-column sticky-header">SHOT_NUMBER</th>
+                <th v-for="column in sortedColumns" :key="column" class="sticky-header">{{ column }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="data in sortedEventParams" :key="data.SHOT_NUMBER">
+                <td class="sticky-column">{{ data.SHOT_NUMBER }}</td>
+                <td v-for="column in sortedColumns" :key="`${data.SHOT_NUMBER}-${column}`">
+                  {{ data[column] || '-' }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-        <table>
-          <thead>
-            <tr>
-              <th>SHOT_NUMBER</th>
-              <th v-for="column in sortedColumns" :key="column">{{ column }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="data in sortedEventParams" :key="data.SHOT_NUMBER">
-              <td>{{ data.SHOT_NUMBER }}</td>
-              <td v-for="column in sortedColumns" :key="`${data.SHOT_NUMBER}-${column}`">
-                {{ data[column] || '-' }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
       </div>
     </div>
     <!-- 고급 검색 모달 -->
@@ -1066,7 +1066,7 @@ export default {
       },
       
       // 모달 대신 새 창에서 표 보기
-      openTableModal() {
+      /*openTableModal() {
         if (!this.taggingMaps || this.taggingMaps.length === 0 || !this.sortedColumns) return;
         
         // 테이블 HTML 생성
@@ -1123,7 +1123,7 @@ export default {
           </html>
         `);
         newWindow.document.close();
-      },
+      },*/
 
       // 삭제 확인 모달 표시
       confirmDelete() {
@@ -2343,7 +2343,7 @@ select {
 .data-section {
   flex: 2;
   min-width: 500px;
-  overflow-x: auto;
+  /* overflow-x: auto; 제거 - 이제 내부 컨테이너가 스크롤 담당 */
 }
 
 table {
@@ -3469,6 +3469,69 @@ select {
 .toast-fade-enter-from, .toast-fade-leave-to {
   opacity: 0;
   transform: translateY(-20px);
+}
+
+/* 테이블 스크롤 컨테이너 */
+.table-scroll-container {
+  width: 100%;
+  overflow-x: auto;
+  position: relative;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* 스티키 테이블 스타일 */
+.sticky-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+  white-space: nowrap;  /* 텍스트 줄바꿈 방지 */
+}
+
+/* 스티키 헤더 (상단 고정) */
+.sticky-header {
+  position: sticky;
+  top: 0;
+  background-color: #f2f2f2;
+  z-index: 10;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* 스티키 컬럼 (좌측 고정) */
+.sticky-column {
+  position: sticky;
+  left: 0;
+  background-color: #f8f9fa;
+  z-index: 5;
+  border-right: 2px solid #e9ecef;
+}
+
+/* 스티키 헤더이면서 스티키 컬럼인 경우 (좌상단 셀) */
+.sticky-header.sticky-column {
+  z-index: 15;
+  background-color: #f2f2f2;
+}
+
+/* 셀 스타일 강화 */
+.sticky-table th, .sticky-table td {
+  padding: 10px 15px;
+  border: 1px solid #ddd;
+}
+
+/* 짝수 행 배경색 */
+.sticky-table tbody tr:nth-child(even) {
+  background-color: #f8f9fa;
+}
+
+/* 행 호버 효과 */
+.sticky-table tbody tr:hover {
+  background-color: #e9ecef;
+}
+
+/* 스티키 컬럼 호버 시에도 배경색 유지 */
+.sticky-table tbody tr:hover .sticky-column {
+  background-color: #e9ecef;
 }
 
 </style>
