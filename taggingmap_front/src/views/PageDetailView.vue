@@ -2036,11 +2036,13 @@ select {
   display: flex;
   flex-wrap: wrap;
   gap: 20px;
+  overflow: visible;
 }
 
 .image-section {
   flex: 1;
   min-width: 300px;
+  overflow: visible; /* 만약 hidden이나 auto로 설정되어 있다면 visible로 변경 */
 }
 
 .image-section img {
@@ -2872,7 +2874,7 @@ select {
   background-color: #c82333;
 }
 
-/* 클릭 가능한 이미지 스타일 */
+/* 클릭 가능한 이미지 스타일 
 .image-container {
   position: sticky;
   overflow: hidden;
@@ -2904,7 +2906,7 @@ select {
   pointer-events: none;
   opacity: 0.8;
 }
-
+*/
 /* 이미지 확대 모달 스타일 */
 .image-modal {
   position: fixed;
@@ -3010,13 +3012,15 @@ select {
 
 .image-container {
   position: sticky;
+  top: 20px;  /* 스크롤 시 상단에서 20px 위치에 고정 */
   border: 1px solid #ddd;
   border-radius: 4px;
   padding: 10px;
   background: #fafafa;
-  overflow: auto;
+  overflow: visible; /* auto에서 visible로 변경 */
   min-width: 320px;
   min-height: 220px;
+  z-index: 10; /* 다른 요소 위에 표시되도록 */
 }
 .zoomable-image-wrapper {
   overflow: visible;
