@@ -256,11 +256,11 @@
           <button class="scroll-btn scroll-left-btn" @click="scrollTableLeft" :disabled="isScrollLeftEnd">
             <i class="fas fa-chevron-left"></i>
           </button>
-          <!-- 
-          <div class="scroll-indicator">
-            <span>{{ scrollPosition.current }} / {{ scrollPosition.total }}</span>
-          </div>
-           -->
+            <!-- 줄바꿈 모드 토글 버튼 추가 -->
+          <button class="text-wrap-toggle" :class="{ active: isWrapMode }" @click="toggleWrapMode">
+            <i class="fas fa-text-width"></i> 
+            {{ isWrapMode ? '한 줄 모드' : '줄바꿈 모드' }}
+          </button>
           <button class="scroll-btn scroll-right-btn" @click="scrollTableRight" :disabled="isScrollRightEnd">
             <i class="fas fa-chevron-right"></i>
           </button>
@@ -511,7 +511,8 @@ export default {
       },
       columnWidth: 180, // 기본 컬럼 너비 (픽셀)
       isScrollLeftEnd: true,
-      isScrollRightEnd: false
+      isScrollRightEnd: false,
+      isWrapMode: false,
       }
   },
   computed: {
@@ -2306,6 +2307,11 @@ export default {
           current: currentColumn,
           total: totalColumns - visibleColumns + 1 // 화면에 보이는 컬럼 수를 고려
         };
+      },
+      
+      //줄 바꿈 모드 토글
+      toggleWrapMode() {
+        this.isWrapMode = !this.isWrapMode;
       }
   }
 }
@@ -3681,4 +3687,37 @@ select {
   box-shadow: 2px 0 5px rgba(0,0,0,0.1);
 }
 
+/* 토글 가능한 줄바꿈 모드 */
+.sticky-table.wrap-mode td {
+  white-space: normal;
+  word-break: break-word;
+  height: auto;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+/* 토글 버튼 스타일 */
+.text-wrap-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-right: 15px;
+  transition: background-color 0.2s;
+}
+
+.text-wrap-toggle:hover {
+  background-color: #e0e0e0;
+}
+
+.text-wrap-toggle.active {
+  background-color: #007bff;
+  color: white;
+  border: 1px solid #0062cc;
+}
 </style>
