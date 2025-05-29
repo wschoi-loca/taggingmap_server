@@ -332,48 +332,6 @@ export default {
   },
   components: {
   },
-  // 라이프사이클 훅 - mounted
-  mounted() {
-    // 기존 코드가 있다면 유지...
-    
-    // 창 크기 변경 시 스크롤 위치 업데이트 (5번 항목)
-    window.addEventListener('resize', this.updateScrollPosition);
-    
-    // 테이블 스크롤 이벤트 리스너 (6번 항목)
-    const container = this.$refs.tableScrollContainer;
-    if (container) {
-      container.addEventListener('scroll', this.updateScrollPosition);
-    }
-    
-    // 초기 스크롤 위치 설정 (5번 항목)
-    this.$nextTick(() => {
-      this.updateScrollPosition();
-    });
-  },
-
-  // 라이프사이클 훅 - updated
-  updated() {
-    // 기존 코드가 있다면 유지...
-    
-    // 데이터 변경 시 스크롤 위치 업데이트 (5번 항목)
-    this.$nextTick(() => {
-      this.updateScrollPosition();
-    });
-  },
-
-  // 라이프사이클 훅 - beforeDestroy
-  beforeUnmount() {
-    // 기존 코드가 있다면 유지...
-    
-    // 이벤트 리스너 제거 (5번 항목)
-    window.removeEventListener('resize', this.updateScrollPosition);
-    
-    // 테이블 스크롤 이벤트 리스너 제거 (6번 항목)
-    const container = this.$refs.tableScrollContainer;
-    if (container) {
-      container.removeEventListener('scroll', this.updateScrollPosition);
-    }
-  },
   data() {
     return {
       taggingMaps: [],
