@@ -256,9 +256,11 @@
           <button class="scroll-btn scroll-left-btn" @click="scrollTableLeft" :disabled="isScrollLeftEnd">
             <i class="fas fa-chevron-left"></i>
           </button>
+          <!-- 
           <div class="scroll-indicator">
             <span>{{ scrollPosition.current }} / {{ scrollPosition.total }}</span>
           </div>
+           -->
           <button class="scroll-btn scroll-right-btn" @click="scrollTableRight" :disabled="isScrollRightEnd">
             <i class="fas fa-chevron-right"></i>
           </button>
