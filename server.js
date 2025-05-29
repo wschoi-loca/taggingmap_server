@@ -719,6 +719,7 @@ app.put('/api/taggingmaps/:id', upload.single('image'), async (req, res) => {
     return res.status(500).json({ message: '서버 오류가 발생했습니다.', error: error.message });
   }
 });
+
 // server.js에 CSP 보고 엔드포인트 추가
 app.post('/csp-report', (req, res) => {
   console.log('CSP violation:', req.body);
