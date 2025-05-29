@@ -665,6 +665,7 @@ app.delete('/api/taggingmaps/:id', async (req, res) => {
     res.status(500).send(`태깅맵 삭제 실패: ${error.message}`);
   }
 });
+
 // PUT /api/taggingmaps/:id
 app.put('/api/taggingmaps/:id', upload.single('image'), async (req, res) => {
   try {
