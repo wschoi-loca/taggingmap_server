@@ -703,8 +703,20 @@ app.put('/api/taggingmaps/:id', upload.single('image'), async (req, res) => {
       // 새 이미지 업로드
       const result = await cloudinary.uploader.upload(req.file.path);
       
-      // 임시 파일 삭제
-      fs.unlinkSync(req.file.path);
+      // 기존 이미지가 있으면 Cloudinary에서 삭제
+      if (taggingMap.image) {
+        try {
+          // URL에서 public_id 추출
+          const urlParts = taggingMap.image.split('/');
+          const filenameWithExt = urlParts[urlParts.length - 1];
+          const publicId = 'taggingmap/' + filenameWithExt.split('.')[0];
+          
+          // Cloudinary API로 이미지 삭제
+          await cloudinary.uploader.destroy(publicId);
+        } catch (deleteErr) {
+          console.warn('기존 이미지 삭제 중 오류 (계속 진행):', deleteErr);
+        }
+      }
       
       // 이미지 URL 업데이트
       taggingMap.image = result.secure_url;
