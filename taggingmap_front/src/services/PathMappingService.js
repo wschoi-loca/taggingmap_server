@@ -2,7 +2,9 @@
 class PathMappingService {
     constructor() {
       // 하드코딩된 매핑 데이터
+
       this.mappings = {
+              /*
             "로카페이>결제>타사결제요청>PC/모바일로카페이호출화면": "로카페이>결제>타사결제요청>PC/모바일로카페이호출화면",
             "front>satellite>main>card": "카드>메인",
             "front>my>payments>weekly": "정기결제>생활요금>위클리",
@@ -319,6 +321,7 @@ class PathMappingService {
             "로카페이>결제>바코드결제>바코드_인증후": "로카페이>결제>현장결제>바코드_인증후",
             "front>lid>auth>sso>login" : "회원>로그인>로그인페이지",
             "spa>local>gde-search" : "로컬>로카지도>검색",
+                  */
         };
       this.loaded = true;
     }
