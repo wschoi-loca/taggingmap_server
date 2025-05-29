@@ -665,7 +665,6 @@ app.delete('/api/taggingmaps/:id', async (req, res) => {
     res.status(500).send(`태깅맵 삭제 실패: ${error.message}`);
   }
 });
-
 // PUT /api/taggingmaps/:id
 app.put('/api/taggingmaps/:id', upload.single('image'), async (req, res) => {
   try {
@@ -684,11 +683,24 @@ app.put('/api/taggingmaps/:id', upload.single('image'), async (req, res) => {
     
     // 이미지 업데이트 (있는 경우)
     if (req.file) {
-      // Cloudinary에 이미지 업로드
-      const result = await cloudinary.uploader.upload(req.file.path, {
-        public_id: taggingMap.image.split('/').pop().split('.')[0], // 기존 이미지와 동일한 이름 사용
-        overwrite: true // 기존 이미지 덮어쓰기
-      });
+      // 기존 이미지가 있으면 Cloudinary에서 삭제
+      if (taggingMap.image) {
+        try {
+          // URL에서 public_id 추출 (예: taggingmap/1748494951655-3bf9acfd)
+          const urlParts = taggingMap.image.split('/');
+          const filenameWithExt = urlParts[urlParts.length - 1];
+          const publicId = 'taggingmap/' + filenameWithExt.split('.')[0];
+          
+          // Cloudinary API로 이미지 삭제
+          await cloudinary.uploader.destroy(publicId);
+        } catch (deleteErr) {
+          console.warn('기존 이미지 삭제 중 오류 (계속 진행):', deleteErr);
+          // 삭제 실패해도 계속 진행
+        }
+      }
+      
+      // 새 이미지 업로드
+      const result = await cloudinary.uploader.upload(req.file.path);
       
       // 임시 파일 삭제
       fs.unlinkSync(req.file.path);
@@ -706,7 +718,6 @@ app.put('/api/taggingmaps/:id', upload.single('image'), async (req, res) => {
     return res.status(500).json({ message: '서버 오류가 발생했습니다.', error: error.message });
   }
 });
-
 // server.js에 CSP 보고 엔드포인트 추가
 app.post('/csp-report', (req, res) => {
   console.log('CSP violation:', req.body);
