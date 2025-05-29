@@ -268,7 +268,7 @@
         
         <!-- 스크롤 가능한 테이블 컨테이너 -->
         <div class="table-scroll-container" ref="tableScrollContainer">
-          <table class="sticky-table">
+          <table class="sticky-table" :class="{ 'wrap-mode': isWrapMode }">
             <thead>
               <tr>
                 <th class="sticky-column sticky-header">SHOT_NUMBER</th>
@@ -2308,7 +2308,7 @@ export default {
           total: totalColumns - visibleColumns + 1 // 화면에 보이는 컬럼 수를 고려
         };
       },
-      
+
       //줄 바꿈 모드 토글
       toggleWrapMode() {
         this.isWrapMode = !this.isWrapMode;
