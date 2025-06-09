@@ -249,50 +249,49 @@ function uploadDataDirectToServer(jsonData, imageBlob, eventType, timestamp) {
 function highlightGtmElements(eventType) {
     var selector = getGtmSelector(eventType);
     var elements = document.querySelectorAll(selector);
-    var highlightElements = [];
-
-    // Find the highest z-index on the page to ensure our numbers appear on top
+    
+    // 최상위 z-index 찾기
     var highestZIndex = getHighestZIndex();
-    var superHighZIndex = Math.max(highestZIndex + 1000, 10000); // Use at least 10000 or higher than existing + 1000
+    var superHighZIndex = Math.max(highestZIndex + 1000, 10000);
 
     Array.prototype.forEach.call(elements, function(el, index) {
+        // 요소 하이라이트
         if (eventType === "visibility") {
             el.style.backgroundColor = 'rgba(191, 255, 0, 0.3)';
         } else if (eventType === "click") {
             el.style.backgroundColor = 'rgba(64, 0, 255, 0.3)';
         }
 
-        var rect = el.getBoundingClientRect();
+        // 번호를 표시할 요소 생성
         var idSpan = document.createElement('span');
         idSpan.textContent = index;
-        idSpan.style.position = 'fixed'; // Change to fixed position so it's always visible
-        idSpan.style.top = rect.top + 'px';
-        idSpan.style.left = rect.left + 'px';
-        idSpan.style.zIndex = superHighZIndex; // Use extremely high z-index to be above popups
-        idSpan.setAttribute('data-gtm-id', 'highlight-' + index); // 고유 식별자 추가
+        idSpan.style.position = 'absolute'; // fixed 대신 absolute 사용
+        idSpan.style.top = '0';
+        idSpan.style.left = '0';
+        idSpan.style.zIndex = superHighZIndex;
+        idSpan.setAttribute('data-gtm-id', 'highlight-' + index);
+        
         if (eventType === "visibility") {
             idSpan.style.backgroundColor = 'green';
         } else if (eventType === "click") {
             idSpan.style.backgroundColor = 'purple';
         }
+        
         idSpan.style.color = 'white';
         idSpan.style.padding = '4px';
         idSpan.style.fontSize = '12px';
-        idSpan.style.pointerEvents = 'none'; // 클릭 이벤트가 idSpan에 의해 방해되지 않도록 설정
-
-        document.body.appendChild(idSpan); // document.body에 추가하여 부모 요소의 위치 변경 방지
-        highlightElements.push({ el: el, idSpan: idSpan });
+        idSpan.style.pointerEvents = 'none';
+        
+        // 요소의 position 확인 및 설정
+        var elPosition = window.getComputedStyle(el).position;
+        if (elPosition === 'static') {
+            el.style.position = 'relative'; // 요소가 static이면 relative로 변경
+        }
+        
+        // 번호를 요소에 직접 추가
+        el.appendChild(idSpan);
     });
 
-    function updateHighlightPositions() {
-        highlightElements.forEach(function(item) {
-            var rect = item.el.getBoundingClientRect();
-            item.idSpan.style.top = rect.top + 'px';
-            item.idSpan.style.left = rect.left + 'px';
-        });
-    }
-
-    // Function to find the highest z-index on the page
     function getHighestZIndex() {
         var elements = document.getElementsByTagName('*');
         var highest = 0;
@@ -306,20 +305,6 @@ function highlightGtmElements(eventType) {
         
         return highest;
     }
-
-    var observer = new MutationObserver(updateHighlightPositions);
-
-    highlightElements.forEach(function(item) {
-        observer.observe(item.el, { attributes: true, childList: true, subtree: true });
-    });
-
-    window.addEventListener('scroll', updateHighlightPositions);
-    window.addEventListener('resize', updateHighlightPositions);
-    window.addEventListener('mousemove', updateHighlightPositions);
-    window.addEventListener('touchmove', updateHighlightPositions);
-
-    // 초기 위치 업데이트
-    updateHighlightPositions();
 }
 
 function highlightGtmElementsOverlay(eventType) {
@@ -371,9 +356,24 @@ function removeHighlightGtmElements() {
     var elements = document.querySelectorAll('[data-gtm-visibility], [data-gtm-click], [data-gtm-view-item-list], [data-gtm-popup-visibility], [data-gtm-select-item], [data-gtm-popup-click], [data-gtm-auto-click],[data-gtm-etc]');
     Array.prototype.forEach.call(elements, function(el) {
         el.style.backgroundColor = ''; // 원래 배경색으로 되돌리기
+        
+        // 위치 스타일 초기화 (position: relative로 변경되었을 경우)
+        if (el.hasAttribute('data-original-position')) {
+            el.style.position = el.getAttribute('data-original-position');
+            el.removeAttribute('data-original-position');
+        } else if (el.style.position === 'relative') {
+            // 원래 위치를 저장하지 않았다면 그냥 초기화
+            el.style.position = '';
+        }
+        
+        // 요소 내부에 추가된 번호 span도 확인하여 제거
+        var innerSpans = el.querySelectorAll('[data-gtm-id]');
+        Array.prototype.forEach.call(innerSpans, function(span) {
+            span.parentNode.removeChild(span);
+        });
     });
     
-    // Remove all number indicators added to document.body
+    // 기존 방식: document.body에 추가된 번호 제거
     var idSpans = document.querySelectorAll('[data-gtm-id]');
     Array.prototype.forEach.call(idSpans, function(idSpan) {
         if (idSpan.parentNode) {
@@ -394,8 +394,13 @@ function removeHighlightGtmElements() {
     if (overlay) {
         document.body.removeChild(overlay);
     }
+    
+    // 이벤트 리스너 제거 (혹시 남아있을 경우)
+    window.removeEventListener('scroll', window.updateHighlightPositions);
+    window.removeEventListener('resize', window.updateHighlightPositions);
+    window.removeEventListener('mousemove', window.updateHighlightPositions);
+    window.removeEventListener('touchmove', window.updateHighlightPositions);
 }
-
 function extractGtmData(eventType, mapping) {
     var results = [];
 
