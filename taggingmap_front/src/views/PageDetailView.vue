@@ -855,7 +855,7 @@ async created() {
             }
           }
 
-          // 시간 목록 가져오기 - 서버가 이제 eventNames를 포함해 반환
+          // 시간 목록 가져오기
           const timesResponse = await axios.get(
             `${baseUrl}/api/times/${this.pagetitle}/${this.selectedEventType}/${encodedUrl}`,
             { params }
@@ -868,22 +868,24 @@ async created() {
 
           console.log('Times loaded with event names:', this.times);
 
-          // === 여기서부터 timestamp 우선 적용 ===
-          // preSelectedTimestamp가 있고, times 목록에 있으면 우선 적용
+          // === timestamp 우선 적용 ===
+          // preSelectedTimestamp가 있을 경우, times에 있으면 무조건 우선 적용
           if (
             this.preSelectedTimestamp &&
-            this.times.find(t => t.timestamp === this.preSelectedTimestamp)
+            this.times.some(t => t.timestamp === this.preSelectedTimestamp)
           ) {
             this.selectedTimestamp = this.preSelectedTimestamp;
-            console.log('Pre-selected timestamp applied:', this.selectedTimestamp);
             this.preSelectedTimestamp = null; // 한 번 적용 후 초기화
             await this.fetchFilteredData();
-          } else if (this.times.length > 0) {
-            // preSelectedTimestamp가 없거나 times에 없으면 최신 순
+            return; // 여기서 바로 반환! 아래 url 기준 로직은 타지 않도록
+          }
+
+          // url이 있으면 url 우선 적용(기존대로)
+          // (아니면 최신순)
+          if (this.times.length > 0) {
             const latestTime = this.times[0];
             if (latestTime && latestTime.timestamp) {
               this.selectedTimestamp = latestTime.timestamp;
-              console.log('Auto-selected timestamp:', this.selectedTimestamp);
               await this.fetchFilteredData();
             } else {
               console.error('Latest time object does not have timestamp:', latestTime);
