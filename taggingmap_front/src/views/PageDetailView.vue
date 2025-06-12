@@ -669,39 +669,41 @@ export default {
       );
     },
   },
-  async created() {
-    try {
-      // 경로 매핑 데이터 로드
-      this.pathMappings = await PathMappingService.loadMappings();
-      console.log("경로 매핑 데이터 로드 완료:", Object.keys(this.pathMappings).length);
-      console.log("매핑 데이터 내용:", this.pathMappings);
-    } catch (error) {
-      console.error('경로 매핑 데이터 로드 실패:', error);
-      this.pathMappings = {};
-    }
-    
-    // URL 쿼리 파라미터 확인
-    const urlParam = this.$route.query.url;
-    const eventTypeParam = this.$route.query.eventType;
-    const isPopupParam = this.$route.query.isPopup;
-    
-    // 나머지 코드는 그대로...
-    if (urlParam) {
-      this.preSelectedUrl = decodeURIComponent(urlParam);
-    }
-    
-    if (eventTypeParam && ['visibility', 'click'].includes(eventTypeParam)) {
-      this.preSelectedEventType = eventTypeParam;
-      this.selectedEventType = eventTypeParam;
-    }
-    
-    if (isPopupParam === 'true') {
-      this.isPopupFilter = true;
-    }
-    
-    this.initAdvancedFilters();
-    this.fetchPageData();
-  },
+// created() 내부 (timestamp 우선 적용)
+async created() {
+  try {
+    // 경로 매핑 데이터 로드
+    this.pathMappings = await PathMappingService.loadMappings();
+    console.log("경로 매핑 데이터 로드 완료:", Object.keys(this.pathMappings).length);
+    console.log("매핑 데이터 내용:", this.pathMappings);
+  } catch (error) {
+    console.error('경로 매핑 데이터 로드 실패:', error);
+    this.pathMappings = {};
+  }
+
+  // 쿼리 파라미터 확인 (timestamp 우선)
+  const timestampParam = this.$route.query.timestamp;
+  const urlParam = this.$route.query.url;
+  const eventTypeParam = this.$route.query.eventType;
+  const isPopupParam = this.$route.query.isPopup;
+
+  if (timestampParam) {
+    this.preSelectedTimestamp = decodeURIComponent(timestampParam);
+  }
+  if (urlParam) {
+    this.preSelectedUrl = decodeURIComponent(urlParam);
+  }
+  if (eventTypeParam && ['visibility', 'click'].includes(eventTypeParam)) {
+    this.preSelectedEventType = eventTypeParam;
+    this.selectedEventType = eventTypeParam;
+  }
+  if (isPopupParam === 'true') {
+    this.isPopupFilter = true;
+  }
+
+  this.initAdvancedFilters();
+  this.fetchPageData();
+},
 
   watch: {
     // 경로가 변경되면 데이터 다시 로드
@@ -833,58 +835,35 @@ export default {
         try {
           this.selectedTimestamp = '';
           this.taggingMaps = [];
-          
           const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
           const encodedUrl = encodeURIComponent(this.selectedUrl);
-          
-          // 쿼리 파라미터 구성 (고급 검색 필터 포함)
-          const params = {
-            isPopup: this.isPopupFilter
-          };
-          
-          // 고급 검색 필터가 적용된 경우 파라미터에 추가
-          if (this.hasActiveAdvancedFilters) {
-            for (const field in this.advancedSearchFilters.fields) {
-              const filter = this.advancedSearchFilters.fields[field];
-              if (filter.anyValue) {
-                params[`${field}_exists`] = 'true';
-              } else if (filter.value) {
-                params[field] = filter.value;
-              }
-            }
-          }
-          
-          // 시간 목록 가져오기 - 서버가 이제 eventNames를 포함해 반환
+
+          // ...생략...
+
+          // 시간 목록 가져오기
           const timesResponse = await axios.get(
             `${baseUrl}/api/times/${this.pagetitle}/${this.selectedEventType}/${encodedUrl}`,
             { params }
           );
-          
-          // 시간 데이터 처리
-          this.times = timesResponse.data.sort((a, b) => 
-            new Date(b.timestamp) - new Date(a.timestamp)
-          );
-          
+          this.times = timesResponse.data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
           console.log('Times loaded with event names:', this.times);
-          
-          // 기본 timestamp 설정 (최신 시간)
-          if (this.times.length > 0) {
-            // timestamp가 있는지 명시적으로 확인
+
+          // timestamp 우선 적용
+          if (this.preSelectedTimestamp && this.times.find(t => t.timestamp === this.preSelectedTimestamp)) {
+            this.selectedTimestamp = this.preSelectedTimestamp;
+            this.preSelectedTimestamp = null;
+            await this.fetchFilteredData();
+          } else if (this.times.length > 0) {
             const latestTime = this.times[0];
             if (latestTime && latestTime.timestamp) {
               this.selectedTimestamp = latestTime.timestamp;
-              console.log('Auto-selected timestamp:', this.selectedTimestamp);
-              
-              // 필터링된 데이터 가져오기
               await this.fetchFilteredData();
             } else {
-              console.error('Latest time object does not have timestamp:', latestTime);
               this.loading = false;
             }
           } else {
             this.loading = false;
           }
-          
         } catch (error) {
           console.error('Error fetching times:', error);
           this.error = '시간 목록을 불러오는데 실패했습니다.';
