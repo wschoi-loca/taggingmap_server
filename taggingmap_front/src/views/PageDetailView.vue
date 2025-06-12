@@ -838,27 +838,55 @@ async created() {
           const baseUrl = process.env.VUE_APP_API_BASE_URL || '';
           const encodedUrl = encodeURIComponent(this.selectedUrl);
 
-          // ...생략...
+          // 쿼리 파라미터 구성 (고급 검색 필터 포함)
+          const params = {
+            isPopup: this.isPopupFilter
+          };
 
-          // 시간 목록 가져오기
+          // 고급 검색 필터가 적용된 경우 파라미터에 추가
+          if (this.hasActiveAdvancedFilters) {
+            for (const field in this.advancedSearchFilters.fields) {
+              const filter = this.advancedSearchFilters.fields[field];
+              if (filter.anyValue) {
+                params[`${field}_exists`] = 'true';
+              } else if (filter.value) {
+                params[field] = filter.value;
+              }
+            }
+          }
+
+          // 시간 목록 가져오기 - 서버가 이제 eventNames를 포함해 반환
           const timesResponse = await axios.get(
             `${baseUrl}/api/times/${this.pagetitle}/${this.selectedEventType}/${encodedUrl}`,
             { params }
           );
-          this.times = timesResponse.data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+          // 시간 데이터 처리
+          this.times = timesResponse.data.sort((a, b) =>
+            new Date(b.timestamp) - new Date(a.timestamp)
+          );
+
           console.log('Times loaded with event names:', this.times);
 
-          // timestamp 우선 적용
-          if (this.preSelectedTimestamp && this.times.find(t => t.timestamp === this.preSelectedTimestamp)) {
+          // === 여기서부터 timestamp 우선 적용 ===
+          // preSelectedTimestamp가 있고, times 목록에 있으면 우선 적용
+          if (
+            this.preSelectedTimestamp &&
+            this.times.find(t => t.timestamp === this.preSelectedTimestamp)
+          ) {
             this.selectedTimestamp = this.preSelectedTimestamp;
-            this.preSelectedTimestamp = null;
+            console.log('Pre-selected timestamp applied:', this.selectedTimestamp);
+            this.preSelectedTimestamp = null; // 한 번 적용 후 초기화
             await this.fetchFilteredData();
           } else if (this.times.length > 0) {
+            // preSelectedTimestamp가 없거나 times에 없으면 최신 순
             const latestTime = this.times[0];
             if (latestTime && latestTime.timestamp) {
               this.selectedTimestamp = latestTime.timestamp;
+              console.log('Auto-selected timestamp:', this.selectedTimestamp);
               await this.fetchFilteredData();
             } else {
+              console.error('Latest time object does not have timestamp:', latestTime);
               this.loading = false;
             }
           } else {
