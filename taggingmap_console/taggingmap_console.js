@@ -278,8 +278,8 @@ function highlightGtmElements(eventType) {
         }
         
         idSpan.style.color = 'white';
-        idSpan.style.padding = '4px';
-        idSpan.style.fontSize = '12px';
+        idSpan.style.padding = '1px';
+        idSpan.style.fontSize = '5px';
         idSpan.style.pointerEvents = 'none';
         
         // 요소의 position 확인 및 설정
