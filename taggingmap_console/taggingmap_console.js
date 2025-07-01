@@ -114,7 +114,7 @@ function captureAndDownload(eventType, timestamp) {
         try {
             canvas.toBlob(function(blob) {
                 if (blob) {
-                    var transformedHref = transformHref(document.location.href);
+                    var transformedHref = transformHref(decodeURI(document.location.href));
                     downloadBlob(blob, timestamp + '_' + eventType + '_' + transformedHref + '.png');
                 } else {
                     console.error('Blob 생성 실패');
@@ -144,7 +144,7 @@ function uploadDataDirectly(jsonData, imageBlob, eventType, timestamp) {
     const formData = new FormData();
     
     // 이미지 파일 추가
-    const filename = `${timestamp}_${eventType}_${transformHref(document.location.href)}.png`;
+    const filename = `${timestamp}_${eventType}_${transformHref(decodeURI(document.location.href))}.png`;
     const file = new File([imageBlob], filename, { type: 'image/png' });
     
     // Cloudinary API 업로드 설정
@@ -179,7 +179,7 @@ function uploadDataDirectly(jsonData, imageBlob, eventType, timestamp) {
         serverFormData.append('TIME', new Date().toISOString());
         serverFormData.append('EVENTTYPE', eventType);
         serverFormData.append('PAGETITLE', title);
-        serverFormData.append('URL', document.location.href);
+        serverFormData.append('URL', decodeURI(document.location.href));
         serverFormData.append('timestamp', new Date().toISOString());
         serverFormData.append('imageUrl', data.secure_url); // Cloudinary 이미지 URL
         
@@ -218,11 +218,11 @@ function uploadDataDirectToServer(jsonData, imageBlob, eventType, timestamp) {
     formData.append('TIME', new Date().toISOString());
     formData.append('EVENTTYPE', eventType);
     formData.append('PAGETITLE', title);
-    formData.append('URL', document.location.href);
+    formData.append('URL', decodeURI(document.location.href));
     formData.append('timestamp', new Date().toISOString());
     
     // 이미지 파일 직접 추가
-    const filename = `${timestamp}_${eventType}_${transformHref(document.location.href)}.png`;
+    const filename = `${timestamp}_${eventType}_${transformHref(decodeURI(document.location.href))}.png`;
     formData.append('image', new File([imageBlob], filename, { type: 'image/png' }));
 
     // 서버에 업로드
@@ -278,8 +278,8 @@ function highlightGtmElements(eventType) {
         }
         
         idSpan.style.color = 'white';
-        idSpan.style.padding = '1px';
-        idSpan.style.fontSize = '5px';
+        idSpan.style.padding = '0px';
+        idSpan.style.fontSize = '10px';
         idSpan.style.pointerEvents = 'none';
         
         // 요소의 position 확인 및 설정
@@ -679,7 +679,7 @@ function extractGtmData(eventType, mapping) {
         item_category: 'item_category4',
     };
 
-    var transformedHref = transformHref(document.location.href);
+    var transformedHref = transformHref(decodeURI(document.location.href));
 
     Array.prototype.forEach.call(elements, function(el, index) {
         var viewEvent = eventType == 'visibility' ? 'view' : eventType;
@@ -773,7 +773,7 @@ function extractGtmData(eventType, mapping) {
             }
         }
 
-        var location = document.location.href;
+        var location = decodeURI(document.location.href);
         var dataGtmBodyEvent = el.getAttribute('data-gtm-body') || null;
         var dataGtmBodySection = {};
         var sectionElement = el.closest('[data-gtm-section]');
@@ -1012,7 +1012,7 @@ function 태깅맵_RDP노출() {
             }
         }).then(function(canvas) {
             canvas.toBlob(function(blob) {
-                downloadBlob(blob, timestamp + '_visibility_' + transformHref(document.location.href) + '.png');
+                downloadBlob(blob, timestamp + '_visibility_' + transformHref(decodeURI(document.location.href)) + '.png');
             }, 'image/png');
         });
     }).catch(error => console.error('Error in 태깅맵_RDP노출:', error));
@@ -1034,7 +1034,7 @@ function 태깅맵_GA노출() {
             }
         }).then(function(canvas) {
             canvas.toBlob(function(blob) {
-                downloadBlob(blob, timestamp + '_visibility_' + transformHref(document.location.href) + '.png');
+                downloadBlob(blob, timestamp + '_visibility_' + transformHref(decodeURI(document.location.href)) + '.png');
             }, 'image/png');
         });
     }).catch(error => console.error('Error in 태깅맵_GA노출:', error));
@@ -1056,7 +1056,7 @@ function 태깅맵_RDP클릭() {
             }
         }).then(function(canvas) {
             canvas.toBlob(function(blob) {
-                downloadBlob(blob, timestamp + '_click_' + transformHref(document.location.href) + '.png');
+                downloadBlob(blob, timestamp + '_click_' + transformHref(decodeURI(document.location.href)) + '.png');
             }, 'image/png');
         });
     }).catch(error => console.error('Error in 태깅맵_RDP클릭:', error));
@@ -1078,7 +1078,7 @@ function 태깅맵_GA클릭() {
             }
         }).then(function(canvas) {
             canvas.toBlob(function(blob) {
-                downloadBlob(blob, timestamp + '_click_' + transformHref(document.location.href) + '.png');
+                downloadBlob(blob, timestamp + '_click_' + transformHref(decodeURI(document.location.href)) + '.png');
             }, 'image/png');
         });
     }).catch(error => console.error('Error in 태깅맵_GA클릭:', error));
@@ -1108,7 +1108,7 @@ function 태깅맵_DB노출() {
         }).then(function(canvas) {
             canvas.toBlob(function(blob) {
                 // 로컬 다운로드 및 서버 업로드
-                downloadBlob(blob, timestamp + '_visibility_' + transformHref(document.location.href) + '.png');
+                downloadBlob(blob, timestamp + '_visibility_' + transformHref(decodeURI(document.location.href)) + '.png');
                 uploadDataDirectToServer(jsonData, blob, 'visibility', timestamp);
             }, 'image/png');
         });
@@ -1139,7 +1139,7 @@ function 태깅맵_DB클릭() {
         }).then(function(canvas) {
             canvas.toBlob(function(blob) {
                 // 로컬 다운로드 및 서버 업로드
-                downloadBlob(blob, timestamp + '_click_' + transformHref(document.location.href) + '.png');
+                downloadBlob(blob, timestamp + '_click_' + transformHref(decodeURI(document.location.href)) + '.png');
                 uploadDataDirectToServer(jsonData, blob, 'click', timestamp);
             }, 'image/png');
         });
@@ -1166,7 +1166,7 @@ function 태깅맵_RDP노출_오버레이() {
             }
         }).then(function(canvas) {
             canvas.toBlob(function(blob) {
-                downloadBlob(blob, timestamp + '_visibility_' + transformHref(document.location.href) + '.png');
+                downloadBlob(blob, timestamp + '_visibility_' + transformHref(decodeURI(document.location.href)) + '.png');
             }, 'image/png');
         });
     }).catch(error => console.error('Error in 태깅맵_RDP노출_오버레이:', error));
@@ -1188,7 +1188,7 @@ function 태깅맵_GA노출_오버레이() {
             }
         }).then(function(canvas) {
             canvas.toBlob(function(blob) {
-                downloadBlob(blob, timestamp + '_visibility_' + transformHref(document.location.href) + '.png');
+                downloadBlob(blob, timestamp + '_visibility_' + transformHref(decodeURI(document.location.href)) + '.png');
             }, 'image/png');
         });
     }).catch(error => console.error('Error in 태깅맵_GA노출_오버레이:', error));
@@ -1210,7 +1210,7 @@ function 태깅맵_RDP클릭_오버레이() {
             }
         }).then(function(canvas) {
             canvas.toBlob(function(blob) {
-                downloadBlob(blob, timestamp + '_click_' + transformHref(document.location.href) + '.png');
+                downloadBlob(blob, timestamp + '_click_' + transformHref(decodeURI(document.location.href)) + '.png');
             }, 'image/png');
         });
     }).catch(error => console.error('Error in 태깅맵_RDP클릭_오버레이:', error));
@@ -1232,7 +1232,7 @@ function 태깅맵_GA클릭_오버레이() {
             }
         }).then(function(canvas) {
             canvas.toBlob(function(blob) {
-                downloadBlob(blob, timestamp + '_click_' + transformHref(document.location.href) + '.png');
+                downloadBlob(blob, timestamp + '_click_' + transformHref(decodeURI(document.location.href)) + '.png');
             }, 'image/png');
         });
     }).catch(error => console.error('Error in 태깅맵_GA클릭_오버레이:', error));
@@ -1262,7 +1262,7 @@ function 태깅맵_DB노출_오버레이() {
         }).then(function(canvas) {
             canvas.toBlob(function(blob) {
                 // 로컬 다운로드 및 서버 업로드
-                downloadBlob(blob, timestamp + '_visibility_' + transformHref(document.location.href) + '.png');
+                downloadBlob(blob, timestamp + '_visibility_' + transformHref(decodeURI(document.location.href)) + '.png');
                 uploadDataDirectToServer(jsonData, blob, 'visibility', timestamp);
             }, 'image/png');
         });
@@ -1293,7 +1293,7 @@ function 태깅맵_DB클릭_오버레이() {
         }).then(function(canvas) {
             canvas.toBlob(function(blob) {
                 // 로컬 다운로드 및 서버 업로드
-                downloadBlob(blob, timestamp + '_click_' + transformHref(document.location.href) + '.png');
+                downloadBlob(blob, timestamp + '_click_' + transformHref(decodeURI(document.location.href)) + '.png');
                 uploadDataDirectToServer(jsonData, blob, 'click', timestamp);
             }, 'image/png');
         });
