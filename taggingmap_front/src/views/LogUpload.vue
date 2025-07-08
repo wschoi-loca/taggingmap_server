@@ -696,9 +696,6 @@
               if (!Object.prototype.hasOwnProperty.call(param, 'EVENTNAME')) {
                 param.EVENTNAME = 'cts_click';
               }
-              if (!Object.prototype.hasOwnProperty.call(param, 'LABEL_TEXT')) {
-                param.LABEL_TEXT = '(라벨 없음)';
-              }
               
               // 모든 필드를 수집
               Object.keys(param).forEach(key => {
