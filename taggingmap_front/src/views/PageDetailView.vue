@@ -418,6 +418,7 @@ export default {
       // 컬럼 정렬 순서
       columnOrder: [
       "EVENTNAME",
+      "EVENTACTION",
       "CATEGORY_DEPTH1",
       "CATEGORY_DEPTH2",
       "CATEGORY_DEPTH3",
@@ -448,7 +449,6 @@ export default {
       "PAGETITLE",
       "ep_cd77_cur_page_title",
       "PAGEPATH",
-      "CD123_CUR_PAGE_FULLURL",
       "CTS_GROUP1",
       "CTS_GROUP2",
       "CTS_GROUP3",
@@ -488,9 +488,10 @@ export default {
       "item_brand",
       "CHANNEL_TYPE",
       "EVENTCATEGORY",
-      "EVENTACTION",
+
       "EVENTLABEL",
       "CNO",
+      "CD123_CUR_PAGE_FULLURL",
       ],
       // 삭제 기능 관련 추가
       showDeleteModal: false,
