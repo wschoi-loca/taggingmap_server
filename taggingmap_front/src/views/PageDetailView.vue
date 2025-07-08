@@ -348,6 +348,67 @@ export default {
       error: null,
       preSelectedUrl: null,
       preSelectedEventType: null, // 변수명 통일
+
+      // 필드 매핑 정의
+      fieldMappings: {
+        "ep_category": "EVENTCATEGORY",
+        "ep_action": "EVENTACTION",
+        "ep_label": "EVENTLABEL",
+        "ep_label_text": "LABEL_TEXT",
+        "ep_category_depth1": "CATEGORY_DEPTH1",
+        "ep_category_depth2": "CATEGORY_DEPTH2",
+        "ep_category_depth3": "CATEGORY_DEPTH3",
+        "ep_category_depth4": "CATEGORY_DEPTH4",
+        "ep_category_depth5": "CATEGORY_DEPTH5",
+        "ep_category_depth6": "CATEGORY_DEPTH6",
+        "ep_category_depth7": "CATEGORY_DEPTH7",
+        "ep_category_depth8": "CATEGORY_DEPTH8",
+        "ep_category_depth9": "CATEGORY_DEPTH9",
+        "ep_category_depth10": "CATEGORY_DEPTH10",
+        "ep_cd25_srch_keyword": "SEAK",
+        "ep_srch_keyword_type": "SRCH_KEYWORD_TYPE",
+        "ep_srch_result": "SEAK_SUS",
+        "ep_cd27_srch_res_clk_nm": "SEAK_TP",
+        "ep_cd12_card_name": "CARD_NAME",
+        "ep_cd64_card_apply_code": "CARD_CODE",
+        "ep_cd65_card_apply_kind": "PAGE_CARDAPL_KND",
+        "ep_cd13_fn_pd_nm": "PAGE_FN_PD_NM",
+        "ep_cd17_fn_loan_amt": "PAGE_FN_LOAN_AMT",
+        "ep_cd19_rvo_egm_stt_rt": "PAGE_RVO_EGM_STT_RT",
+        "ep_cd20_rvo_egm_stt_te": "PAGE_RVO_EGM_STT_TE",
+        "ep_cd48_pd_apply_nm": "PAGE_PD_APL_LVL",
+        "ep_cd14_cts_nm": "CONTENT_NM",
+        "ep_content_nm1": "CONTENT_NM1",
+        "ep_content_nm2": "CONTENT_NM2",
+        "ep_content_nm3": "CONTENT_NM3",
+        "ep_cd42_cts_id": "PAGE_MKT_CONTS_ID",
+        "ep_cd79_sub_cts_id": "SUB_CONTENT_ID",
+        "ep_sub_cts_id1": "SUB_CONTENT_ID1",
+        "ep_sub_cts_id2": "SUB_CONTENT_ID2",
+        "ep_sub_cts_id3": "SUB_CONTENT_ID3",
+        "ep_sub_cts_id4": "SUB_CONTENT_ID4",
+        "ep_sub_cts_id5": "SUB_CONTENT_ID5",
+        "ep_horizontal_index": "HORIZONTAL_INDEX",
+        "ep_cd101_cts_group1": "CTS_GROUP1",
+        "ep_cd102_cts_group2": "CTS_GROUP2",
+        "ep_cd103_cts_group3": "CTS_GROUP3",
+        "ep_cd104_cts_group4": "CTS_GROUP4",
+        "ep_cd105_cts_group5": "CTS_GROUP5",
+        "ep_cd106_cts_group6": "CTS_GROUP6",
+        "ep_cd107_cts_group7": "CTS_GROUP7",
+        "ep_cd108_cts_group8": "CTS_GROUP8",
+        "ep_cd109_cts_group9": "CTS_GROUP9",
+        "ep_cd110_cts_group10": "CTS_GROUP10",
+        "ep_cd111_cts_group11": "CTS_GROUP11",
+        "ep_cd112_cts_group12": "CTS_GROUP12",
+        "ep_cd113_cts_group13": "CTS_GROUP13",
+        "ep_popup_class": "popup_class",
+        "ep_popup_message": "popup_message",
+        "ep_popup_button": "popup_button",
+        "ep_auto_tag_yn": "AUTO_TAG_YN",
+        "dl": "PAGEPATH",
+        "dt": "PAGETITLE"
+      },
       
       // 컬럼 정렬 순서
       columnOrder: [
@@ -1650,7 +1711,6 @@ async created() {
                   PAGEPATH: url,
                   PAGETITLE: pagetitle,
                   TIME: this.formatTime(time),
-                  SOURCE: 'AUTO'  // 자동 파싱이므로 AUTO 표시
                 };
                 
                 // 추가 파라미터 처리
@@ -1769,20 +1829,41 @@ async created() {
           return timeStr; // 변환 실패 시 원본 반환
         }
       },
-  
+      // processEventParams에서 필드맵핑 PageDetailView.vue의 methods 안에 추가
+      normalizeFieldName(key) {
+        // 1. 매핑 규칙이 존재하는 경우, 매핑된 값 반환
+        if (this.fieldMappings[key]) {
+          return this.fieldMappings[key];
+        }
+        
+        // 2. 'cd'로 시작하는 키 처리 (e.g., cd123_user_id2 → USER_ID2)
+        if (key.match(/^cd\d+_/)) {
+          const cleanKey = key.replace(/cd\d+_/g, '');
+          return cleanKey.toUpperCase();
+        }
+        
+        // 3. 'ep_' 접두어가 있는 키 처리 (e.g., ep_new_tag → NEW_TAG)
+        if (key.startsWith('ep_')) {
+          const cleanKey = key.substring(3);
+          return cleanKey.toUpperCase();
+        }
+        
+        // 4. 그 외에는 그대로 대문자화하여 반환
+        return key.toUpperCase();
+      },
         // 이벤트 파라미터 처리
-      processEventParams(targetRow, eventParams) {
-        // 객체 형태의 eventParams 처리
+        processEventParams(targetRow, eventParams) {
         if (eventParams && typeof eventParams === 'object' && !Array.isArray(eventParams)) {
           for (const [key, value] of Object.entries(eventParams)) {
-            // items 배열은 별도 처리
             if (key === 'items') continue;
             
-            // 중첩된 객체는 JSON 문자열로 변환
+            // normalizeFieldName 함수를 호출하여 변환된 키를 사용
+            const normalizedKey = this.normalizeFieldName(key);
+            
             if (typeof value === 'object' && value !== null) {
-              targetRow[key.toUpperCase()] = JSON.stringify(value);
+              targetRow[normalizedKey] = JSON.stringify(value);
             } else {
-              targetRow[key.toUpperCase()] = String(value);
+              targetRow[normalizedKey] = String(value);
             }
           }
         }
