@@ -443,8 +443,6 @@
           "ep_cd15_page_depth2": "PAGE_DEPTH1",
           "ep_cd16_page_depth2": "PAGE_DEPTH2",
           "ep_cd52_page_depth3": "PAGE_DEPTH3",
-          "ep_category_depth9": "CATEGORY_DEPTH9",
-          "ep_category_depth10": "CATEGORY_DEPTH10",
           "ep_cd25_srch_keyword": "SEAK",
           "ep_srch_keyword_type": "SRCH_KEYWORD_TYPE",
           "ep_srch_result": "SEAK_SUS",
