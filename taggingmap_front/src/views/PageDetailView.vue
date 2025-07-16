@@ -349,75 +349,6 @@ export default {
       error: null,
       preSelectedUrl: null,
       preSelectedEventType: null, // 변수명 통일
-
-      // 필드 매핑 정의
-      fieldMappings: {
-        "ep_category": "EVENTCATEGORY",
-        "ep_action": "EVENTACTION",
-        "ep_label": "EVENTLABEL",
-        "ep_label_text": "LABEL_TEXT",
-        "ep_category_depth1": "CATEGORY_DEPTH1",
-        "ep_category_depth2": "CATEGORY_DEPTH2",
-        "ep_category_depth3": "CATEGORY_DEPTH3",
-        "ep_category_depth4": "CATEGORY_DEPTH4",
-        "ep_category_depth5": "CATEGORY_DEPTH5",
-        "ep_category_depth6": "CATEGORY_DEPTH6",
-        "ep_category_depth7": "CATEGORY_DEPTH7",
-        "ep_category_depth8": "CATEGORY_DEPTH8",
-        "ep_category_depth9": "CATEGORY_DEPTH9",
-        "ep_category_depth10": "CATEGORY_DEPTH10",
-        "ep_cd15_page_depth1": "PAGE_DEPTH1",
-        "ep_cd16_page_depth2": "PAGE_DEPTH2",
-        "ep_cd17_page_depth3": "PAGE_DEPTH3",
-        "CD15_PAGE_DEPTH1": "PAGE_DEPTH1",
-        "CD16_PAGE_DEPTH2": "PAGE_DEPTH2",
-        "CD17_PAGE_DEPTH3": "PAGE_DEPTH3",
-        "ep_page_depth4": "PAGE_DEPTH4",
-        "ep_page_depth5": "PAGE_DEPTH5",
-        "ep_cd25_srch_keyword": "SEAK",
-        "ep_srch_keyword_type": "SRCH_KEYWORD_TYPE",
-        "ep_srch_result": "SEAK_SUS",
-        "ep_cd27_srch_res_clk_nm": "SEAK_TP",
-        "ep_cd12_card_name": "CARD_NAME",
-        "ep_cd64_card_apply_code": "CARD_CODE",
-        "ep_cd65_card_apply_kind": "PAGE_CARDAPL_KND",
-        "ep_cd13_fn_pd_nm": "PAGE_FN_PD_NM",
-        "ep_cd17_fn_loan_amt": "PAGE_FN_LOAN_AMT",
-        "ep_cd19_rvo_egm_stt_rt": "PAGE_RVO_EGM_STT_RT",
-        "ep_cd20_rvo_egm_stt_te": "PAGE_RVO_EGM_STT_TE",
-        "ep_cd48_pd_apply_nm": "PAGE_PD_APL_LVL",
-        "ep_cd14_cts_nm": "CONTENT_NM",
-        "ep_content_nm1": "CONTENT_NM1",
-        "ep_content_nm2": "CONTENT_NM2",
-        "ep_content_nm3": "CONTENT_NM3",
-        "ep_cd42_cts_id": "PAGE_MKT_CONTS_ID",
-        "ep_cd79_sub_cts_id": "SUB_CONTENT_ID",
-        "ep_sub_cts_id1": "SUB_CONTENT_ID1",
-        "ep_sub_cts_id2": "SUB_CONTENT_ID2",
-        "ep_sub_cts_id3": "SUB_CONTENT_ID3",
-        "ep_sub_cts_id4": "SUB_CONTENT_ID4",
-        "ep_sub_cts_id5": "SUB_CONTENT_ID5",
-        "ep_horizontal_index": "HORIZONTAL_INDEX",
-        "ep_cd101_cts_group1": "CTS_GROUP1",
-        "ep_cd102_cts_group2": "CTS_GROUP2",
-        "ep_cd103_cts_group3": "CTS_GROUP3",
-        "ep_cd104_cts_group4": "CTS_GROUP4",
-        "ep_cd105_cts_group5": "CTS_GROUP5",
-        "ep_cd106_cts_group6": "CTS_GROUP6",
-        "ep_cd107_cts_group7": "CTS_GROUP7",
-        "ep_cd108_cts_group8": "CTS_GROUP8",
-        "ep_cd109_cts_group9": "CTS_GROUP9",
-        "ep_cd110_cts_group10": "CTS_GROUP10",
-        "ep_cd111_cts_group11": "CTS_GROUP11",
-        "ep_cd112_cts_group12": "CTS_GROUP12",
-        "ep_cd113_cts_group13": "CTS_GROUP13",
-        "ep_popup_class": "popup_class",
-        "ep_popup_message": "popup_message",
-        "ep_popup_button": "popup_button",
-        "ep_auto_tag_yn": "AUTO_TAG_YN",
-        "dl": "PAGEPATH",
-        "dt": "PAGETITLE"
-      },
       
       // 컬럼 정렬 순서
       columnOrder: [
@@ -588,6 +519,18 @@ export default {
       }
   },
   computed: {
+    // PageDetailView.vue의 computed에 추가 (기존 sortedColumns는 삭제)
+    visibleColumns() {
+        // 선택된 컬럼을 정렬 순서에 맞게 반환
+        return this.selectedColumns
+          .slice()
+          .sort((a, b) => {
+            const indexA = this.columnOrder.indexOf(a);
+            const indexB = this.columnOrder.indexOf(b);
+            return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
+          });
+      },
+      
     imageWrapperStyle() {
       return {
         height: this.imageRealHeight
@@ -1640,8 +1583,8 @@ async created() {
         };
         reader.readAsText(file);
       },
-      
-      // 로그 파싱 (수정)
+      /*
+      // 로그 파싱 (수정) LogUpload 와 맞추기 위함
       parseLog() {
         try {
           if (!this.logText.trim()) {
@@ -1677,9 +1620,132 @@ async created() {
           alert(`로그 파싱 중 오류가 발생했습니다: ${error.message}`);
         }
       },
-  
-      
-      // 안드로이드 로그 파싱
+      */
+
+      // 동일한 이벤트명(en), 페이지 경로(dl), 페이지 타이틀(dt)를 가진 로그 항목 그룹화
+      // logUpload 와 맞추기 위함
+      groupLogsByEventAndPath(logs) {
+        const eventGroups = {};
+        
+        for (const log of logs) {
+          // 그룹화 키 생성: "이벤트타입_URL_페이지타이틀"
+          const groupKey = `${log.EVENTTYPE}_${log.URL}_${log.PAGETITLE}`;
+          
+          if (!eventGroups[groupKey]) {
+            // 새 그룹 생성
+            eventGroups[groupKey] = {
+              TIME: log.TIME,
+              EVENTTYPE: log.EVENTTYPE,
+              PAGETITLE: log.PAGETITLE,
+              URL: log.URL,
+              eventParams: [],
+              timestamp: log.timestamp
+            };
+          }
+          
+          // 이벤트 파라미터 합치기
+          eventGroups[groupKey].eventParams = [...eventGroups[groupKey].eventParams, ...log.eventParams];
+        }
+        
+        // 객체를 배열로 변환
+        return Object.values(eventGroups);
+      },
+
+      async parseLog() {
+        if (!this.logInput.trim()) {
+          this.hasError = true;
+          this.statusMessage = '로그 데이터를 입력해주세요.';
+          return;
+        }
+        
+        this.isProcessing = true;
+        this.hasError = false;
+        this.statusMessage = '로그를 파싱하는 중...';
+        
+        try {
+          // 플랫폼에 따라 다른 파싱 로직 적용
+          let parsedLogs = [];
+          if (this.platform === 'android') {
+            parsedLogs = this.parseAndroidLog(this.logInput);
+          } else {
+            parsedLogs = this.parseIOSLog(this.logInput);
+          }
+          
+          // 동일한 이벤트명, 페이지 경로, 페이지 타이틀을 갖는 로그 항목을 그룹화
+          const groupedLogs = this.groupLogsByEventAndPath(parsedLogs);
+          
+          // 깊은 복사를 통해 편집 가능한 결과 생성
+          this.editableParsedResult = JSON.parse(JSON.stringify(groupedLogs));
+          
+          // 현재 시간으로 TIME 및 timestamp 업데이트
+          const now = new Date();
+          const isoNow = now.toISOString();
+          const formattedTime = this.formatTime(isoNow);
+          
+          // 모든 필드를 수집하여 allColumns 업데이트
+          const allFields = new Set(['SHOT_NUMBER', 'EVENTNAME', 'LABEL_TEXT', 'PAGEPATH', 'PAGETITLE', 'TIME']);
+          
+          this.editableParsedResult.forEach(entry => {
+            entry.TIME = isoNow;
+            entry.timestamp = isoNow;
+            
+            entry.eventParams.forEach(param => {
+              param.TIME = formattedTime;
+              
+              // 필수 필드가 없는 경우 기본값 설정
+              if (!Object.prototype.hasOwnProperty.call(param, 'SHOT_NUMBER')) {
+                param.SHOT_NUMBER = 0;
+              }
+              if (!Object.prototype.hasOwnProperty.call(param, 'EVENTNAME')) {
+                param.EVENTNAME = 'cts_click';
+              }
+              if (!Object.prototype.hasOwnProperty.call(param, 'LABEL_TEXT')) {
+                param.LABEL_TEXT = '(라벨 없음)';
+              }
+              
+              // 모든 필드를 수집
+              Object.keys(param).forEach(key => {
+                allFields.add(key);
+              });
+            });
+            
+            // SHOT_NUMBER 순서대로 정렬
+            entry.eventParams.sort((a, b) => a.SHOT_NUMBER - b.SHOT_NUMBER);
+            
+            // SHOT_NUMBER 재설정
+            entry.eventParams.forEach((param, idx) => {
+              param.SHOT_NUMBER = idx;
+            });
+          });
+          
+          // allColumns 업데이트 (컬럼 정렬 순서 적용)
+          this.allColumns = Array.from(allFields)
+            .sort((a, b) => {
+              const indexA = this.columnOrder.indexOf(a);
+              const indexB = this.columnOrder.indexOf(b);
+              return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
+            });
+          
+          // 결과 메시지에 데이터 개수 관련 안내 추가
+          let resultMessage = '로그 파싱 완료! 데이터를 확인하고 필요한 경우 수정하세요.';
+          if (this.editableParsedResult.length > 1) {
+            resultMessage += ' 태깅맵 데이터는 1개만 업로드 가능합니다. 필요없는 데이터는 삭제해주세요.';
+          }
+          
+          this.statusMessage = resultMessage;
+          this.currentStep = 2;
+        } catch (error) {
+          console.error('로그 파싱 중 오류 발생:', error);
+          this.hasError = true;
+          this.statusMessage = `로그 파싱 실패: ${error.message}`;
+          this.parsedResult = null;
+        } finally {
+          this.isProcessing = false;
+        }
+      },
+
+      /*
+      // 안드로이드 로그 파싱 LogUpload 와 맞추기 위함
       parseAndroidLog(logText) {
         const rows = [];
         const lines = logText.split('\n').filter(line => line.trim());
@@ -1750,8 +1816,104 @@ async created() {
         
         return rows;
       },
-      
-      // iOS 로그 파싱
+      */
+      parseAndroidLog(logText) {
+        // Android 로그 파싱 로직
+        const logEntries = [];
+        const lines = logText.split('\n').filter(line => line.trim());
+        
+        // logcat 로그에서 JSON 데이터 추출
+        for (const line of lines) {
+          try {
+            // 로그에서 JSON 문자열 부분 추출 (RDP status: 데이터 전송에 성공하였습니다. 이후)
+            const jsonStartIndex = line.indexOf('{"log_body"');
+            if (jsonStartIndex === -1) continue;
+            
+            const jsonStr = line.substring(jsonStartIndex);
+            const logData = JSON.parse(jsonStr);
+            
+            if (!logData.log_body || !logData.log_body.length) continue;
+            
+            for (const event of logData.log_body) {
+              // MongoDB 스키마에 맞게 변환
+              const eventType = this.determineEventType(event.en);
+              let pagetitle = "";
+              let url = "";
+              
+              // dl, dt 필드를 매핑 규칙에 따라 처리
+              if (logData.dt) {
+                pagetitle = logData.dt;
+              } else if (logData.screen_name) {
+                pagetitle = logData.screen_name;
+              }
+              
+              if (logData.dl) {
+                url = logData.dl;
+              }
+              
+              const time = logData.timestamp || new Date().toISOString();
+              
+              // eventParams 배열 생성
+              const eventParams = [];
+              if (event.eventParams) {
+                let shotNumber = 0;
+                
+                // 주요 필드 첫 번째 항목으로 추가
+                const mainParam = {
+                  SHOT_NUMBER: shotNumber++,
+                  EVENTNAME: event.en || '',
+                  PAGEPATH: url,
+                  PAGETITLE: pagetitle,
+                  TIME: this.formatTime(time)
+                };
+                
+                // 나머지 eventParams 필드 추가 (매핑 규칙 적용)
+                this.processEventParams(mainParam, event.eventParams);
+                
+                // 상품 정보 처리 (items 배열이 있는 경우)
+                if (event.eventParams && event.eventParams.items && Array.isArray(event.eventParams.items)) {
+                  for (const item of event.eventParams.items) {
+                    // 상품 정보 필드 추가
+                    if (item.item_id) mainParam.item_id = item.item_id;
+                    if (item.item_name) mainParam.item_name = item.item_name;
+                    if (item.price) mainParam.price = item.price;
+                    if (item.coupon) mainParam.coupon_yn = item.coupon;
+                    if (item.discount) mainParam.discount = item.discount;
+                    if (item.item_brand) mainParam.item_brand = item.item_brand;
+                  }
+                }
+                
+                eventParams.push(mainParam);
+              }
+              
+              // 결과 객체 생성
+              const entry = {
+                TIME: time,
+                EVENTTYPE: eventType,
+                PAGETITLE: pagetitle,
+                URL: url,
+                eventParams: eventParams,
+                timestamp: time
+              };
+              
+              logEntries.push(entry);
+            }
+          } catch (error) {
+            console.error('안드로이드 로그 파싱 중 오류:', error, line);
+            // 오류가 있는 라인은 건너뛰고 다음 라인 파싱 계속
+          }
+        }
+        
+        // 결과가 없으면 오류 발생
+        if (logEntries.length === 0) {
+          throw new Error('유효한 로그 데이터를 찾을 수 없습니다.');
+        }
+        
+        return logEntries;
+      },
+     
+      /*
+      // iOS 로그 파싱 LogUpload 와 맞추기 위함
       parseIOSLog(logText) {
         const rows = [];
         
@@ -1822,6 +1984,159 @@ async created() {
         
         return rows;
       },
+      */
+      // 이벤트 타입 결정 헬퍼 함수 LogUpload 와 맞추기 위함
+      determineEventType(eventName) {
+        if (!eventName) return 'unknown';
+        
+        if (eventName.includes('click')) return 'click';
+        if (eventName.includes('view')) return 'visibility';
+        if (eventName.includes('popup')) return 'popup_click';
+        
+        // 기본값은 'visibility'로 설정
+        return 'visibility';
+      },
+
+      // 필드명 정규화 헬퍼 함수 (매핑 규칙 적용) LogUpload 와 맞추기 위함
+      normalizeFieldName(key) {
+        // 매핑 규칙이 존재하는 경우
+        if (this.fieldMappings[key]) {
+          return this.fieldMappings[key];
+        }
+        
+        // cd123_user_id2 → USER_ID2 형태의 필드 처리
+        if (key.match(/^cd\d+_/)) {
+          // 숫자와 언더스코어 제거
+          const cleanKey = key.replace(/cd\d+_/g, '');
+          // 대문자로 변환
+          return cleanKey.toUpperCase();
+        }
+        
+        // ep_ 접두어가 있는 필드 처리
+        if (key.startsWith('ep_')) {
+          const cleanKey = key.substring(3);
+          return cleanKey.toUpperCase();
+        }
+        
+        // 그 외에는 그대로 대문자화하여 반환
+        return key.toUpperCase();
+      },
+      // 이벤트 파라미터 처리 및 매핑   LogUpload 와 맞추기 위함
+      processEventParams(mainParam, eventParamsObj) {
+        // eventParams 객체의 각 키-값 쌍을 처리
+        for (const [key, value] of Object.entries(eventParamsObj)) {
+          if (key === 'items' && Array.isArray(value)) {
+            // items 배열은 별도로 처리됨
+            continue;
+          }
+          
+          // 매핑 규칙 적용
+          const normalizedKey = this.normalizeFieldName(key);
+          
+          // 정규화된 키가 유효한 경우에만 추가
+          if (normalizedKey) {
+            mainParam[normalizedKey] = value;
+          }
+        }
+      },
+
+      parseIOSLog(logText) {
+        // iOS 로그 파싱 로직
+        const logEntries = [];
+        
+        try {
+          // iOS 로그는 일반적으로 JSON 형식이므로 바로 파싱
+          // 여러 줄일 경우 각각 JSON으로 파싱 시도
+          const jsonObjects = this.extractJsonObjects(logText);
+          
+          for (const jsonObj of jsonObjects) {
+            const logData = jsonObj;
+            
+            if (!logData.log_body || !logData.log_body.length) continue;
+            
+            for (const event of logData.log_body) {
+              // MongoDB 스키마에 맞게 변환
+              const eventType = this.determineEventType(event.en);
+              let pagetitle = "";
+              let url = "";
+              
+              // dl, dt 필드를 매핑 규칙에 따라 처리
+              if (logData.dt) {
+                pagetitle = logData.dt;
+              } else if (logData.screen_name) {
+                pagetitle = logData.screen_name;
+              }
+              
+              if (logData.dl) {
+                url = logData.dl;
+              }
+              
+              const time = logData.timestamp || new Date().toISOString();
+              
+              // eventParams 배열 생성
+              const eventParams = [];
+              if (event.eventParams) {
+                let shotNumber = 0;
+                
+                // 주요 필드 첫 번째 항목으로 추가
+                const mainParam = {
+                  SHOT_NUMBER: shotNumber++,
+                  EVENTNAME: event.en || '',
+                  PAGEPATH: url,
+                  PAGETITLE: pagetitle,
+                  TIME: this.formatTime(time)
+                };
+                
+                // 나머지 eventParams 필드 추가 (매핑 규칙 적용)
+                this.processEventParams(mainParam, event.eventParams);
+                
+                // 상품 정보 처리 (items 배열이 있는 경우)
+                if (event.eventParams && event.eventParams.items && Array.isArray(event.eventParams.items)) {
+                  for (const item of event.eventParams.items) {
+                    // 상품 정보 필드 추가
+                    if (item.item_id) mainParam.item_id = item.item_id;
+                    if (item.item_name) mainParam.item_name = item.item_name;
+                    if (item.price) mainParam.price = item.price;
+                    if (item.coupon) mainParam.coupon_yn = item.coupon;
+                    if (item.discount) mainParam.discount = item.discount;
+                    if (item.item_brand) mainParam.item_brand = item.item_brand;
+                  }
+                }
+                
+                // LABEL_TEXT가 없으면 기본값 설정
+                if (!mainParam['LABEL_TEXT']) {
+                  mainParam['LABEL_TEXT'] = '(라벨 없음)';
+                }
+                
+                eventParams.push(mainParam);
+              }
+              
+              // 결과 객체 생성
+              const entry = {
+                TIME: time,
+                EVENTTYPE: eventType,
+                PAGETITLE: pagetitle,
+                URL: url,
+                eventParams: eventParams,
+                timestamp: time
+              };
+              
+              logEntries.push(entry);
+            }
+          }
+        } catch (error) {
+          console.error('iOS 로그 파싱 중 오류:', error);
+          throw new Error(`iOS 로그 파싱 실패: ${error.message}`);
+        }
+        
+        // 결과가 없으면 오류 발생
+        if (logEntries.length === 0) {
+          throw new Error('유효한 로그 데이터를 찾을 수 없습니다.');
+        }
+        
+        return logEntries;
+      },
+      
 
       // 시간 형식 변환
       formatTime(timeStr) {
@@ -1840,30 +2155,10 @@ async created() {
           return timeStr; // 변환 실패 시 원본 반환
         }
       },
-      // processEventParams에서 필드맵핑 PageDetailView.vue의 methods 안에 추가
-      normalizeFieldName(key) {
-        // 1. 매핑 규칙이 존재하는 경우, 매핑된 값 반환
-        if (this.fieldMappings[key]) {
-          return this.fieldMappings[key];
-        }
-        
-        // 2. 'cd'로 시작하는 키 처리 (e.g., cd123_user_id2 → USER_ID2)
-        if (key.match(/^cd\d+_/)) {
-          const cleanKey = key.replace(/cd\d+_/g, '');
-          return cleanKey.toUpperCase();
-        }
-        
-        // 3. 'ep_' 접두어가 있는 키 처리 (e.g., ep_new_tag → NEW_TAG)
-        if (key.startsWith('ep_')) {
-          const cleanKey = key.substring(3);
-          return cleanKey.toUpperCase();
-        }
-        
-        // 4. 그 외에는 그대로 대문자화하여 반환
-        return key.toUpperCase();
-      },
+  
         // 이벤트 파라미터 처리
-        processEventParams(targetRow, eventParams) {
+      processEventParams(targetRow, eventParams) {
+        // 객체 형태의 eventParams 처리
         if (eventParams && typeof eventParams === 'object' && !Array.isArray(eventParams)) {
           for (const [key, value] of Object.entries(eventParams)) {
             if (key === 'items') continue;
@@ -1879,7 +2174,7 @@ async created() {
           }
         }
       },
-      
+      */
        // JSON 객체 추출
       extractJsonObjects(text) {
         const jsonObjects = [];
@@ -1909,6 +2204,128 @@ async created() {
           }
         }
         return jsonObjects;
+      },
+      // 컬럼 표시 이름 가져오기
+      getColumnDisplayName(column) {
+        return this.columnDisplayNames[column] || column;
+      },
+
+      // 컬럼 관리 모달 관련
+      showColumnManager(entryIndex) {
+        this.managingEntryIndex = entryIndex;
+        
+        // 현재 항목의 모든 필드를 allColumns에 추가
+        const entry = this.editableParsedResult[entryIndex];
+        const paramFields = new Set();
+        
+        // 모든 이벤트 파라미터의 모든 필드 수집
+        entry.eventParams.forEach(param => {
+          Object.keys(param).forEach(key => {
+            paramFields.add(key);
+          });
+        });
+        
+        // 기존 컬럼에 없는 필드 추가
+        paramFields.forEach(field => {
+          if (!this.allColumns.includes(field)) {
+            this.allColumns.push(field);
+          }
+        });
+        
+        // 컬럼 정렬 순서 적용
+        this.allColumns.sort((a, b) => {
+          const indexA = this.columnOrder.indexOf(a);
+          const indexB = this.columnOrder.indexOf(b);
+          return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
+        });
+        
+        this.showColumnManagerModal = true;
+      },
+      // 컬럼 관리 닫기
+      closeColumnManager() {
+        this.showColumnManagerModal = false;
+        this.managingEntryIndex = null;
+        this.newColumnName = '';
+      },
+
+      // 컬럼 추가
+      addNewColumn() {
+        const columnName = this.newColumnName.trim().toUpperCase();
+        
+        if (!columnName) return;
+        
+        // 이미 존재하는 컬럼인지 확인
+        if (this.allColumns.includes(columnName)) {
+          alert(`'${columnName}' 컬럼이 이미 존재합니다.`);
+          return;
+        }
+        
+        // 새 컬럼 추가
+        this.allColumns.push(columnName);
+        this.selectedColumns.push(columnName);
+        
+        // 표시 이름 설정
+        if (!this.columnDisplayNames[columnName]) {
+          this.columnDisplayNames[columnName] = columnName;
+        }
+        
+        // 모든 파라미터에 새 컬럼 필드 추가
+        if (this.managingEntryIndex !== null) {
+          const entry = this.editableParsedResult[this.managingEntryIndex];
+          entry.eventParams.forEach(param => {
+            if (!Object.prototype.hasOwnProperty.call(param, columnName)) {
+              param[columnName] = '';
+            }
+          });
+        }
+        
+        // 컬럼 정렬 순서 적용
+        this.allColumns.sort((a, b) => {
+          const indexA = this.columnOrder.indexOf(a);
+          const indexB = this.columnOrder.indexOf(b);
+          return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
+        });
+        
+        this.newColumnName = '';
+      },
+      // 컬럼관리 추가
+      applyColumnChanges() {
+        // 선택된 컬럼이 없으면 기본 컬럼 선택
+        if (this.selectedColumns.length === 0) {
+          this.selectedColumns = [...this.defaultVisibleColumns];
+        }
+        
+        this.showColumnManagerModal = false;
+        this.managingEntryIndex = null;
+      },
+      // 컬럼관리 이벤트 파라미터 관리 함수들
+      addEventParam(entryIndex) {
+        const now = new Date();
+        const formattedTime = this.formatTime(now.toISOString());
+        const entry = this.editableParsedResult[entryIndex];
+        
+        // 새 SHOT_NUMBER 계산 (최대값 + 1)
+        const maxShotNumber = entry.eventParams.length > 0 
+          ? Math.max(...entry.eventParams.map(p => p.SHOT_NUMBER)) 
+          : -1;
+        
+        const newParam = {
+          SHOT_NUMBER: maxShotNumber + 1,
+          EVENTNAME: entry.eventParams[0]?.EVENTNAME || 'cts_click',
+          PAGEPATH: entry.URL,
+          PAGETITLE: entry.PAGETITLE,
+          TIME: formattedTime,
+          LABEL_TEXT: '(새 항목)'
+        };
+        
+        // 모든 표시 중인 컬럼에 대해 빈 값 추가
+        this.allColumns.forEach(column => {
+          if (!Object.prototype.hasOwnProperty.call(newParam, column)) {
+            newParam[column] = '';
+          }
+        });
+        
+        entry.eventParams.push(newParam);
       },
 
       // 파싱된 데이터를 테이블에 추가
