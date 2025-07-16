@@ -2441,7 +2441,7 @@ async created() {
           if (this.taggingMaps && this.taggingMaps.length > 0) {
             // 헤더: columnOrder만 추출 (해당 데이터에 실제 존재하는 필드만)
             const headers = this.columnOrder.filter(col =>
-              this.taggingMaps.some(row => row.hasOwnProperty(col))
+              this.taggingMaps.some(row => Object.prototype.hasOwnProperty.call(row, col))
             );
             // 데이터 추출
             const tableSheetData = [
