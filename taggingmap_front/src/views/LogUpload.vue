@@ -947,11 +947,6 @@
                   }
                 }
                 
-                // LABEL_TEXT가 없으면 기본값 설정
-                if (!mainParam['LABEL_TEXT']) {
-                  mainParam['LABEL_TEXT'] = '(라벨 없음)';
-                }
-                
                 eventParams.push(mainParam);
               }
               
