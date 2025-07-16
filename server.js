@@ -12,7 +12,6 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 require('dotenv').config(); // 환경 변수 로드
 const TaggingMap = require('./models/taggingMap'); // 모델
 const axios = require('axios');  // 이 줄을 추가하세요
-const express = require('express');
 const { execFile } = require('child_process');
 const path = require('path');
 const fs = require('fs');
