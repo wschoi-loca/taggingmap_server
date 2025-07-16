@@ -2422,57 +2422,40 @@ async created() {
             this.showToast('XLSX 라이브러리가 로드되지 않았습니다.', 'error');
             return;
           }
-          // 1) header-section의 h1 텍스트 추출
-          const h1Text = document.querySelector('.header-section h1')?.innerText?.trim() || '제목없음';
 
-          // 2) 이벤트 유형 값
-          const eventType = this.selectedEventType || '이벤트없음';
-
-          // 3) 타임스탬프 (포맷 함수 활용)
-          let timestampText = '타임스탬프없음';
-          if (this.selectedTimestamp) {
-            timestampText = this.formatTimestamp 
-              ? this.formatTimestamp(this.selectedTimestamp)
-              : String(this.selectedTimestamp);
-          }
-
-          // 4) 파일명 조립 (공백/특수문자 제거)
-          const safe = s => s.replace(/[\\/:*?"<>| ]+/g, '_'); // 윈도우 불가문자 및 공백 -> _
-          const fileName = `${safe(h1Text)}_${safe(eventType)}_${safe(timestampText)}.xlsx`;
-
-          // 1. A-2부터: .image-container 내 alt="태깅맵 이미지"인 이미지들
-          const imageElements = Array.from(document.querySelectorAll('.image-container img[alt="태깅맵 이미지"]'));
-          // 이미지 파일의 src와 alt를 수집
-          const imageData = imageElements.map((img, idx) => ({
-            번호: idx + 1,
-            alt: img.alt,
-            src: img.src
-          }));
-
-          // 2. B-2부터: data-section의 테이블 값
-          const table = document.querySelector('[data-section] table');
-          let tableData = [];
-          if (table) {
-            const rows = Array.from(table.rows);
-            tableData = rows.map(row => Array.from(row.cells).map(cell => cell.innerText));
-          }
-
-          // 3. 시트 생성
           const wb = XLSX.utils.book_new();
 
-          // 이미지 정보 시트 (A-2 시작)
-          const imageSheet = XLSX.utils.json_to_sheet(imageData, { origin: "A2" });
-          XLSX.utils.sheet_add_aoa(imageSheet, [["번호", "alt", "src"]], { origin: "A1" });
-          XLSX.utils.book_append_sheet(wb, imageSheet, "이미지정보");
-
-          // 테이블 시트 (B-2 시작)
-          if (tableData.length > 0) {
-            const tableSheet = XLSX.utils.aoa_to_sheet(tableData, { origin: "B2" });
-            XLSX.utils.book_append_sheet(wb, tableSheet, "테이블");
+          // 1. 이미지 시트
+          if (this.images && this.images.length > 0) {
+            const imageSheetData = this.images.map((img, i) => ({
+              번호: i + 1,
+              설명: img.alt || img.description || '', // 구조에 따라 수정
+              이미지URL: img.url || img.src || ''
+            }));
+            const ws1 = XLSX.utils.json_to_sheet(imageSheetData, { origin: "A2" });
+            XLSX.utils.sheet_add_aoa(ws1, [["번호", "설명", "이미지URL"]], { origin: "A1" });
+            XLSX.utils.book_append_sheet(wb, ws1, "이미지정보");
           }
 
-          // 4. 파일 다운로드
-          XLSX.writeFile(wb, fileName);
+          // 2. 테이블 시트 (taggingMaps)
+          if (this.taggingMaps && this.taggingMaps.length > 0) {
+            // 헤더: columnOrder만 추출 (해당 데이터에 실제 존재하는 필드만)
+            const headers = this.columnOrder.filter(col =>
+              this.taggingMaps.some(row => row.hasOwnProperty(col))
+            );
+            // 데이터 추출
+            const tableSheetData = [
+              headers,
+              ...this.taggingMaps.map(row =>
+                headers.map(col => row[col] !== undefined ? row[col] : '')
+              )
+            ];
+            const ws2 = XLSX.utils.aoa_to_sheet(tableSheetData, { origin: "A1" });
+            XLSX.utils.book_append_sheet(wb, ws2, "테이블");
+          }
+
+          // 엑셀 다운로드
+          XLSX.writeFile(wb, '태깅맵_데이터.xlsx');
         } catch (e) {
           this.showToast('엑셀 다운로드 중 오류가 발생했습니다.', 'error');
           console.error(e);
