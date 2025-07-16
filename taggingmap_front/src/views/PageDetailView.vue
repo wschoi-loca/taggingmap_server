@@ -176,7 +176,7 @@
           <button class="share-filter-btn" @click="shareFilters" title="현재 필터 설정 공유">
             <i class="fas fa-share-alt"></i> 필터 공유
           </button>
-          <button @click="downloadExcel">엑셀 다운로드</button>
+          <!--<button @click="downloadExcel">엑셀 다운로드</button> -->
         </div>
       </div>
     </div>
@@ -2415,6 +2415,7 @@ async created() {
         this.isWrapMode = !this.isWrapMode;
           },
           // 엑셀 다운로드 함수
+      /*    
       async downloadExcel() {
         try {
           // 필요한 데이터 준비
@@ -2484,6 +2485,7 @@ async created() {
           console.error(e);
         }
       },
+      */
   }
 }
 </script>
