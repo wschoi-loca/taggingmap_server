@@ -571,7 +571,11 @@
         
         // 기본 표시 컬럼 (수정)
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         defaultVisibleColumns: ["SHOT_NUMBER", "EVENTNAME", "CATEGORY_DEPTH1", "CATEGORY_DEPTH2", "CATEGORY_DEPTH3","LABEL_TEXT", "CONTENT_NM", "PAGE_MKT_CONTS_ID", "TIME"],
+=======
+        defaultVisibleColumns: ["SHOT_NUMBER", "EVENTNAME", "CATEGORY_DEPTH1", "CATEGORY_DEPTH2", "CATEGORY_DEPTH3","LABEL_TEXT", "CONTENT_NM", "PAGE_MKT_CONTS_ID", "PAGETITLE","PAGEPATH","TIME"],
+>>>>>>> Stashed changes
 =======
         defaultVisibleColumns: ["SHOT_NUMBER", "EVENTNAME", "CATEGORY_DEPTH1", "CATEGORY_DEPTH2", "CATEGORY_DEPTH3","LABEL_TEXT", "CONTENT_NM", "PAGE_MKT_CONTS_ID", "PAGETITLE","PAGEPATH","TIME"],
 >>>>>>> Stashed changes

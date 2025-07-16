@@ -349,6 +349,91 @@ export default {
       error: null,
       preSelectedUrl: null,
       preSelectedEventType: null, // 변수명 통일
+      // 필드 매핑 규칙
+      fieldMappings: {
+          "ep_category": "EVENTCATEGORY",
+          "ep_action": "EVENTACTION",
+          "ep_label": "EVENTLABEL",
+          "ep_label_text": "LABEL_TEXT",
+          "ep_category_depth1": "CATEGORY_DEPTH1",
+          "ep_category_depth2": "CATEGORY_DEPTH2",
+          "ep_category_depth3": "CATEGORY_DEPTH3",
+          "ep_category_depth4": "CATEGORY_DEPTH4",
+          "ep_category_depth5": "CATEGORY_DEPTH5",
+          "ep_category_depth6": "CATEGORY_DEPTH6",
+          "ep_category_depth7": "CATEGORY_DEPTH7",
+          "ep_category_depth8": "CATEGORY_DEPTH8",
+          "ep_category_depth9": "CATEGORY_DEPTH9",
+          "ep_category_depth10": "CATEGORY_DEPTH10",
+          "ep_cd25_srch_keyword": "SEAK",
+          "ep_srch_keyword_type": "SRCH_KEYWORD_TYPE",
+          "ep_srch_result": "SEAK_SUS",
+          "ep_cd27_srch_res_clk_nm": "SEAK_TP",
+          "ep_cd12_card_name": "CARD_NAME",
+          "ep_cd64_card_apply_code": "CARD_CODE",
+          "ep_cd65_card_apply_kind": "PAGE_CARDAPL_KND",
+          "ep_cd13_fn_pd_nm": "PAGE_FN_PD_NM",
+          "ep_cd17_fn_loan_amt": "PAGE_FN_LOAN_AMT",
+          "ep_cd19_rvo_egm_stt_rt": "PAGE_RVO_EGM_STT_RT",
+          "ep_cd20_rvo_egm_stt_te": "PAGE_RVO_EGM_STT_TE",
+          "ep_cd48_pd_apply_nm": "PAGE_PD_APL_LVL",
+          "ep_cd14_cts_nm": "CONTENT_NM",
+          "ep_content_nm1": "CONTENT_NM1",
+          "ep_content_nm2": "CONTENT_NM2",
+          "ep_content_nm3": "CONTENT_NM3",
+          "ep_cd42_cts_id": "PAGE_MKT_CONTS_ID",
+          "ep_cd79_sub_cts_id": "SUB_CONTENT_ID",
+          "ep_sub_cts_id1": "SUB_CONTENT_ID1",
+          "ep_sub_cts_id2": "SUB_CONTENT_ID2",
+          "ep_sub_cts_id3": "SUB_CONTENT_ID3",
+          "ep_sub_cts_id4": "SUB_CONTENT_ID4",
+          "ep_sub_cts_id5": "SUB_CONTENT_ID5",
+          "ep_horizontal_index": "HORIZONTAL_INDEX",
+          "ep_cd101_cts_group1": "CTS_GROUP1",
+          "ep_cd102_cts_group2": "CTS_GROUP2",
+          "ep_cd103_cts_group3": "CTS_GROUP3",
+          "ep_cd104_cts_group4": "CTS_GROUP4",
+          "ep_cd105_cts_group5": "CTS_GROUP5",
+          "ep_cd106_cts_group6": "CTS_GROUP6",
+          "ep_cd107_cts_group7": "CTS_GROUP7",
+          "ep_cd108_cts_group8": "CTS_GROUP8",
+          "ep_cd109_cts_group9": "CTS_GROUP9",
+          "ep_cd110_cts_group10": "CTS_GROUP10",
+          "ep_cd111_cts_group11": "CTS_GROUP11",
+          "ep_cd112_cts_group12": "CTS_GROUP12",
+          "ep_cd113_cts_group13": "CTS_GROUP13",
+          "ep_popup_class": "popup_class",
+          "ep_popup_message": "popup_message",
+          "ep_popup_button": "popup_button",
+          "ep_auto_tag_yn": "AUTO_TAG_YN",
+          "dl": "PAGEPATH",
+          "dt": "PAGETITLE"
+      },
+
+      // 기본 표시 컬럼 (수정)
+      defaultVisibleColumns: ["SHOT_NUMBER", "EVENTNAME", "CATEGORY_DEPTH1", "CATEGORY_DEPTH2", "CATEGORY_DEPTH3","LABEL_TEXT", "CONTENT_NM", "PAGE_MKT_CONTS_ID", "PAGETITLE","PAGEPATH","TIME"],
+
+      // 이벤트 파라미터 상세 편집용
+      showParamEditor: false,
+      currentParamIndex: null,
+      currentParam: {},
+      newFieldName: '',
+      newFieldValue: '',
+
+      // 컬럼 관리용
+      showColumnManagerModal: false,
+      allColumns: [],
+      selectedColumns: [],
+      columnDisplayNames: {},
+      newColumnName: '',
+
+      // 인라인 셀 편집용
+      isEditingCell: false,
+      editingCell: {
+        paramIndex: null,
+        column: null,
+        originalValue: null
+      },
       
       // 컬럼 정렬 순서
       columnOrder: [
@@ -2156,7 +2241,8 @@ async created() {
         }
       },
   
-        // 이벤트 파라미터 처리
+      /* LogUpload 와 맞추기 위함
+      // 이벤트 파라미터 처리
       processEventParams(targetRow, eventParams) {
         // 객체 형태의 eventParams 처리
         if (eventParams && typeof eventParams === 'object' && !Array.isArray(eventParams)) {
