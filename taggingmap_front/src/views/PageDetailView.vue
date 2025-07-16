@@ -176,7 +176,7 @@
           <button class="share-filter-btn" @click="shareFilters" title="현재 필터 설정 공유">
             <i class="fas fa-share-alt"></i> 필터 공유
           </button>
-          <!--<button @click="downloadExcel">엑셀 다운로드</button> -->
+          <button @click="downloadExcel">엑셀 다운로드</button>
         </div>
       </div>
     </div>
@@ -2413,79 +2413,66 @@ async created() {
       //줄 바꿈 모드 토글
       toggleWrapMode() {
         this.isWrapMode = !this.isWrapMode;
-          },
-          // 엑셀 다운로드 함수
-      /*    
-      async downloadExcel() {
+      },
+      // 엑셀 다운로드 함수
+      downloadExcel() {
         try {
-          // 필요한 데이터 준비
-          const info = [
-            "🔍 태깅맵 필터 공유",
-            "",
-            `📌 URL: ${window.location.href}`,
-            "",
-            "📋 필터 설정:",
-            `- 이벤트 유형: ${this.selectedEventType}`,
-            `- URL: ${this.selectedUrl}`,
-            `- 타임스탬프: ${this.selectedTimestamp} | ${this.formatEventNames(this.getEventNamesForTimestamp(this.selectedTimestamp)) || ''}`,
-            ""
-          ];
-          const columns = this.sortedColumns; // 예시, 실제 컬럼 배열 변수명에 따라 수정
-          const rows = this.taggingMaps[0]?.eventParams || [];
-          const images = [this.taggingMaps[0]?.image]; // 행마다 하나씩 넣으려면 반복
+          // 1) header-section의 h1 텍스트 추출
+          const h1Text = document.querySelector('.header-section h1')?.innerText?.trim() || '제목없음';
 
-          // 파일명 정보도 같이 전송
-          const pagetitle = this.pagetitle;
-          const eventtype = this.selectedEventType;
-          const timestamp = this.selectedTimestamp;
+          // 2) 이벤트 유형 값
+          const eventType = this.selectedEventType || '이벤트없음';
 
-          const reqBody = {
-            info,
-            columns,
-            rows,
-            images,
-            pagetitle,
-            eventtype,
-            timestamp
-          };
-
-          // API 요청
-          const response = await fetch('/api/export/excel', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(reqBody)
-          });
-
-          if (!response.ok) throw new Error('엑셀 생성 실패');
-
-          // 파일명은 서버에서 Content-Disposition 헤더로 내려줌(없으면 fallback)
-          const disposition = response.headers.get('Content-Disposition');
-          let filename = '태깅맵_데이터.xlsx';
-          if (disposition) {
-            const match = disposition.match(/filename="?([^"]+)"?/);
-            if (match) filename = decodeURIComponent(match[1]);
+          // 3) 타임스탬프 (포맷 함수 활용)
+          let timestampText = '타임스탬프없음';
+          if (this.selectedTimestamp) {
+            timestampText = this.formatTimestamp 
+              ? this.formatTimestamp(this.selectedTimestamp)
+              : String(this.selectedTimestamp);
           }
 
-          // Blob 다운로드
-          const blob = await response.blob();
-          const url = window.URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = filename;
-          document.body.appendChild(a);
-          a.click();
-          setTimeout(() => {
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
-          }, 100);
+          // 4) 파일명 조립 (공백/특수문자 제거)
+          const safe = s => s.replace(/[\\/:*?"<>| ]+/g, '_'); // 윈도우 불가문자 및 공백 -> _
+          const fileName = `${safe(h1Text)}_${safe(eventType)}_${safe(timestampText)}.xlsx`;
 
-          this.showToast('엑셀 다운로드가 완료되었습니다.', 'success');
+          // 1. A-2부터: .image-container 내 alt="태깅맵 이미지"인 이미지들
+          const imageElements = Array.from(document.querySelectorAll('.image-container img[alt="태깅맵 이미지"]'));
+          // 이미지 파일의 src와 alt를 수집
+          const imageData = imageElements.map((img, idx) => ({
+            번호: idx + 1,
+            alt: img.alt,
+            src: img.src
+          }));
+
+          // 2. B-2부터: data-section의 테이블 값
+          const table = document.querySelector('[data-section] table');
+          let tableData = [];
+          if (table) {
+            const rows = Array.from(table.rows);
+            tableData = rows.map(row => Array.from(row.cells).map(cell => cell.innerText));
+          }
+
+          // 3. 시트 생성
+          const wb = XLSX.utils.book_new();
+
+          // 이미지 정보 시트 (A-2 시작)
+          const imageSheet = XLSX.utils.json_to_sheet(imageData, { origin: "A2" });
+          XLSX.utils.sheet_add_aoa(imageSheet, [["번호", "alt", "src"]], { origin: "A1" });
+          XLSX.utils.book_append_sheet(wb, imageSheet, "이미지정보");
+
+          // 테이블 시트 (B-2 시작)
+          if (tableData.length > 0) {
+            const tableSheet = XLSX.utils.aoa_to_sheet(tableData, { origin: "B2" });
+            XLSX.utils.book_append_sheet(wb, tableSheet, "테이블");
+          }
+
+          // 4. 파일 다운로드
+          XLSX.writeFile(wb, "태깅맵_데이터.xlsx");
         } catch (e) {
           this.showToast('엑셀 다운로드 중 오류가 발생했습니다.', 'error');
           console.error(e);
         }
       },
-      */
   }
 }
 </script>
