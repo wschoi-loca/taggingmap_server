@@ -324,7 +324,7 @@
 
 <script>
 import axios from 'axios';
-import * as XLSX from "xlsx";
+const XLSX = window.XLSX;
 // PageDetailView.vue의 data와 created, computed 섹션 수정
 import PathMappingService from '@/services/PathMappingService';
 
