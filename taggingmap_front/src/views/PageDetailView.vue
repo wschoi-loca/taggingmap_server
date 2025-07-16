@@ -2468,7 +2468,7 @@ async created() {
           }
 
           // 4. 파일 다운로드
-          XLSX.writeFile(wb, "태깅맵_데이터.xlsx");
+          XLSX.writeFile(wb, fileName);
         } catch (e) {
           this.showToast('엑셀 다운로드 중 오류가 발생했습니다.', 'error');
           console.error(e);
