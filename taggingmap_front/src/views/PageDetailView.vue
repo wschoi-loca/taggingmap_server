@@ -2418,6 +2418,11 @@ async created() {
       // 엑셀 다운로드 함수
       downloadExcel() {
         try {
+          const XLSX = window.XLSX;
+          if (!XLSX) {
+            this.showToast('XLSX 라이브러리가 로드되지 않았습니다.', 'error');
+            return;
+          }
           // 1) header-section의 h1 텍스트 추출
           const h1Text = document.querySelector('.header-section h1')?.innerText?.trim() || '제목없음';
 
