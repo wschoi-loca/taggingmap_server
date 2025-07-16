@@ -30,7 +30,8 @@
     "vue-google-oauth2": "^1.5.10",
     "vue3-google-oauth2": "^1.0.7",
     "vuedraggable": "^4.1.0",
-    "vuex": "^4.1.0"
+    "vuex": "^4.1.0",
+    "xlsx": "^0.18.5"
   },
   "engines": {
     "node": "18.x",
