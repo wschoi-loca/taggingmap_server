@@ -12,6 +12,10 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 require('dotenv').config(); // 환경 변수 로드
 const TaggingMap = require('./models/taggingMap'); // 모델
 const axios = require('axios');  // 이 줄을 추가하세요
+const express = require('express');
+const { execFile } = require('child_process');
+const path = require('path');
+const fs = require('fs');
 
 // 먼저 Express 앱 생성
 const app = express();
@@ -1019,6 +1023,45 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   console.log(`Cloudinary configured for cloud: ${cloudinary.config().cloud_name}`);
+});
+
+// 엑셀 다운로드 API
+app.use(express.json({ limit: '50mb' }));
+
+// 엑셀 다운로드 API
+app.post('/api/export/excel', async (req, res) => {
+  const { pagetitle, eventtype, timestamp } = req.body;
+
+  // 안전한 파일명 생성 함수
+  function safeName(str) {
+    if (!str) return "none";
+    return String(str)
+      .replace(/[\s\\/:"*?<>|]+/g, "_") // 윈도우 불가문자
+      .replace(/[^\w\-_.]/g, "_"); // 나머지 한글 등
+  }
+
+  const fileName = `태깅맵_데이터_${safeName(pagetitle)}_${safeName(eventtype)}_${safeName(timestamp)}.xlsx`;
+
+  const inputFile = path.join(__dirname, 'export_input.json');
+  const outputFile = path.join(__dirname, 'export_result.xlsx');
+
+  fs.writeFileSync(inputFile, JSON.stringify(req.body, null, 2), 'utf-8');
+
+  execFile(
+    'python3',
+    ['generate_taggingmap_excel.py', inputFile, outputFile],
+    (err, stdout, stderr) => {
+      if (err) {
+        console.error('엑셀 생성 오류:', err, stderr);
+        return res.status(500).send('엑셀 생성 오류');
+      }
+      // 파일 다운로드: Content-Disposition에 파일명 지정
+      res.download(outputFile, fileName, (err) => {
+        fs.unlinkSync(inputFile);
+        fs.unlinkSync(outputFile);
+      });
+    }
+  );
 });
 
 // Deployed: 2025-05-20 09:57:42 by wschoi-loca

@@ -2413,49 +2413,72 @@ async created() {
       //줄 바꿈 모드 토글
       toggleWrapMode() {
         this.isWrapMode = !this.isWrapMode;
-      },
-      // 엑셀 다운로드 함수
-      downloadExcel() {
+          },
+          // 엑셀 다운로드 함수
+      async downloadExcel() {
         try {
-          const XLSX = window.XLSX;
-          if (!XLSX) {
-            this.showToast('XLSX 라이브러리가 로드되지 않았습니다.', 'error');
-            return;
+          // 필요한 데이터 준비
+          const info = [
+            "🔍 태깅맵 필터 공유",
+            "",
+            `📌 URL: ${window.location.href}`,
+            "",
+            "📋 필터 설정:",
+            `- 이벤트 유형: ${this.selectedEventType}`,
+            `- URL: ${this.selectedUrl}`,
+            `- 타임스탬프: ${this.selectedTimestamp} | ${this.formatEventNames(this.getEventNamesForTimestamp(this.selectedTimestamp)) || ''}`,
+            ""
+          ];
+          const columns = this.sortedColumns; // 예시, 실제 컬럼 배열 변수명에 따라 수정
+          const rows = this.taggingMaps[0]?.eventParams || [];
+          const images = [this.taggingMaps[0]?.image]; // 행마다 하나씩 넣으려면 반복
+
+          // 파일명 정보도 같이 전송
+          const pagetitle = this.pagetitle;
+          const eventtype = this.selectedEventType;
+          const timestamp = this.selectedTimestamp;
+
+          const reqBody = {
+            info,
+            columns,
+            rows,
+            images,
+            pagetitle,
+            eventtype,
+            timestamp
+          };
+
+          // API 요청
+          const response = await fetch('/api/export/excel', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(reqBody)
+          });
+
+          if (!response.ok) throw new Error('엑셀 생성 실패');
+
+          // 파일명은 서버에서 Content-Disposition 헤더로 내려줌(없으면 fallback)
+          const disposition = response.headers.get('Content-Disposition');
+          let filename = '태깅맵_데이터.xlsx';
+          if (disposition) {
+            const match = disposition.match(/filename="?([^"]+)"?/);
+            if (match) filename = decodeURIComponent(match[1]);
           }
 
-          const wb = XLSX.utils.book_new();
+          // Blob 다운로드
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => {
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+          }, 100);
 
-          // 1. 이미지 시트
-          if (this.images && this.images.length > 0) {
-            const imageSheetData = this.images.map((img, i) => ({
-              번호: i + 1,
-              설명: img.alt || img.description || '', // 구조에 따라 수정
-              이미지URL: img.url || img.src || ''
-            }));
-            const ws1 = XLSX.utils.json_to_sheet(imageSheetData, { origin: "A2" });
-            XLSX.utils.sheet_add_aoa(ws1, [["번호", "설명", "이미지URL"]], { origin: "A1" });
-            XLSX.utils.book_append_sheet(wb, ws1, "이미지정보");
-          }
-
-          // 2. 테이블 시트 (taggingMaps)
-          if (this.taggingMaps && this.taggingMaps.length > 0) {
-            // 헤더: columnOrder만 추출 (해당 데이터에 실제 존재하는 필드만)
-            const headers = this.columnOrder.filter(col =>
-              this.taggingMaps.some(row => Object.prototype.hasOwnProperty.call(row, col))
-            );
-            // 데이터 추출
-            const tableSheetData = [
-              headers,
-              ...this.taggingMaps.map(row =>
-                headers.map(col => row[col] !== undefined ? row[col] : '')
-              )
-            ];
-            const ws2 = XLSX.utils.aoa_to_sheet(tableSheetData, { origin: "A1" });
-            XLSX.utils.book_append_sheet(wb, ws2, "테이블");
-          }
-
-          // 엑셀 다운로드
-          XLSX.writeFile(wb, '태깅맵_데이터.xlsx');
+          this.showToast('엑셀 다운로드가 완료되었습니다.', 'success');
         } catch (e) {
           this.showToast('엑셀 다운로드 중 오류가 발생했습니다.', 'error');
           console.error(e);
