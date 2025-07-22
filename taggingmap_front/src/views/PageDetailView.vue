@@ -1640,7 +1640,7 @@ async created() {
         reader.readAsText(file);
       },
       
-      async parseLog() {
+      parseLog() {
         console.log("parseLog 실행됨!");
         console.log(this.logText);
 
