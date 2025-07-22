@@ -176,6 +176,7 @@
           <button class="share-filter-btn" @click="shareFilters" title="현재 필터 설정 공유">
             <i class="fas fa-share-alt"></i> 필터 공유
           </button>
+           <!--<button @click="downloadExcel">엑셀 다운로드</button>  -->
         </div>
       </div>
     </div>
@@ -348,80 +349,102 @@ export default {
       error: null,
       preSelectedUrl: null,
       preSelectedEventType: null, // 변수명 통일
-
-      // 필드 매핑 정의
+      // 필드 매핑 규칙
       fieldMappings: {
-        "ep_category": "EVENTCATEGORY",
-        "ep_action": "EVENTACTION",
-        "ep_label": "EVENTLABEL",
-        "ep_label_text": "LABEL_TEXT",
-        "ep_category_depth1": "CATEGORY_DEPTH1",
-        "ep_category_depth2": "CATEGORY_DEPTH2",
-        "ep_category_depth3": "CATEGORY_DEPTH3",
-        "ep_category_depth4": "CATEGORY_DEPTH4",
-        "ep_category_depth5": "CATEGORY_DEPTH5",
-        "ep_category_depth6": "CATEGORY_DEPTH6",
-        "ep_category_depth7": "CATEGORY_DEPTH7",
-        "ep_category_depth8": "CATEGORY_DEPTH8",
-        "ep_category_depth9": "CATEGORY_DEPTH9",
-        "ep_category_depth10": "CATEGORY_DEPTH10",
-        "ep_cd15_page_depth1": "PAGE_DEPTH1",
-        "ep_cd16_page_depth2": "PAGE_DEPTH2",
-        "ep_cd52_page_depth3": "PAGE_DEPTH3",
-        "CD15_PAGE_DEPTH1": "PAGE_DEPTH1",
-        "CD16_PAGE_DEPTH2": "PAGE_DEPTH2",
-        "CD52_PAGE_DEPTH3": "PAGE_DEPTH3",
-        "ep_page_depth4": "PAGE_DEPTH4",
-        "ep_page_depth5": "PAGE_DEPTH5",
-        "ep_cd25_srch_keyword": "SEAK",
-        "ep_srch_keyword_type": "SRCH_KEYWORD_TYPE",
-        "ep_srch_result": "SEAK_SUS",
-        "ep_cd27_srch_res_clk_nm": "SEAK_TP",
-        "ep_cd12_card_name": "CARD_NAME",
-        "ep_cd64_card_apply_code": "CARD_CODE",
-        "ep_cd65_card_apply_kind": "PAGE_CARDAPL_KND",
-        "ep_cd13_fn_pd_nm": "PAGE_FN_PD_NM",
-        "ep_cd17_fn_loan_amt": "PAGE_FN_LOAN_AMT",
-        "ep_cd19_rvo_egm_stt_rt": "PAGE_RVO_EGM_STT_RT",
-        "ep_cd20_rvo_egm_stt_te": "PAGE_RVO_EGM_STT_TE",
-        "ep_cd48_pd_apply_nm": "PAGE_PD_APL_LVL",
-        "ep_cd14_cts_nm": "CONTENT_NM",
-        "ep_content_nm1": "CONTENT_NM1",
-        "ep_content_nm2": "CONTENT_NM2",
-        "ep_content_nm3": "CONTENT_NM3",
-        "ep_cd42_cts_id": "PAGE_MKT_CONTS_ID",
-        "ep_cd79_sub_cts_id": "SUB_CONTENT_ID",
-        "ep_sub_cts_id1": "SUB_CONTENT_ID1",
-        "ep_sub_cts_id2": "SUB_CONTENT_ID2",
-        "ep_sub_cts_id3": "SUB_CONTENT_ID3",
-        "ep_sub_cts_id4": "SUB_CONTENT_ID4",
-        "ep_sub_cts_id5": "SUB_CONTENT_ID5",
-        "ep_horizontal_index": "HORIZONTAL_INDEX",
-        "ep_cd101_cts_group1": "CTS_GROUP1",
-        "ep_cd102_cts_group2": "CTS_GROUP2",
-        "ep_cd103_cts_group3": "CTS_GROUP3",
-        "ep_cd104_cts_group4": "CTS_GROUP4",
-        "ep_cd105_cts_group5": "CTS_GROUP5",
-        "ep_cd106_cts_group6": "CTS_GROUP6",
-        "ep_cd107_cts_group7": "CTS_GROUP7",
-        "ep_cd108_cts_group8": "CTS_GROUP8",
-        "ep_cd109_cts_group9": "CTS_GROUP9",
-        "ep_cd110_cts_group10": "CTS_GROUP10",
-        "ep_cd111_cts_group11": "CTS_GROUP11",
-        "ep_cd112_cts_group12": "CTS_GROUP12",
-        "ep_cd113_cts_group13": "CTS_GROUP13",
-        "ep_popup_class": "popup_class",
-        "ep_popup_message": "popup_message",
-        "ep_popup_button": "popup_button",
-        "ep_auto_tag_yn": "AUTO_TAG_YN",
-        "dl": "PAGEPATH",
-        "dt": "PAGETITLE"
+          "ep_category": "EVENTCATEGORY",
+          "ep_action": "EVENTACTION",
+          "ep_label": "EVENTLABEL",
+          "ep_label_text": "LABEL_TEXT",
+          "ep_category_depth1": "CATEGORY_DEPTH1",
+          "ep_category_depth2": "CATEGORY_DEPTH2",
+          "ep_category_depth3": "CATEGORY_DEPTH3",
+          "ep_category_depth4": "CATEGORY_DEPTH4",
+          "ep_category_depth5": "CATEGORY_DEPTH5",
+          "ep_category_depth6": "CATEGORY_DEPTH6",
+          "ep_category_depth7": "CATEGORY_DEPTH7",
+          "ep_category_depth8": "CATEGORY_DEPTH8",
+          "ep_category_depth9": "CATEGORY_DEPTH9",
+          "ep_category_depth10": "CATEGORY_DEPTH10",
+          "ep_cd15_page_depth1": "PAGE_DEPTH1",
+          "ep_cd16_page_depth2": "PAGE_DEPTH2",
+          "ep_cd52_page_depth3": "PAGE_DEPTH3",
+          "ep_page_depth4": "PAGE_DEPTH4",
+          "ep_page_depth5": "PAGE_DEPTH5",
+          "ep_cd25_srch_keyword": "SEAK",
+          "ep_srch_keyword_type": "SRCH_KEYWORD_TYPE",
+          "ep_srch_result": "SEAK_SUS",
+          "ep_cd27_srch_res_clk_nm": "SEAK_TP",
+          "ep_cd12_card_name": "CARD_NAME",
+          "ep_cd64_card_apply_code": "CARD_CODE",
+          "ep_cd65_card_apply_kind": "PAGE_CARDAPL_KND",
+          "ep_cd13_fn_pd_nm": "PAGE_FN_PD_NM",
+          "ep_cd17_fn_loan_amt": "PAGE_FN_LOAN_AMT",
+          "ep_cd19_rvo_egm_stt_rt": "PAGE_RVO_EGM_STT_RT",
+          "ep_cd20_rvo_egm_stt_te": "PAGE_RVO_EGM_STT_TE",
+          "ep_cd48_pd_apply_nm": "PAGE_PD_APL_LVL",
+          "ep_cd14_cts_nm": "CONTENT_NM",
+          "ep_content_nm1": "CONTENT_NM1",
+          "ep_content_nm2": "CONTENT_NM2",
+          "ep_content_nm3": "CONTENT_NM3",
+          "ep_cd42_cts_id": "PAGE_MKT_CONTS_ID",
+          "ep_cd79_sub_cts_id": "SUB_CONTENT_ID",
+          "ep_sub_cts_id1": "SUB_CONTENT_ID1",
+          "ep_sub_cts_id2": "SUB_CONTENT_ID2",
+          "ep_sub_cts_id3": "SUB_CONTENT_ID3",
+          "ep_sub_cts_id4": "SUB_CONTENT_ID4",
+          "ep_sub_cts_id5": "SUB_CONTENT_ID5",
+          "ep_horizontal_index": "HORIZONTAL_INDEX",
+          "ep_cd101_cts_group1": "CTS_GROUP1",
+          "ep_cd102_cts_group2": "CTS_GROUP2",
+          "ep_cd103_cts_group3": "CTS_GROUP3",
+          "ep_cd104_cts_group4": "CTS_GROUP4",
+          "ep_cd105_cts_group5": "CTS_GROUP5",
+          "ep_cd106_cts_group6": "CTS_GROUP6",
+          "ep_cd107_cts_group7": "CTS_GROUP7",
+          "ep_cd108_cts_group8": "CTS_GROUP8",
+          "ep_cd109_cts_group9": "CTS_GROUP9",
+          "ep_cd110_cts_group10": "CTS_GROUP10",
+          "ep_cd111_cts_group11": "CTS_GROUP11",
+          "ep_cd112_cts_group12": "CTS_GROUP12",
+          "ep_cd113_cts_group13": "CTS_GROUP13",
+          "ep_popup_class": "popup_class",
+          "ep_popup_message": "popup_message",
+          "ep_popup_button": "popup_button",
+          "ep_auto_tag_yn": "AUTO_TAG_YN",
+          "dl": "PAGEPATH",
+          "dt": "PAGETITLE"
+      },
+
+      // 기본 표시 컬럼 (수정)
+      defaultVisibleColumns: ["SHOT_NUMBER", "EVENTNAME", "CATEGORY_DEPTH1", "CATEGORY_DEPTH2", "CATEGORY_DEPTH3","LABEL_TEXT", "CONTENT_NM", "PAGE_MKT_CONTS_ID", "PAGETITLE","PAGEPATH","TIME"],
+
+      // 이벤트 파라미터 상세 편집용
+      showParamEditor: false,
+      currentParamIndex: null,
+      currentParam: {},
+      newFieldName: '',
+      newFieldValue: '',
+
+      // 컬럼 관리용
+      showColumnManagerModal: false,
+      allColumns: [],
+      selectedColumns: [],
+      columnDisplayNames: {},
+      newColumnName: '',
+
+      // 인라인 셀 편집용
+      isEditingCell: false,
+      editingCell: {
+        paramIndex: null,
+        column: null,
+        originalValue: null
       },
       
       // 컬럼 정렬 순서
       columnOrder: [
       "EVENTNAME",
       "EVENTACTION",
+      "PAGETITLE",
       "CATEGORY_DEPTH1",
       "CATEGORY_DEPTH2",
       "CATEGORY_DEPTH3",
@@ -450,7 +473,6 @@ export default {
       "POPUP_BUTTON",
       "POPUP_CLASS",
       "AUTO_TAG_YN",
-      "PAGETITLE",
       "ep_cd77_cur_page_title",
       "PAGEPATH",
       "CTS_GROUP1",
@@ -492,7 +514,6 @@ export default {
       "item_brand",
       "CHANNEL_TYPE",
       "EVENTCATEGORY",
-
       "EVENTLABEL",
       "CNO",
       "CD123_CUR_PAGE_FULLURL",
@@ -587,6 +608,18 @@ export default {
       }
   },
   computed: {
+    // PageDetailView.vue의 computed에 추가 (기존 sortedColumns는 삭제)
+    visibleColumns() {
+        // 선택된 컬럼을 정렬 순서에 맞게 반환
+        return this.selectedColumns
+          .slice()
+          .sort((a, b) => {
+            const indexA = this.columnOrder.indexOf(a);
+            const indexB = this.columnOrder.indexOf(b);
+            return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
+          });
+      },
+      
     imageWrapperStyle() {
       return {
         height: this.imageRealHeight
@@ -1737,9 +1770,8 @@ async created() {
           this.isProcessing = false;
         }
       },
-  
-      
-      // 안드로이드 로그 파싱
+      /*
+      // 안드로이드 로그 파싱 LogUpload 와 맞추기 위함
       parseAndroidLog(logText) {
         const rows = [];
         const lines = logText.split('\n').filter(line => line.trim());
@@ -1810,8 +1842,79 @@ async created() {
         
         return rows;
       },
-      
-      // iOS 로그 파싱
+      */
+      parseAndroidLog(logText) {
+        // 전체 logText에서 JSON 시작점 찾기 (한 줄, 여러 줄 모두 지원)
+        const jsonStartIndex = logText.indexOf('{"log_body"');
+        if (jsonStartIndex === -1) {
+          throw new Error('유효한 로그 JSON이 없습니다.');
+        }
+
+        const jsonStr = logText.substring(jsonStartIndex);
+        let logData;
+        try {
+          logData = JSON.parse(jsonStr);
+        } catch (e) {
+          throw new Error('JSON 파싱 실패: ' + e.message);
+        }
+
+        if (!logData.log_body || !Array.isArray(logData.log_body) || logData.log_body.length === 0) {
+          throw new Error('유효한 로그 이벤트가 없습니다.');
+        }
+
+        const logEntries = [];
+
+        for (const event of logData.log_body) {
+          const eventType = this.determineEventType(event.en);
+          let pagetitle = logData.dt || logData.screen_name || "";
+          let url = logData.dl || "";
+          const time = logData.timestamp || new Date().toISOString();
+
+          const eventParams = [];
+          if (event.eventParams) {
+            let shotNumber = 0;
+            const mainParam = {
+              SHOT_NUMBER: shotNumber++,
+              EVENTNAME: event.en || '',
+              PAGEPATH: url,
+              PAGETITLE: pagetitle,
+              TIME: this.formatTime(time)
+            };
+
+            this.processEventParams(mainParam, event.eventParams);
+
+            // 상품 정보 처리
+            if (event.eventParams.items && Array.isArray(event.eventParams.items)) {
+              for (const item of event.eventParams.items) {
+                if (item.item_id) mainParam.item_id = item.item_id;
+                if (item.item_name) mainParam.item_name = item.item_name;
+                if (item.price) mainParam.price = item.price;
+                if (item.coupon) mainParam.coupon_yn = item.coupon;
+                if (item.discount) mainParam.discount = item.discount;
+                if (item.item_brand) mainParam.item_brand = item.item_brand;
+              }
+            }
+
+            eventParams.push(mainParam);
+          }
+
+          const entry = {
+            TIME: time,
+            EVENTTYPE: eventType,
+            PAGETITLE: pagetitle,
+            URL: url,
+            eventParams: eventParams,
+            timestamp: time
+          };
+
+          logEntries.push(entry);
+        }
+
+        return logEntries;
+      },
+     
+      /*
+      // iOS 로그 파싱 LogUpload 와 맞추기 위함
       parseIOSLog(logText) {
         const rows = [];
         
@@ -1882,6 +1985,159 @@ async created() {
         
         return rows;
       },
+      */
+      // 이벤트 타입 결정 헬퍼 함수 LogUpload 와 맞추기 위함
+      determineEventType(eventName) {
+        if (!eventName) return 'unknown';
+        
+        if (eventName.includes('click')) return 'click';
+        if (eventName.includes('view')) return 'visibility';
+        if (eventName.includes('popup')) return 'popup_click';
+        
+        // 기본값은 'visibility'로 설정
+        return 'visibility';
+      },
+
+      // 필드명 정규화 헬퍼 함수 (매핑 규칙 적용) LogUpload 와 맞추기 위함
+      normalizeFieldName(key) {
+        // 매핑 규칙이 존재하는 경우
+        if (this.fieldMappings[key]) {
+          return this.fieldMappings[key];
+        }
+        
+        // cd123_user_id2 → USER_ID2 형태의 필드 처리
+        if (key.match(/^cd\d+_/)) {
+          // 숫자와 언더스코어 제거
+          const cleanKey = key.replace(/cd\d+_/g, '');
+          // 대문자로 변환
+          return cleanKey.toUpperCase();
+        }
+        
+        // ep_ 접두어가 있는 필드 처리
+        if (key.startsWith('ep_')) {
+          const cleanKey = key.substring(3);
+          return cleanKey.toUpperCase();
+        }
+        
+        // 그 외에는 그대로 대문자화하여 반환
+        return key.toUpperCase();
+      },
+      // 이벤트 파라미터 처리 및 매핑   LogUpload 와 맞추기 위함
+      processEventParams(mainParam, eventParamsObj) {
+        // eventParams 객체의 각 키-값 쌍을 처리
+        for (const [key, value] of Object.entries(eventParamsObj)) {
+          if (key === 'items' && Array.isArray(value)) {
+            // items 배열은 별도로 처리됨
+            continue;
+          }
+          
+          // 매핑 규칙 적용
+          const normalizedKey = this.normalizeFieldName(key);
+          
+          // 정규화된 키가 유효한 경우에만 추가
+          if (normalizedKey) {
+            mainParam[normalizedKey] = value;
+          }
+        }
+      },
+
+      parseIOSLog(logText) {
+        // iOS 로그 파싱 로직
+        const logEntries = [];
+        
+        try {
+          // iOS 로그는 일반적으로 JSON 형식이므로 바로 파싱
+          // 여러 줄일 경우 각각 JSON으로 파싱 시도
+          const jsonObjects = this.extractJsonObjects(logText);
+          
+          for (const jsonObj of jsonObjects) {
+            const logData = jsonObj;
+            
+            if (!logData.log_body || !logData.log_body.length) continue;
+            
+            for (const event of logData.log_body) {
+              // MongoDB 스키마에 맞게 변환
+              const eventType = this.determineEventType(event.en);
+              let pagetitle = "";
+              let url = "";
+              
+              // dl, dt 필드를 매핑 규칙에 따라 처리
+              if (logData.dt) {
+                pagetitle = logData.dt;
+              } else if (logData.screen_name) {
+                pagetitle = logData.screen_name;
+              }
+              
+              if (logData.dl) {
+                url = logData.dl;
+              }
+              
+              const time = logData.timestamp || new Date().toISOString();
+              
+              // eventParams 배열 생성
+              const eventParams = [];
+              if (event.eventParams) {
+                let shotNumber = 0;
+                
+                // 주요 필드 첫 번째 항목으로 추가
+                const mainParam = {
+                  SHOT_NUMBER: shotNumber++,
+                  EVENTNAME: event.en || '',
+                  PAGEPATH: url,
+                  PAGETITLE: pagetitle,
+                  TIME: this.formatTime(time)
+                };
+                
+                // 나머지 eventParams 필드 추가 (매핑 규칙 적용)
+                this.processEventParams(mainParam, event.eventParams);
+                
+                // 상품 정보 처리 (items 배열이 있는 경우)
+                if (event.eventParams && event.eventParams.items && Array.isArray(event.eventParams.items)) {
+                  for (const item of event.eventParams.items) {
+                    // 상품 정보 필드 추가
+                    if (item.item_id) mainParam.item_id = item.item_id;
+                    if (item.item_name) mainParam.item_name = item.item_name;
+                    if (item.price) mainParam.price = item.price;
+                    if (item.coupon) mainParam.coupon_yn = item.coupon;
+                    if (item.discount) mainParam.discount = item.discount;
+                    if (item.item_brand) mainParam.item_brand = item.item_brand;
+                  }
+                }
+                
+                // LABEL_TEXT가 없으면 기본값 설정
+                if (!mainParam['LABEL_TEXT']) {
+                  mainParam['LABEL_TEXT'] = '(라벨 없음)';
+                }
+                
+                eventParams.push(mainParam);
+              }
+              
+              // 결과 객체 생성
+              const entry = {
+                TIME: time,
+                EVENTTYPE: eventType,
+                PAGETITLE: pagetitle,
+                URL: url,
+                eventParams: eventParams,
+                timestamp: time
+              };
+              
+              logEntries.push(entry);
+            }
+          }
+        } catch (error) {
+          console.error('iOS 로그 파싱 중 오류:', error);
+          throw new Error(`iOS 로그 파싱 실패: ${error.message}`);
+        }
+        
+        // 결과가 없으면 오류 발생
+        if (logEntries.length === 0) {
+          throw new Error('유효한 로그 데이터를 찾을 수 없습니다.');
+        }
+        
+        return logEntries;
+      },
+      
 
       // 시간 형식 변환
       formatTime(timeStr) {
@@ -1900,30 +2156,11 @@ async created() {
           return timeStr; // 변환 실패 시 원본 반환
         }
       },
-      // processEventParams에서 필드맵핑 PageDetailView.vue의 methods 안에 추가
-      normalizeFieldName(key) {
-        // 1. 매핑 규칙이 존재하는 경우, 매핑된 값 반환
-        if (this.fieldMappings[key]) {
-          return this.fieldMappings[key];
-        }
-        
-        // 2. 'cd'로 시작하는 키 처리 (e.g., cd123_user_id2 → USER_ID2)
-        if (key.match(/^cd\d+_/)) {
-          const cleanKey = key.replace(/cd\d+_/g, '');
-          return cleanKey.toUpperCase();
-        }
-        
-        // 3. 'ep_' 접두어가 있는 키 처리 (e.g., ep_new_tag → NEW_TAG)
-        if (key.startsWith('ep_')) {
-          const cleanKey = key.substring(3);
-          return cleanKey.toUpperCase();
-        }
-        
-        // 4. 그 외에는 그대로 대문자화하여 반환
-        return key.toUpperCase();
-      },
-        // 이벤트 파라미터 처리
-        processEventParams(targetRow, eventParams) {
+  
+      /* LogUpload 와 맞추기 위함
+      // 이벤트 파라미터 처리
+      processEventParams(targetRow, eventParams) {
+        // 객체 형태의 eventParams 처리
         if (eventParams && typeof eventParams === 'object' && !Array.isArray(eventParams)) {
           for (const [key, value] of Object.entries(eventParams)) {
             if (key === 'items') continue;
@@ -1939,7 +2176,7 @@ async created() {
           }
         }
       },
-      
+      */
        // JSON 객체 추출
       extractJsonObjects(text) {
         const jsonObjects = [];
@@ -1969,6 +2206,128 @@ async created() {
           }
         }
         return jsonObjects;
+      },
+      // 컬럼 표시 이름 가져오기
+      getColumnDisplayName(column) {
+        return this.columnDisplayNames[column] || column;
+      },
+
+      // 컬럼 관리 모달 관련
+      showColumnManager(entryIndex) {
+        this.managingEntryIndex = entryIndex;
+        
+        // 현재 항목의 모든 필드를 allColumns에 추가
+        const entry = this.editableParsedResult[entryIndex];
+        const paramFields = new Set();
+        
+        // 모든 이벤트 파라미터의 모든 필드 수집
+        entry.eventParams.forEach(param => {
+          Object.keys(param).forEach(key => {
+            paramFields.add(key);
+          });
+        });
+        
+        // 기존 컬럼에 없는 필드 추가
+        paramFields.forEach(field => {
+          if (!this.allColumns.includes(field)) {
+            this.allColumns.push(field);
+          }
+        });
+        
+        // 컬럼 정렬 순서 적용
+        this.allColumns.sort((a, b) => {
+          const indexA = this.columnOrder.indexOf(a);
+          const indexB = this.columnOrder.indexOf(b);
+          return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
+        });
+        
+        this.showColumnManagerModal = true;
+      },
+      // 컬럼 관리 닫기
+      closeColumnManager() {
+        this.showColumnManagerModal = false;
+        this.managingEntryIndex = null;
+        this.newColumnName = '';
+      },
+
+      // 컬럼 추가
+      addNewColumn() {
+        const columnName = this.newColumnName.trim().toUpperCase();
+        
+        if (!columnName) return;
+        
+        // 이미 존재하는 컬럼인지 확인
+        if (this.allColumns.includes(columnName)) {
+          alert(`'${columnName}' 컬럼이 이미 존재합니다.`);
+          return;
+        }
+        
+        // 새 컬럼 추가
+        this.allColumns.push(columnName);
+        this.selectedColumns.push(columnName);
+        
+        // 표시 이름 설정
+        if (!this.columnDisplayNames[columnName]) {
+          this.columnDisplayNames[columnName] = columnName;
+        }
+        
+        // 모든 파라미터에 새 컬럼 필드 추가
+        if (this.managingEntryIndex !== null) {
+          const entry = this.editableParsedResult[this.managingEntryIndex];
+          entry.eventParams.forEach(param => {
+            if (!Object.prototype.hasOwnProperty.call(param, columnName)) {
+              param[columnName] = '';
+            }
+          });
+        }
+        
+        // 컬럼 정렬 순서 적용
+        this.allColumns.sort((a, b) => {
+          const indexA = this.columnOrder.indexOf(a);
+          const indexB = this.columnOrder.indexOf(b);
+          return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
+        });
+        
+        this.newColumnName = '';
+      },
+      // 컬럼관리 추가
+      applyColumnChanges() {
+        // 선택된 컬럼이 없으면 기본 컬럼 선택
+        if (this.selectedColumns.length === 0) {
+          this.selectedColumns = [...this.defaultVisibleColumns];
+        }
+        
+        this.showColumnManagerModal = false;
+        this.managingEntryIndex = null;
+      },
+      // 컬럼관리 이벤트 파라미터 관리 함수들
+      addEventParam(entryIndex) {
+        const now = new Date();
+        const formattedTime = this.formatTime(now.toISOString());
+        const entry = this.editableParsedResult[entryIndex];
+        
+        // 새 SHOT_NUMBER 계산 (최대값 + 1)
+        const maxShotNumber = entry.eventParams.length > 0 
+          ? Math.max(...entry.eventParams.map(p => p.SHOT_NUMBER)) 
+          : -1;
+        
+        const newParam = {
+          SHOT_NUMBER: maxShotNumber + 1,
+          EVENTNAME: entry.eventParams[0]?.EVENTNAME || 'cts_click',
+          PAGEPATH: entry.URL,
+          PAGETITLE: entry.PAGETITLE,
+          TIME: formattedTime,
+          LABEL_TEXT: '(새 항목)'
+        };
+        
+        // 모든 표시 중인 컬럼에 대해 빈 값 추가
+        this.allColumns.forEach(column => {
+          if (!Object.prototype.hasOwnProperty.call(newParam, column)) {
+            newParam[column] = '';
+          }
+        });
+        
+        entry.eventParams.push(newParam);
       },
 
       // 파싱된 데이터를 테이블에 추가
@@ -2473,7 +2832,69 @@ async created() {
       //줄 바꿈 모드 토글
       toggleWrapMode() {
         this.isWrapMode = !this.isWrapMode;
-      }
+      },
+      // 엑셀 다운로드 함수
+      /*
+      downloadExcel() {
+        try {
+          const XLSX = window.XLSX// XLSX 라이브러리 로드
+          // 1) header-section의 h1 텍스트 추출
+          const h1Text = document.querySelector('.header-section h1')?.innerText?.trim() || '제목없음';
+
+          // 2) 이벤트 유형 값
+          const eventType = this.selectedEventType || '이벤트없음';
+
+          // 3) 타임스탬프 (포맷 함수 활용)
+          let timestampText = '타임스탬프없음';
+          if (this.selectedTimestamp) {
+            timestampText = this.formatTimestamp 
+              ? this.formatTimestamp(this.selectedTimestamp)
+              : String(this.selectedTimestamp);
+          }
+
+          // 4) 파일명 조립 (공백/특수문자 제거)
+          const safe = s => s.replace(/[\\/:*?"<>| ]+/g, '_'); // 윈도우 불가문자 및 공백 -> _
+          const fileName = `${safe(h1Text)}_${safe(eventType)}_${safe(timestampText)}.xlsx`;
+
+          // 1. A-2부터: .image-container 내 alt="태깅맵 이미지"인 이미지들
+          const imageElements = Array.from(document.querySelectorAll('.image-container img[alt="태깅맵 이미지"]'));
+          // 이미지 파일의 src와 alt를 수집
+          const imageData = imageElements.map((img, idx) => ({
+            번호: idx + 1,
+            alt: img.alt,
+            src: img.src
+          }));
+
+          // 2. B-2부터: data-section의 테이블 값
+          const table = document.querySelector('[data-section] table');
+          let tableData = [];
+          if (table) {
+            const rows = Array.from(table.rows);
+            tableData = rows.map(row => Array.from(row.cells).map(cell => cell.innerText));
+          }
+
+          // 3. 시트 생성
+          const wb = XLSX.utils.book_new();
+
+          // 이미지 정보 시트 (A-2 시작)
+          const imageSheet = XLSX.utils.json_to_sheet(imageData, { origin: "A2" });
+          XLSX.utils.sheet_add_aoa(imageSheet, [["번호", "alt", "src"]], { origin: "A1" });
+          XLSX.utils.book_append_sheet(wb, imageSheet, "이미지정보");
+
+          // 테이블 시트 (B-2 시작)
+          if (tableData.length > 0) {
+            const tableSheet = XLSX.utils.aoa_to_sheet(tableData, { origin: "B2" });
+            XLSX.utils.book_append_sheet(wb, tableSheet, "테이블");
+          }
+
+          // 4. 파일 다운로드
+          XLSX.writeFile(wb, "태깅맵_데이터.xlsx");
+        } catch (e) {
+          this.showToast('엑셀 다운로드 중 오류가 발생했습니다.', 'error');
+          console.error(e);
+        }
+      },
+      */
   }
 }
 </script>

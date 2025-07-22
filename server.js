@@ -21,7 +21,7 @@ app.use((req, res, next) => {
   res.setHeader(
     'Content-Security-Policy',
     "default-src 'self'; " +
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://accounts.google.com https://*.googleapis.com https://*.gstatic.com; " +
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://accounts.google.com https://*.googleapis.com https://*.gstatic.com https://cdn.sheetjs.com; " +
     "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com https://accounts.google.com; " +
     "img-src 'self' https://*.googleapis.com https://*.gstatic.com https://res.cloudinary.com https://accounts.google.com data:; " +
     "connect-src 'self' https://*.googleapis.com https://accounts.google.com https://apis.google.com; " +
@@ -1020,5 +1020,34 @@ app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   console.log(`Cloudinary configured for cloud: ${cloudinary.config().cloud_name}`);
 });
+/*
+// 엑셀 다운로드 API (예시)
+app.use(express.json({ limit: '50mb' })); // req.body 사용을 위한 설정
 
+app.post('/api/export/excel', async (req, res) => {
+  const inputFile = path.join(__dirname, 'export_input.json');
+  const outputFile = path.join(__dirname, 'export_result.xlsx');
+
+  // 1. 입력값을 임시 JSON파일로 저장 (파이썬에서 읽기 위함)
+  fs.writeFileSync(inputFile, JSON.stringify(req.body, null, 2), 'utf-8');
+
+  // 2. 파이썬 파일 실행
+  execFile(
+    'python3',
+    ['generate_taggingmap_excel.py', inputFile, outputFile],
+    (err, stdout, stderr) => {
+      if (err) {
+        console.error('엑셀 생성 오류:', err, stderr);
+        return res.status(500).send('엑셀 생성 오류');
+      }
+      // 3. 생성된 엑셀 파일을 다운로드로 응답
+      res.download(outputFile, '태깅맵_데이터.xlsx', (err) => {
+        // 다운로드 후 임시 파일 정리
+        fs.unlinkSync(inputFile);
+        fs.unlinkSync(outputFile);
+      });
+    }
+  );
+});
+*/
 // Deployed: 2025-05-20 09:57:42 by wschoi-loca
