@@ -1699,8 +1699,9 @@ async created() {
       },
 
       async parseLog() {
+        console.log("parseLog 실행됨!");
+        console.log(this.logText);
 
-        // 입력값 체크
         if (!(this.logText ?? '').trim()) {
           this.hasError = true;
           this.statusMessage = '로그 데이터를 입력해주세요.';
@@ -1719,16 +1720,13 @@ async created() {
             parsedLogs = this.parseIOSLog(this.logText);
           }
 
-          // 그룹화 및 결과 생성 (필요에 따라 수정)
           const groupedLogs = this.groupLogsByEventAndPath(parsedLogs);
           this.editableParsedResult = JSON.parse(JSON.stringify(groupedLogs));
 
-          // 현재 시간
           const now = new Date();
           const isoNow = now.toISOString();
           const formattedTime = this.formatTime(isoNow);
 
-          // allColumns 추출
           const allFields = new Set(['SHOT_NUMBER', 'EVENTNAME', 'LABEL_TEXT', 'PAGEPATH', 'PAGETITLE', 'TIME']);
           this.editableParsedResult.forEach(entry => {
             entry.TIME = isoNow;
@@ -1747,12 +1745,8 @@ async created() {
               }
               Object.keys(param).forEach(key => {
                 allFields.add(key);
+                console.log(`추가된 필드: ${key}`);
               });
-            });
-
-            entry.eventParams.sort((a, b) => a.SHOT_NUMBER - b.SHOT_NUMBER);
-            entry.eventParams.forEach((param, idx) => {
-              param.SHOT_NUMBER = idx;
             });
           });
 
@@ -1762,21 +1756,40 @@ async created() {
             return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
           });
 
-          let resultMessage = '로그 파싱 완료! 데이터를 확인하고 필요한 경우 수정하세요.';
-          if (this.editableParsedResult.length > 1) {
-            resultMessage += ' 태깅맵 데이터는 1개만 업로드 가능합니다. 필요없는 데이터는 삭제해주세요.';
+          // ★★★ 새 데이터를 기존 데이터에 추가 ★★★
+          const newData = this.editableParsedResult[0]?.eventParams || [];
+          
+          if (!this.editData || this.editData.length === 0) {
+            this.editData = [...newData];
+          } else {
+            // 기존 최대 SHOT_NUMBER 찾기
+            const maxShotNumber = Math.max(...this.editData.map(item => item.SHOT_NUMBER || 0));
+            
+            // 새 데이터의 SHOT_NUMBER 조정
+            newData.forEach((item, index) => {
+              item.SHOT_NUMBER = maxShotNumber + 1 + index;
+            });
+            
+            // 기존 데이터에 추가
+            this.editData.push(...newData);
           }
+          
+          // 컬럼 업데이트
+          const newColumns = this.allColumns.filter(col => col !== 'SHOT_NUMBER');
+          newColumns.forEach(col => {
+            if (!this.editColumns.includes(col)) {
+              this.editColumns.push(col);
+            }
+          });
 
+          // 메인 테이블 반영
+          this.sortedEventParams = [...this.editData];
+          this.sortedColumns = [...this.editColumns];
+
+          let resultMessage = `로그 파싱 완료! ${newData.length}개의 데이터가 추가되었습니다.`;
           this.statusMessage = resultMessage;
           this.currentStep = 2;
 
-          // 실제 테이블용 데이터 연결 (editData, editColumns, sortedEventParams, sortedColumns)
-          this.editData = this.editableParsedResult[0]?.eventParams || [];
-          this.editColumns = this.allColumns.filter(col => col !== 'SHOT_NUMBER');
-          if (this.editData && this.editColumns) {
-            this.sortedEventParams = this.editData;
-            this.sortedColumns = this.editColumns;
-          }
         } catch (error) {
           console.error('로그 파싱 중 오류 발생:', error);
           this.hasError = true;
