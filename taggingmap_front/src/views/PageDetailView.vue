@@ -1737,6 +1737,8 @@ async created() {
       },
 
       async parseLog() {
+        console.log("parseLog 실행됨!");
+        console.log(this.logText)
         // 로그 입력값이 없으면 에러 처리
         if (!(this.logText ?? '').trim()) {
           this.hasError = true;
@@ -1784,6 +1786,7 @@ async created() {
               }
               Object.keys(param).forEach(key => {
                 allFields.add(key);
+                console.log(`추가된 필드: ${key}`);
               });
             });
 
