@@ -1668,6 +1668,13 @@ async created() {
         };
         reader.readAsText(file);
       },
+<<<<<<< Updated upstream
+=======
+      
+      async parseLog() {
+        console.log("parseLog 실행됨!");
+        console.log(this.logText);
+>>>>>>> Stashed changes
 
       // 동일한 이벤트명(en), 페이지 경로(dl), 페이지 타이틀(dt)를 가진 로그 항목 그룹화
       // logUpload 와 맞추기 위함
