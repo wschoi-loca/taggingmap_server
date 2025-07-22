@@ -1668,44 +1668,6 @@ async created() {
         };
         reader.readAsText(file);
       },
-      /*
-      // 로그 파싱 (수정) LogUpload 와 맞추기 위함
-      parseLog() {
-        try {
-          if (!this.logText.trim()) {
-            alert('파싱할 로그 내용이 없습니다.');
-            return;
-          }
-          
-          let parsedData = [];
-          
-          // 로그 형식에 따라 파싱
-          if (this.logFormat === 'android') {
-            parsedData = this.parseAndroidLog(this.logText);
-          } else if (this.logFormat === 'ios') {
-            parsedData = this.parseIOSLog(this.logText);
-          }
-          
-          if (parsedData.length === 0) {
-            alert('파싱할 데이터가 없거나 형식이 올바르지 않습니다.');
-            return;
-          }
-          
-          // 파싱된 데이터 추가
-          this.addParsedDataToTable(parsedData);
-          
-          // 성공 메시지
-          //alert(`${parsedData.length}개의 데이터가 성공적으로 파싱되어 추가되었습니다.`);
-          
-          // 입력 초기화
-          this.clearLogInput();
-          
-        } catch (error) {
-          console.error('로그 파싱 중 오류 발생:', error);
-          alert(`로그 파싱 중 오류가 발생했습니다: ${error.message}`);
-        }
-      },
-      */
 
       // 동일한 이벤트명(en), 페이지 경로(dl), 페이지 타이틀(dt)를 가진 로그 항목 그룹화
       // logUpload 와 맞추기 위함
@@ -1737,9 +1699,8 @@ async created() {
       },
 
       async parseLog() {
-        console.log("parseLog 실행됨!");
-        console.log(this.logText)
-        // 로그 입력값이 없으면 에러 처리
+
+        // 입력값 체크
         if (!(this.logText ?? '').trim()) {
           this.hasError = true;
           this.statusMessage = '로그 데이터를 입력해주세요.';
@@ -1786,7 +1747,6 @@ async created() {
               }
               Object.keys(param).forEach(key => {
                 allFields.add(key);
-                console.log(`추가된 필드: ${key}`);
               });
             });
 
@@ -1809,6 +1769,14 @@ async created() {
 
           this.statusMessage = resultMessage;
           this.currentStep = 2;
+
+          // 실제 테이블용 데이터 연결 (editData, editColumns, sortedEventParams, sortedColumns)
+          this.editData = this.editableParsedResult[0]?.eventParams || [];
+          this.editColumns = this.allColumns.filter(col => col !== 'SHOT_NUMBER');
+          if (this.editData && this.editColumns) {
+            this.sortedEventParams = this.editData;
+            this.sortedColumns = this.editColumns;
+          }
         } catch (error) {
           console.error('로그 파싱 중 오류 발생:', error);
           this.hasError = true;
@@ -1818,7 +1786,6 @@ async created() {
           this.isProcessing = false;
         }
       },
-
       /*
       // 안드로이드 로그 파싱 LogUpload 와 맞추기 위함
       parseAndroidLog(logText) {
