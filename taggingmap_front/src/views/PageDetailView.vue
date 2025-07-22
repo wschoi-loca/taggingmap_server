@@ -1737,7 +1737,7 @@ async created() {
       },
 
       async parseLog() {
-        if (!this.logInput.trim()) {
+        if (!this.logText.trim()) {
           this.hasError = true;
           this.statusMessage = '로그 데이터를 입력해주세요.';
           return;
@@ -1751,9 +1751,9 @@ async created() {
           // 플랫폼에 따라 다른 파싱 로직 적용
           let parsedLogs = [];
           if (this.platform === 'android') {
-            parsedLogs = this.parseAndroidLog(this.logInput);
+            parsedLogs = this.parseAndroidLog(this.logText);
           } else {
-            parsedLogs = this.parseIOSLog(this.logInput);
+            parsedLogs = this.parseIOSLog(this.logText);
           }
           
           // 동일한 이벤트명, 페이지 경로, 페이지 타이틀을 갖는 로그 항목을 그룹화
