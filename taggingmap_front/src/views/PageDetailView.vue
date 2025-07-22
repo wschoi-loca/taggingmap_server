@@ -1781,12 +1781,6 @@ async created() {
               if (!Object.prototype.hasOwnProperty.call(param, 'SHOT_NUMBER')) {
                 param.SHOT_NUMBER = 0;
               }
-              if (!Object.prototype.hasOwnProperty.call(param, 'EVENTNAME')) {
-                param.EVENTNAME = 'cts_click';
-              }
-              if (!Object.prototype.hasOwnProperty.call(param, 'LABEL_TEXT')) {
-                param.LABEL_TEXT = '(라벨 없음)';
-              }
               
               // 모든 필드를 수집
               Object.keys(param).forEach(key => {
@@ -1903,97 +1897,73 @@ async created() {
       },
       */
       parseAndroidLog(logText) {
-        // Android 로그 파싱 로직
+        // 전체 logText에서 JSON 시작점 찾기
+        const jsonStartIndex = logText.indexOf('{"log_body"');
+        if (jsonStartIndex === -1) {
+          throw new Error('유효한 로그 JSON이 없습니다.');
+        }
+
+        const jsonStr = logText.substring(jsonStartIndex);
+        let logData;
+        try {
+          logData = JSON.parse(jsonStr);
+        } catch (e) {
+          throw new Error('JSON 파싱 실패: ' + e.message);
+        }
+
+        if (!logData.log_body || !Array.isArray(logData.log_body) || logData.log_body.length === 0) {
+          throw new Error('유효한 로그 이벤트가 없습니다.');
+        }
+
         const logEntries = [];
-        const lines = logText.split('\n').filter(line => line.trim());
-        
-        // logcat 로그에서 JSON 데이터 추출
-        for (const line of lines) {
-          try {
-            // 로그에서 JSON 문자열 부분 추출 (RDP status: 데이터 전송에 성공하였습니다. 이후)
-            const jsonStartIndex = line.indexOf('{"log_body"');
-            if (jsonStartIndex === -1) continue;
-            
-            const jsonStr = line.substring(jsonStartIndex);
-            const logData = JSON.parse(jsonStr);
-            
-            if (!logData.log_body || !logData.log_body.length) continue;
-            
-            for (const event of logData.log_body) {
-              // MongoDB 스키마에 맞게 변환
-              const eventType = this.determineEventType(event.en);
-              let pagetitle = "";
-              let url = "";
-              
-              // dl, dt 필드를 매핑 규칙에 따라 처리
-              if (logData.dt) {
-                pagetitle = logData.dt;
-              } else if (logData.screen_name) {
-                pagetitle = logData.screen_name;
+
+        for (const event of logData.log_body) {
+          // 아래 기존 코드와 동일
+          const eventType = this.determineEventType(event.en);
+          let pagetitle = logData.dt || logData.screen_name || "";
+          let url = logData.dl || "";
+          const time = logData.timestamp || new Date().toISOString();
+
+          const eventParams = [];
+          if (event.eventParams) {
+            let shotNumber = 0;
+            const mainParam = {
+              SHOT_NUMBER: shotNumber++,
+              EVENTNAME: event.en || '',
+              PAGEPATH: url,
+              PAGETITLE: pagetitle,
+              TIME: this.formatTime(time)
+            };
+
+            this.processEventParams(mainParam, event.eventParams);
+
+            // 상품 정보 처리
+            if (event.eventParams.items && Array.isArray(event.eventParams.items)) {
+              for (const item of event.eventParams.items) {
+                if (item.item_id) mainParam.item_id = item.item_id;
+                if (item.item_name) mainParam.item_name = item.item_name;
+                if (item.price) mainParam.price = item.price;
+                if (item.coupon) mainParam.coupon_yn = item.coupon;
+                if (item.discount) mainParam.discount = item.discount;
+                if (item.item_brand) mainParam.item_brand = item.item_brand;
               }
-              
-              if (logData.dl) {
-                url = logData.dl;
-              }
-              
-              const time = logData.timestamp || new Date().toISOString();
-              
-              // eventParams 배열 생성
-              const eventParams = [];
-              if (event.eventParams) {
-                let shotNumber = 0;
-                
-                // 주요 필드 첫 번째 항목으로 추가
-                const mainParam = {
-                  SHOT_NUMBER: shotNumber++,
-                  EVENTNAME: event.en || '',
-                  PAGEPATH: url,
-                  PAGETITLE: pagetitle,
-                  TIME: this.formatTime(time)
-                };
-                
-                // 나머지 eventParams 필드 추가 (매핑 규칙 적용)
-                this.processEventParams(mainParam, event.eventParams);
-                
-                // 상품 정보 처리 (items 배열이 있는 경우)
-                if (event.eventParams && event.eventParams.items && Array.isArray(event.eventParams.items)) {
-                  for (const item of event.eventParams.items) {
-                    // 상품 정보 필드 추가
-                    if (item.item_id) mainParam.item_id = item.item_id;
-                    if (item.item_name) mainParam.item_name = item.item_name;
-                    if (item.price) mainParam.price = item.price;
-                    if (item.coupon) mainParam.coupon_yn = item.coupon;
-                    if (item.discount) mainParam.discount = item.discount;
-                    if (item.item_brand) mainParam.item_brand = item.item_brand;
-                  }
-                }
-                
-                eventParams.push(mainParam);
-              }
-              
-              // 결과 객체 생성
-              const entry = {
-                TIME: time,
-                EVENTTYPE: eventType,
-                PAGETITLE: pagetitle,
-                URL: url,
-                eventParams: eventParams,
-                timestamp: time
-              };
-              
-              logEntries.push(entry);
             }
-          } catch (error) {
-            console.error('안드로이드 로그 파싱 중 오류:', error, line);
-            // 오류가 있는 라인은 건너뛰고 다음 라인 파싱 계속
+
+            eventParams.push(mainParam);
           }
+
+          const entry = {
+            TIME: time,
+            EVENTTYPE: eventType,
+            PAGETITLE: pagetitle,
+            URL: url,
+            eventParams: eventParams,
+            timestamp: time
+          };
+
+          logEntries.push(entry);
         }
-        
-        // 결과가 없으면 오류 발생
-        if (logEntries.length === 0) {
-          throw new Error('유효한 로그 데이터를 찾을 수 없습니다.');
-        }
-        
+
         return logEntries;
       },
      
