@@ -1036,11 +1036,9 @@
           return this.fieldMappings[key];
         }
         
-        // cd123_user_id2 → USER_ID2 형태의 필드 처리
-        if (key.match(/^cd\d+_/)) {
-          // 숫자와 언더스코어 제거
-          const cleanKey = key.replace(/cd\d+_/g, '');
-          // 대문자로 변환
+        // ep_cd123_user_id2 → USER_ID2 형태의 필드 처리
+        if (key.match(/cd\d+_/)) {
+          const cleanKey = key.replace(/.*cd\d+_/, '');
           return cleanKey.toUpperCase();
         }
         
@@ -1049,6 +1047,7 @@
           const cleanKey = key.substring(3);
           return cleanKey.toUpperCase();
         }
+        
         
         // 그 외에는 그대로 대문자화하여 반환
         return key.toUpperCase();
