@@ -1737,80 +1737,73 @@ async created() {
       },
 
       async parseLog() {
-        if (!this.logText.trim()) {
+        // 로그 입력값이 없으면 에러 처리
+        if (!(this.logText ?? '').trim()) {
           this.hasError = true;
           this.statusMessage = '로그 데이터를 입력해주세요.';
           return;
         }
-        
+
         this.isProcessing = true;
         this.hasError = false;
         this.statusMessage = '로그를 파싱하는 중...';
-        
+
         try {
-          // 플랫폼에 따라 다른 파싱 로직 적용
           let parsedLogs = [];
-          if (this.platform === 'android') {
+          if (this.logFormat === 'android') {
             parsedLogs = this.parseAndroidLog(this.logText);
           } else {
             parsedLogs = this.parseIOSLog(this.logText);
           }
-          
-          // 동일한 이벤트명, 페이지 경로, 페이지 타이틀을 갖는 로그 항목을 그룹화
+
+          // 그룹화 및 결과 생성 (필요에 따라 수정)
           const groupedLogs = this.groupLogsByEventAndPath(parsedLogs);
-          
-          // 깊은 복사를 통해 편집 가능한 결과 생성
           this.editableParsedResult = JSON.parse(JSON.stringify(groupedLogs));
-          
-          // 현재 시간으로 TIME 및 timestamp 업데이트
+
+          // 현재 시간
           const now = new Date();
           const isoNow = now.toISOString();
           const formattedTime = this.formatTime(isoNow);
-          
-          // 모든 필드를 수집하여 allColumns 업데이트
+
+          // allColumns 추출
           const allFields = new Set(['SHOT_NUMBER', 'EVENTNAME', 'LABEL_TEXT', 'PAGEPATH', 'PAGETITLE', 'TIME']);
-          
           this.editableParsedResult.forEach(entry => {
             entry.TIME = isoNow;
             entry.timestamp = isoNow;
-            
+
             entry.eventParams.forEach(param => {
               param.TIME = formattedTime;
-              
-              // 필수 필드가 없는 경우 기본값 설정
               if (!Object.prototype.hasOwnProperty.call(param, 'SHOT_NUMBER')) {
                 param.SHOT_NUMBER = 0;
               }
-              
-              // 모든 필드를 수집
+              if (!Object.prototype.hasOwnProperty.call(param, 'EVENTNAME')) {
+                param.EVENTNAME = 'cts_click';
+              }
+              if (!Object.prototype.hasOwnProperty.call(param, 'LABEL_TEXT')) {
+                param.LABEL_TEXT = '(라벨 없음)';
+              }
               Object.keys(param).forEach(key => {
                 allFields.add(key);
               });
             });
-            
-            // SHOT_NUMBER 순서대로 정렬
+
             entry.eventParams.sort((a, b) => a.SHOT_NUMBER - b.SHOT_NUMBER);
-            
-            // SHOT_NUMBER 재설정
             entry.eventParams.forEach((param, idx) => {
               param.SHOT_NUMBER = idx;
             });
           });
-          
-          // allColumns 업데이트 (컬럼 정렬 순서 적용)
-          this.allColumns = Array.from(allFields)
-            .sort((a, b) => {
-              const indexA = this.columnOrder.indexOf(a);
-              const indexB = this.columnOrder.indexOf(b);
-              return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
-            });
-          
-          // 결과 메시지에 데이터 개수 관련 안내 추가
+
+          this.allColumns = Array.from(allFields).sort((a, b) => {
+            const indexA = this.columnOrder.indexOf(a);
+            const indexB = this.columnOrder.indexOf(b);
+            return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
+          });
+
           let resultMessage = '로그 파싱 완료! 데이터를 확인하고 필요한 경우 수정하세요.';
           if (this.editableParsedResult.length > 1) {
             resultMessage += ' 태깅맵 데이터는 1개만 업로드 가능합니다. 필요없는 데이터는 삭제해주세요.';
           }
-          
+
           this.statusMessage = resultMessage;
           this.currentStep = 2;
         } catch (error) {
@@ -1897,7 +1890,7 @@ async created() {
       },
       */
       parseAndroidLog(logText) {
-        // 전체 logText에서 JSON 시작점 찾기
+        // 전체 logText에서 JSON 시작점 찾기 (한 줄, 여러 줄 모두 지원)
         const jsonStartIndex = logText.indexOf('{"log_body"');
         if (jsonStartIndex === -1) {
           throw new Error('유효한 로그 JSON이 없습니다.');
@@ -1918,7 +1911,6 @@ async created() {
         const logEntries = [];
 
         for (const event of logData.log_body) {
-          // 아래 기존 코드와 동일
           const eventType = this.determineEventType(event.en);
           let pagetitle = logData.dt || logData.screen_name || "";
           let url = logData.dl || "";
