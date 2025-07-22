@@ -1640,40 +1640,101 @@ async created() {
         reader.readAsText(file);
       },
       
-      // 로그 파싱 (수정)
-      parseLog() {
+      async parseLog() {
+        console.log("parseLog 실행됨!");
+        console.log(this.logText);
+
+        if (!(this.logText ?? '').trim()) {
+          this.hasError = true;
+          this.statusMessage = '로그 데이터를 입력해주세요.';
+          return;
+        }
+
+        this.isProcessing = true;
+        this.hasError = false;
+        this.statusMessage = '로그를 파싱하는 중...';
+
         try {
-          if (!this.logText.trim()) {
-            alert('파싱할 로그 내용이 없습니다.');
-            return;
-          }
-          
-          let parsedData = [];
-          
-          // 로그 형식에 따라 파싱
+          let parsedLogs = [];
           if (this.logFormat === 'android') {
-            parsedData = this.parseAndroidLog(this.logText);
-          } else if (this.logFormat === 'ios') {
-            parsedData = this.parseIOSLog(this.logText);
+            parsedLogs = this.parseAndroidLog(this.logText);
+          } else {
+            parsedLogs = this.parseIOSLog(this.logText);
+          }
+
+          const groupedLogs = this.groupLogsByEventAndPath(parsedLogs);
+          this.editableParsedResult = JSON.parse(JSON.stringify(groupedLogs));
+
+          const now = new Date();
+          const isoNow = now.toISOString();
+          const formattedTime = this.formatTime(isoNow);
+
+          const allFields = new Set(['SHOT_NUMBER', 'EVENTNAME', 'LABEL_TEXT', 'PAGEPATH', 'PAGETITLE', 'TIME']);
+          this.editableParsedResult.forEach(entry => {
+            entry.TIME = isoNow;
+            entry.timestamp = isoNow;
+
+            entry.eventParams.forEach(param => {
+              param.TIME = formattedTime;
+              if (!Object.prototype.hasOwnProperty.call(param, 'SHOT_NUMBER')) {
+                param.SHOT_NUMBER = 0;
+              }
+              if (!Object.prototype.hasOwnProperty.call(param, 'EVENTNAME')) {
+                param.EVENTNAME = 'cts_click';
+              }
+              Object.keys(param).forEach(key => {
+                allFields.add(key);
+              });
+            });
+          });
+
+          this.allColumns = Array.from(allFields).sort((a, b) => {
+            const indexA = this.columnOrder.indexOf(a);
+            const indexB = this.columnOrder.indexOf(b);
+            return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
+          });
+
+          // ★★★ 새 데이터를 기존 데이터에 추가 ★★★
+          const newData = this.editableParsedResult[0]?.eventParams || [];
+          
+          if (!this.editData || this.editData.length === 0) {
+            this.editData = [...newData];
+          } else {
+            // 기존 최대 SHOT_NUMBER 찾기
+            const maxShotNumber = Math.max(...this.editData.map(item => item.SHOT_NUMBER || 0));
+            
+            // 새 데이터의 SHOT_NUMBER 조정
+            newData.forEach((item, index) => {
+              item.SHOT_NUMBER = maxShotNumber + 1 + index;
+            });
+            
+            // 기존 데이터에 추가
+            this.editData.push(...newData);
           }
           
-          if (parsedData.length === 0) {
-            alert('파싱할 데이터가 없거나 형식이 올바르지 않습니다.');
-            return;
-          }
-          
-          // 파싱된 데이터 추가
-          this.addParsedDataToTable(parsedData);
-          
-          // 성공 메시지
-          //alert(`${parsedData.length}개의 데이터가 성공적으로 파싱되어 추가되었습니다.`);
-          
-          // 입력 초기화
-          this.clearLogInput();
-          
+          // 컬럼 업데이트
+          const newColumns = this.allColumns.filter(col => col !== 'SHOT_NUMBER');
+          newColumns.forEach(col => {
+            if (!this.editColumns.includes(col)) {
+              this.editColumns.push(col);
+            }
+          });
+
+          // 메인 테이블 반영
+          this.sortedEventParams = [...this.editData];
+          this.sortedColumns = [...this.editColumns];
+
+          let resultMessage = `로그 파싱 완료! ${newData.length}개의 데이터가 추가되었습니다.`;
+          this.statusMessage = resultMessage;
+          this.currentStep = 2;
+
         } catch (error) {
           console.error('로그 파싱 중 오류 발생:', error);
-          alert(`로그 파싱 중 오류가 발생했습니다: ${error.message}`);
+          this.hasError = true;
+          this.statusMessage = `로그 파싱 실패: ${error.message}`;
+          this.parsedResult = null;
+        } finally {
+          this.isProcessing = false;
         }
       },
   
