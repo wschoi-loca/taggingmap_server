@@ -768,7 +768,7 @@ app.get('/auth/google/callback', async (req, res) => {
       console.log('[디버그] 토큰 교환 시도');
       
       // 현재 URI와 정확히 일치하는 리디렉션 URI 사용
-      const redirectUri = 'https://taggingmap-server-bd06b783e6ac.herokuapp.com/auth/google/callback';
+      const redirectUri = `${req.protocol}://${req.get('host')}/auth/google/callback`;
       
       // 폼 데이터 형식으로 변경 (application/x-www-form-urlencoded)
       const params = new URLSearchParams();
