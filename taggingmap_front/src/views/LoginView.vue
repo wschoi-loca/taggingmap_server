@@ -4,6 +4,12 @@
       <h1>태깅맵 로그인</h1>
       <p class="subtitle">로카넷 계정으로 구글 로그인</p>
       <p class="subtitle2">계정권한 문의: 카드Biz 최원석</p>
+      
+      <!-- 환경 표시 (개발 환경에서만) -->
+      <div v-if="isDevelopment" class="env-indicator">
+        🚧 개발 환경 🚧
+      </div>
+      
       <div v-if="error" class="error-message">
         {{ error }}
       </div>
@@ -13,6 +19,12 @@
         <img src="@/assets/google-icon.svg" alt="Google" />
         {{ loading ? '로그인 중...' : '로카넷 구글 계정으로 로그인' }}
       </button>
+      
+      <!-- 디버그 정보 (개발 환경에서만) -->
+      <div v-if="isDevelopment" class="debug-info">
+        <p>현재 환경: {{ currentEnv }}</p>
+        <p>API 서버: {{ apiBaseUrl }}</p>
+      </div>
     </div>
   </div>
 </template>
@@ -26,6 +38,20 @@ export default {
       loading: false
     };
   },
+  computed: {
+    isDevelopment() {
+      return process.env.VUE_APP_ENV === 'development';
+    },
+    currentEnv() {
+      return process.env.VUE_APP_ENV || 'unknown';
+    },
+    apiBaseUrl() {
+      return process.env.VUE_APP_API_BASE_URL || window.location.origin;
+    },
+    googleClientId() {
+      return process.env.VUE_APP_GOOGLE_CLIENT_ID || '434460786285-svua7r71njstq0rdqmuacth5tlq6d49d.apps.googleusercontent.com';
+    }
+  },
   mounted() {
     // URL에서 로그인 결과 파라미터 확인
     const urlParams = new URLSearchParams(window.location.search);
@@ -35,16 +61,17 @@ export default {
       this.error = '로그인에 실패했습니다. 다시 시도해주세요.';
     }
     
-    // 자동 로그인 시도 (3초 대기 후)
-    setTimeout(() => {
-      if (!this.$store.getters.isAuthenticated) {
-        this.redirectToGoogleLogin();
-      }
-    }, 3000);
+    // 개발 환경에서는 자동 로그인 비활성화 (선택사항)
+    if (!this.isDevelopment) {
+      // 자동 로그인 시도 (3초 대기 후)
+      setTimeout(() => {
+        if (!this.$store.getters.isAuthenticated) {
+          this.redirectToGoogleLogin();
+        }
+      }, 3000);
+    }
   },
-  // LoginView.vue methods 수정
   methods: {
-    // LoginView.vue의 로그인 버튼 클릭 함수
     redirectToGoogleLogin() {
       this.loading = true;
       
@@ -52,22 +79,23 @@ export default {
       const redirectPath = this.$store.getters.redirectPath || '/';
       localStorage.setItem('redirect_after_login', redirectPath);
       
-      // Google OAuth 인증 URL 구성
-      const clientId = '434460786285-svua7r71njstq0rdqmuacth5tlq6d49d.apps.googleusercontent.com';
-      const redirectUri = encodeURIComponent(`${window.location.origin}/auth/google/callback`);
+      // 환경에 따른 콜백 URL 설정
+      const redirectUri = encodeURIComponent(`${this.apiBaseUrl}/auth/google/callback`);
       const scope = encodeURIComponent('email profile');
       const responseType = 'code';
       const accessType = 'online';
-      const prompt = 'select_account'; // 계정 선택 화면 표시
+      const prompt = 'select_account';
       
       // Google OAuth 2.0 인증 서버로 리다이렉트
-      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=${responseType}&access_type=${accessType}&prompt=${prompt}`;
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${this.googleClientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=${responseType}&access_type=${accessType}&prompt=${prompt}`;
       
+      console.log('Redirecting to:', authUrl); // 디버깅용
       window.location.href = authUrl;
     }
   }
 };
 </script>
+
 
 <style scoped>
 .login-page {
@@ -157,5 +185,29 @@ h1 {
   font-size: 14px;
   margin-top: -20px;
   margin-bottom: 25px;
+}
+
+/* 기존 스타일 + 추가 스타일 */
+.env-indicator {
+  background: #ff9800;
+  color: white;
+  padding: 8px;
+  border-radius: 4px;
+  text-align: center;
+  font-weight: bold;
+  margin-bottom: 16px;
+}
+
+.debug-info {
+  margin-top: 20px;
+  padding: 10px;
+  background: #f5f5f5;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #666;
+}
+
+.debug-info p {
+  margin: 4px 0;
 }
 </style>

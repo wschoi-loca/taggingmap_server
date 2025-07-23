@@ -4,8 +4,17 @@
   "private": true,
   "scripts": {
     "serve": "vue-cli-service serve",
+    "serve:dev": "vue-cli-service serve --mode development",
+    "serve:prod": "vue-cli-service serve --mode production",
     "build": "vue-cli-service build",
-    "lint": "vue-cli-service lint"
+    "build:dev": "vue-cli-service build --mode development",
+    "build:prod": "vue-cli-service build --mode production",
+    "deploy:dev": "npm run build:dev && git push dev develop:main",
+    "deploy:prod": "npm run build:prod && git push prod main:main",
+    "logs:dev": "heroku logs --tail --app taggingmap-server-dev",
+    "logs:prod": "heroku logs --tail --app taggingmap-server",
+    "open:dev": "heroku open --app taggingmap-server-dev",
+    "open:prod": "heroku open --app taggingmap-server"
   },
   "dependencies": {
     "axios": "^1.8.3",
