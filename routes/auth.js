@@ -22,7 +22,7 @@ router.post('/google', async (req, res) => {
     
     // 이메일 도메인 확인 (조직 도메인으로 제한 가능)
     const domain = email.split('@')[1]
-    if (domain !== 'your-company-domain.com') {
+    if (domain !== 'lottecard.co.kr') {
       return res.status(403).json({ error: '허용된 도메인의 계정이 아닙니다.' })
     }
     
