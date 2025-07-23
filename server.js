@@ -70,11 +70,13 @@ app.use(cors({
   origin: [
     'https://taggingmap-server.herokuapp.com',
     'https://taggingmap-server-bd06b783e6ac.herokuapp.com',
+    'https://taggingmap-server-dev-6a9d92e8969a.herokuapp.com',
     'https://accounts.google.com',
     'https://apis.google.com',
     'https://dmo3.lottecard.co.kr',
     'https://dmoweb3.lottecard.co.kr',
     'https://cmweb2.lottecard.co.kr',
+    'https://wwww.loca-taggingmap.com',
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true
