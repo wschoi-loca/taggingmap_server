@@ -770,8 +770,10 @@ app.get('/auth/google/callback', async (req, res) => {
       console.log('[디버그] 토큰 교환 시도');
       
       // 현재 URI와 정확히 일치하는 리디렉션 URI 사용
-      const redirectUri = `${req.protocol}://${req.get('host')}/auth/google/callback`;
-      
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+      const host = req.get('host');
+      const redirectUri = `${protocol}://${host}/auth/google/callback`;
+
       // 폼 데이터 형식으로 변경 (application/x-www-form-urlencoded)
       const params = new URLSearchParams();
       params.append('code', code);
@@ -1000,7 +1002,9 @@ app.get('/auth/success', (req, res) => {
 // server.js - 서버 측 라우트 추가
 app.get('/api/auth/google-login-url', (req, res) => {
   const clientId = process.env.GOOGLE_CLIENT_ID;
-  const redirectUri = encodeURIComponent(`${req.protocol}://${req.get('host')}/auth/google/callback`);
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+  const host = req.get('host');
+  const redirectUri = encodeURIComponent(`${protocol}://${host}/auth/google/callback`);
   const scope = encodeURIComponent('email profile');
   const responseType = 'code';
   const accessType = 'online';
