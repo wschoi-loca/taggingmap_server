@@ -70,11 +70,13 @@ app.use(cors({
   origin: [
     'https://taggingmap-server.herokuapp.com',
     'https://taggingmap-server-bd06b783e6ac.herokuapp.com',
+    'https://taggingmap-server-dev-6a9d92e8969a.herokuapp.com',
     'https://accounts.google.com',
     'https://apis.google.com',
     'https://dmo3.lottecard.co.kr',
     'https://dmoweb3.lottecard.co.kr',
     'https://cmweb2.lottecard.co.kr',
+    'https://wwww.loca-taggingmap.com',
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true
@@ -768,8 +770,10 @@ app.get('/auth/google/callback', async (req, res) => {
       console.log('[디버그] 토큰 교환 시도');
       
       // 현재 URI와 정확히 일치하는 리디렉션 URI 사용
-      const redirectUri = `${req.protocol}://${req.get('host')}/auth/google/callback`;
-      
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+      const host = req.get('host');
+      const redirectUri = `${protocol}://${host}/auth/google/callback`;
+
       // 폼 데이터 형식으로 변경 (application/x-www-form-urlencoded)
       const params = new URLSearchParams();
       params.append('code', code);
@@ -998,7 +1002,9 @@ app.get('/auth/success', (req, res) => {
 // server.js - 서버 측 라우트 추가
 app.get('/api/auth/google-login-url', (req, res) => {
   const clientId = process.env.GOOGLE_CLIENT_ID;
-  const redirectUri = encodeURIComponent(`${req.protocol}://${req.get('host')}/auth/google/callback`);
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+  const host = req.get('host');
+  const redirectUri = encodeURIComponent(`${protocol}://${host}/auth/google/callback`);
   const scope = encodeURIComponent('email profile');
   const responseType = 'code';
   const accessType = 'online';
