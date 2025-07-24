@@ -24,8 +24,7 @@ app.use((req, res, next) => {
     "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://accounts.google.com https://*.googleapis.com https://*.gstatic.com https://cdn.sheetjs.com; " +
     "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com https://accounts.google.com; " +
     "img-src 'self' https://*.googleapis.com https://*.gstatic.com https://res.cloudinary.com https://accounts.google.com data:; " +
-    "connect-src 'self' https://*.googleapis.com https://accounts.google.com https://apis.google.com; " +
-    "font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com data:; " +
+    "connect-src 'self' https://taggingmap-server-bd06b783e6ac.herokuapp.com https://*.googleapis.com https://accounts.google.com https://apis.google.com; " +    "font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com data:; " +
     "frame-src https://accounts.google.com https://content.googleapis.com; " +
     "object-src 'none'"
   );
