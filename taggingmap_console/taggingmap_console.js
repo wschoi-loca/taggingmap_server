@@ -803,6 +803,18 @@ function extractGtmData(eventType, mapping) {
             pathname = pathname.slice(0, -1);
         }
         var title = pathname.replace(/\//g, '>');
+
+        if (dataGtmBodySection) {
+            for (var source in dataGtmBodySection) {
+                var mappedKey = (mapping === 'rdp') ? rdp_section_mapping[source] : ga_section_mapping[source];
+                if (mappedKey) {
+                    if (eventParameter.hasOwnProperty(mappedKey)) {
+                        console.warn('키가 겹칩니다 (섹션 데이터 -> 이벤트 데이터):', '요소 번호:', index, '키:', mappedKey, '기존 값:', eventParameter[mappedKey], '새 값:', dataGtmBodySection[source]);
+                    }
+                    eventParameter[mappedKey] = dataGtmBodySection[source];
+                }
+            }
+        }
     
         if (dataGtmBodyEvent) {
             var eventData = JSON.parse(dataGtmBodyEvent);
@@ -817,17 +829,7 @@ function extractGtmData(eventType, mapping) {
             }
         }
     
-        if (dataGtmBodySection) {
-            for (var source in dataGtmBodySection) {
-                var mappedKey = (mapping === 'rdp') ? rdp_section_mapping[source] : ga_section_mapping[source];
-                if (mappedKey) {
-                    if (eventParameter.hasOwnProperty(mappedKey)) {
-                        console.warn('키가 겹칩니다 (섹션 데이터 -> 이벤트 데이터):', '요소 번호:', index, '키:', mappedKey, '기존 값:', eventParameter[mappedKey], '새 값:', dataGtmBodySection[source]);
-                    }
-                    eventParameter[mappedKey] = dataGtmBodySection[source];
-                }
-            }
-        }
+
     
         if (el.hasAttribute('data-gtm-popup-visibility') || el.hasAttribute('data-gtm-popup-click')) {
             var popupBodyData = el.getAttribute('data-gtm-popup-body');
