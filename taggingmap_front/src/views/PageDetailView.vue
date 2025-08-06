@@ -1672,6 +1672,33 @@ async created() {
         };
         reader.readAsText(file);
       },
+            // 동일한 이벤트명(en), 페이지 경로(dl), 페이지 타이틀(dt)를 가진 로그 항목 그룹화
+      groupLogsByEventAndPath(logs) {
+        const eventGroups = {};
+        
+        for (const log of logs) {
+          // 그룹화 키 생성: "이벤트타입_URL_페이지타이틀"
+          const groupKey = `${log.EVENTTYPE}_${log.URL}_${log.PAGETITLE}`;
+          
+          if (!eventGroups[groupKey]) {
+            // 새 그룹 생성
+            eventGroups[groupKey] = {
+              TIME: log.TIME,
+              EVENTTYPE: log.EVENTTYPE,
+              PAGETITLE: log.PAGETITLE,
+              URL: log.URL,
+              eventParams: [],
+              timestamp: log.timestamp
+            };
+          }
+          
+          // 이벤트 파라미터 합치기
+          eventGroups[groupKey].eventParams = [...eventGroups[groupKey].eventParams, ...log.eventParams];
+        }
+        
+        // 객체를 배열로 변환
+        return Object.values(eventGroups);
+      },
       
       parseLog() {
         console.log("parseLog 실행됨!");
