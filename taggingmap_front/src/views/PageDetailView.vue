@@ -1672,7 +1672,7 @@ async created() {
         };
         reader.readAsText(file);
       },
-            // 동일한 이벤트명(en), 페이지 경로(dl), 페이지 타이틀(dt)를 가진 로그 항목 그룹화
+      // 동일한 이벤트명(en), 페이지 경로(dl), 페이지 타이틀(dt)를 가진 로그 항목 그룹화
       groupLogsByEventAndPath(logs) {
         const eventGroups = {};
         
